@@ -1,0 +1,350 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Brand Colors */
+  --color-base: #0A0A0B;
+  --color-surface: #111113;
+  --color-surface-alt: #18181B;
+  --color-border: #27272A;
+  --color-text: #FAFAFA;
+  --color-text-muted: #A1A1AA;
+  --color-cyan: #00F0FF;
+  --color-magenta: #FF2D78;
+  --color-gold: #FFD700;
+  --color-green: #00FF88;
+  --color-red: #FF4444;
+
+  /* Fonts */
+  --font-sans: "Sora", sans-serif;
+  --font-heading: "Orbitron", sans-serif;
+  --font-ui: "Rajdhani", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+/* Global Reset & Base */
+body {
+  background: var(--color-base);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: rgba(0, 240, 255, 0.25);
+  color: #fff;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-base);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-cyan);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.1); }
+  50% { box-shadow: 0 0 50px rgba(0, 240, 255, 0.2); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(0, 240, 255, 0.15); }
+  50% { border-color: rgba(0, 240, 255, 0.4); }
+}
+
+@keyframes subtleFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.005); }
+}
+
+/* Utility Classes */
+.animate-fadeIn {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.6s ease-out forwards;
+}
+
+.animate-glow {
+  animation: glow 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-gradientShift {
+  animation: gradientShift 6s ease infinite;
+  background-size: 200% 200%;
+}
+
+.animate-borderGlow {
+  animation: borderGlow 3s ease-in-out infinite;
+}
+
+.animate-subtleFloat {
+  animation: subtleFloat 4s ease-in-out infinite;
+}
+
+/* Netflix-style infinite scroll */
+@keyframes scrollLeft {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes scrollRight {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+.scroll-row {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+}
+
+.scroll-left {
+  animation: scrollLeft var(--scroll-duration, 50s) linear infinite;
+}
+
+.scroll-right {
+  animation: scrollRight var(--scroll-duration, 55s) linear infinite;
+}
+
+.game-tile {
+  flex-shrink: 0;
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              box-shadow 0.5s ease;
+}
+
+.game-tile:hover {
+  transform: scale(1.08);
+  z-index: 20;
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
+}
+
+/* Gradient Text */
+.text-gradient {
+  background: linear-gradient(135deg, var(--color-cyan), var(--color-magenta));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glass Effect */
+.glass {
+  background: rgba(17, 17, 19, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Dot Grid Background */
+.dot-grid {
+  background-image: radial-gradient(circle, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Slide in from right (for chat panels) */
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.3s ease-out both;
+}
+
+/* Staggered fade-in for grid items */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes heartBeat {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.3); }
+  50% { transform: scale(1); }
+  75% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.3s ease-out both;
+}
+
+.animate-heartBeat {
+  animation: heartBeat 0.4s ease-in-out;
+}
+
+/* Button press micro-interaction */
+.press-feedback {
+  transition: transform 0.1s ease;
+}
+.press-feedback:active {
+  transform: scale(0.97);
+}
+
+/* Safe area for mobile bottom bars */
+.safe-area-pb {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Mobile touch-action: prevent accidental double-tap zoom on buttons */
+button, a, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* Minimum touch target size (48px is WCAG 2.1 AA) */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Overscroll behavior for mobile */
+.overscroll-none {
+  overscroll-behavior: none;
+}
+
+/* Pull to refresh spinner */
+@keyframes spinPull {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spinPull {
+  animation: spinPull 0.8s linear infinite;
+}
+
+/* Tab bar bounce animation */
+@keyframes tabBounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.animate-tabBounce {
+  animation: tabBounce 0.3s ease-out;
+}
+
+/* Smooth scroll for in-page anchor links */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Stagger delay utilities for grid card entrance animations */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.10s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.20s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.30s; }
+.stagger-7 { animation-delay: 0.35s; }
+.stagger-8 { animation-delay: 0.40s; }
+
+/* Widget entrance animation */
+@keyframes widgetEnter {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-widgetEnter {
+  animation: widgetEnter 0.5s ease-out both;
+}
+
+/* Link hover underline effect */
+.link-underline {
+  position: relative;
+}
+.link-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 0;
+  height: 1px;
+  background: var(--color-cyan);
+  transition: width 0.3s ease;
+}
+.link-underline:hover::after {
+  width: 100%;
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Mobile-specific: hide footer when bottom nav is visible */
+@media (max-width: 1023px) {
+  footer {
+    display: none;
+  }
+}
