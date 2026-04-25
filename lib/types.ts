@@ -486,6 +486,7 @@ export interface SellerRating {
   seller_id: string;
   reviewer_id: string;
   listing_id: string;
+  swap_proposal_id: string | null;
   rating: number;
   communication_rating: number | null;
   condition_rating: number | null;
