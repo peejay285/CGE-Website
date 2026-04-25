@@ -574,6 +574,33 @@ export function useMarketplace(filters?: ListingFilters) {
     [supabase]
   );
 
+  const getMyOutgoingProposals = useCallback(
+    async (): Promise<SwapProposal[]> => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return [];
+        const { data, error: fetchError } = await supabase
+          .from("swap_proposals")
+          .select(
+            "*, proposer:profiles!proposer_id(id, full_name, avatar_url, gamertag), offered_listing:marketplace_listings!offered_listing_id(id, title, images, condition, category), target_listing:marketplace_listings!listing_id(id, title, images, condition, category, user_id)",
+          )
+          .eq("proposer_id", user.id)
+          .order("created_at", { ascending: false });
+        if (fetchError) throw fetchError;
+        return (data ?? []).map((item: Record<string, unknown>) => ({
+          ...item,
+          proposer: item.proposer ?? undefined,
+          offered_listing: item.offered_listing ?? undefined,
+        })) as SwapProposal[];
+      } catch {
+        return [];
+      }
+    },
+    [supabase],
+  );
+
   const getSwapProposals = useCallback(
     async (listingId: string): Promise<SwapProposal[]> => {
       try {
@@ -823,6 +850,7 @@ export function useMarketplace(filters?: ListingFilters) {
     getMyListings,
     createSwapProposal,
     getSwapProposals,
+    getMyOutgoingProposals,
     updateProposalStatus,
     markShipped,
     markReceived,

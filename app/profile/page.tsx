@@ -93,9 +93,9 @@ export default function ProfilePage() {
     },
     {
       icon: ArrowLeftRight,
-      label: "My Swaps",
-      description: `${stats?.total_swaps ?? 0} completed`,
-      href: "/marketplace?swaps=true",
+      label: "My Swap Proposals",
+      description: "Track outgoing swaps & ship/receive",
+      href: "/profile/swaps",
       color: "text-magenta",
     },
     {
