@@ -5,7 +5,12 @@ import { Loader2, X, ImagePlus, ArrowLeftRight, Phone, MapPin, GripVertical } fr
 import { Modal } from "@/components/ui/modal";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { MARKETPLACE_CATEGORIES, LISTING_CONDITIONS, SWAP_SUGGESTIONS } from "@/lib/constants";
+import {
+  MARKETPLACE_CATEGORIES,
+  LISTING_CONDITIONS,
+  SWAP_SUGGESTIONS,
+  NIGERIAN_STATES,
+} from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 type ListingType = "sell" | "swap" | "sell_or_swap";
@@ -25,6 +30,8 @@ interface CreateListingModalProps {
     swap_for_tags: string[];
     buyout_price: number | null;
     location?: string;
+    location_state: string;
+    location_city?: string;
     phone?: string;
   }) => void;
   loading?: boolean;
@@ -34,23 +41,6 @@ interface CreateListingModalProps {
 const MAX_IMAGES = 4;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_SWAP_TAGS = 8;
-
-const NIGERIAN_LOCATIONS = [
-  "Bonny Island",
-  "Port Harcourt",
-  "Lagos",
-  "Abuja",
-  "Warri",
-  "Calabar",
-  "Aba",
-  "Benin City",
-  "Enugu",
-  "Ibadan",
-  "Kaduna",
-  "Kano",
-  "Owerri",
-  "Uyo",
-];
 
 const LISTING_TYPE_OPTIONS: { value: ListingType; label: string; desc: string }[] = [
   { value: "swap", label: "Swap Only", desc: "Trade for something" },
@@ -69,7 +59,8 @@ export function CreateListingModal({ open, onClose, onSubmit, loading, sellerPho
   const [swapForTags, setSwapForTags] = useState<string[]>([]);
   const [swapTagInput, setSwapTagInput] = useState("");
   const [phone, setPhone] = useState("");
-  const [location, setLocation] = useState("");
+  const [locationState, setLocationState] = useState("");
+  const [locationCity, setLocationCity] = useState("");
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [imageError, setImageError] = useState("");
@@ -192,7 +183,8 @@ export function CreateListingModal({ open, onClose, onSubmit, loading, sellerPho
     setSwapForTags([]);
     setSwapTagInput("");
     setPhone("");
-    setLocation("");
+    setLocationState("");
+    setLocationCity("");
     previews.forEach((url) => URL.revokeObjectURL(url));
     setImages([]);
     setPreviews([]);
@@ -218,7 +210,9 @@ export function CreateListingModal({ open, onClose, onSubmit, loading, sellerPho
         buyout_price: showBuyoutPrice && buyoutPrice && Number(buyoutPrice) > 0
           ? Number(buyoutPrice)
           : null,
-        location: location.trim() || undefined,
+        location: [locationCity.trim(), locationState].filter(Boolean).join(", ") || undefined,
+        location_state: locationState,
+        location_city: locationCity.trim() || undefined,
         phone: needsPhone && phone ? phone.replace(/\s/g, "") : undefined,
       });
     }
@@ -233,6 +227,7 @@ export function CreateListingModal({ open, onClose, onSubmit, loading, sellerPho
     title.trim() &&
     category &&
     condition &&
+    locationState &&
     (showPrice ? price && Number(price) > 0 : true) &&
     (needsPhone ? /^0[789]\d{9}$/.test(phone.replace(/\s/g, "")) : true);
 
@@ -467,39 +462,43 @@ export function CreateListingModal({ open, onClose, onSubmit, loading, sellerPho
         </div>
 
         {/* Location */}
-        <div>
-          <label className="text-xs font-medium uppercase tracking-wider text-text-muted mb-1.5 block">
-            Your Location
-          </label>
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            {NIGERIAN_LOCATIONS.slice(0, 6).map((loc) => (
-              <button
-                key={loc}
-                type="button"
-                onClick={() => setLocation(loc)}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer flex items-center gap-1",
-                  location === loc
-                    ? "bg-cyan/15 text-cyan border-cyan/30"
-                    : "border-border text-text-muted hover:border-cyan/20 hover:text-text"
-                )}
-              >
-                <MapPin size={9} />
-                {loc}
-              </button>
-            ))}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-medium uppercase tracking-wider text-text-muted mb-1.5 block">
+              State
+            </label>
+            <select
+              value={locationState}
+              onChange={(e) => setLocationState(e.target.value)}
+              required
+              className="w-full rounded-lg border border-border bg-surface-alt px-3 py-2 text-sm text-text focus:outline-none focus:border-cyan/40 focus:ring-1 focus:ring-cyan/20"
+            >
+              <option value="" disabled>
+                Select state
+              </option>
+              {NIGERIAN_STATES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
           </div>
-          <input
-            type="text"
-            placeholder="Or type your city/area..."
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            maxLength={50}
-            className="w-full rounded-lg border border-border bg-surface-alt px-3 py-2 text-sm text-text placeholder:text-text-muted/50 focus:outline-none focus:border-cyan/40 focus:ring-1 focus:ring-cyan/20 transition-colors"
-          />
-          <p className="text-[11px] text-text-muted/60 mt-1 flex items-center gap-1">
+          <div>
+            <label className="text-xs font-medium uppercase tracking-wider text-text-muted mb-1.5 block">
+              City (optional)
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Bonny Island"
+              value={locationCity}
+              onChange={(e) => setLocationCity(e.target.value)}
+              maxLength={50}
+              className="w-full rounded-lg border border-border bg-surface-alt px-3 py-2 text-sm text-text placeholder:text-text-muted/50 focus:outline-none focus:border-cyan/40 focus:ring-1 focus:ring-cyan/20"
+            />
+          </div>
+          <p className="col-span-2 text-[11px] text-text-muted/60 -mt-1 flex items-center gap-1">
             <MapPin size={10} />
-            Helps buyers/swappers know if you&apos;re nearby
+            Helps buyers and swappers know if you&apos;re nearby
           </p>
         </div>
 

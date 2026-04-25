@@ -112,6 +112,8 @@ export default function MarketplacePage() {
           isSignedIn={!!mp.user}
           priceRange={mp.priceRange}
           onPriceRangeChange={mp.setPriceRange}
+          locationState={mp.locationState}
+          onLocationStateChange={mp.setLocationState}
           listingTitles={mp.listingTitles}
         />
 

@@ -29,12 +29,24 @@ export function useAuth() {
   }, [supabase.auth]);
 
   const signUp = useCallback(
-    async (email: string, password: string, fullName: string, phone: string) => {
+    async (
+      email: string,
+      password: string,
+      fullName: string,
+      phone: string,
+      locationState: string,
+      locationCity?: string,
+    ) => {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { full_name: fullName, phone },
+          data: {
+            full_name: fullName,
+            phone,
+            location_state: locationState,
+            location_city: locationCity ?? null,
+          },
         },
       });
       return { data, error };

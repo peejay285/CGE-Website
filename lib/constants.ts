@@ -156,6 +156,16 @@ export const SWAP_SUGGESTIONS = [
   "Any Xbox Game",
 ] as const;
 
+export const NIGERIAN_STATES = [
+  "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue",
+  "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu",
+  "FCT", "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi",
+  "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun",
+  "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara",
+] as const;
+
+export type NigerianState = typeof NIGERIAN_STATES[number];
+
 export const SAFETY_GUIDELINES = {
   short:
     "CGE is not a party to peer-to-peer trades. Verify the other user, meet in public or ship with tracking, and inspect items before exchanging.",

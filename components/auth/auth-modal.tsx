@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { TabBar } from "@/components/ui/tab-bar";
 import { useAuth } from "@/hooks/use-auth";
+import { NIGERIAN_STATES } from "@/lib/constants";
 import toast from "react-hot-toast";
 
 interface AuthModalProps {
@@ -38,6 +39,8 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [locationState, setLocationState] = useState("");
+  const [locationCity, setLocationCity] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
@@ -92,7 +95,18 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
           toast.error("Please enter a valid Nigerian phone number (e.g. 08012345678)");
           return;
         }
-        const { error } = await signUp(email.toLowerCase().trim(), password, fullName.trim(), phone.replace(/\s/g, ""));
+        if (!locationState) {
+          toast.error("Please select your state");
+          return;
+        }
+        const { error } = await signUp(
+          email.toLowerCase().trim(),
+          password,
+          fullName.trim(),
+          phone.replace(/\s/g, ""),
+          locationState,
+          locationCity.trim() || undefined,
+        );
         if (error) {
           if (error.message.includes("already registered")) {
             toast.error("This email is already registered. Try signing in instead.");
@@ -116,6 +130,8 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
     setConfirmPassword("");
     setFullName("");
     setPhone("");
+    setLocationState("");
+    setLocationCity("");
     setShowPassword(false);
   };
 
@@ -279,6 +295,34 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
                   placeholder="08012345678"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
+                  disabled={loading}
+                />
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium uppercase tracking-wider text-text-muted">
+                    State
+                  </label>
+                  <select
+                    value={locationState}
+                    onChange={(e) => setLocationState(e.target.value)}
+                    required
+                    disabled={loading}
+                    className="w-full rounded-lg border border-border bg-surface-alt px-3 py-2.5 text-sm text-text outline-none focus:border-cyan disabled:opacity-50"
+                  >
+                    <option value="" disabled>
+                      Select your state
+                    </option>
+                    {NIGERIAN_STATES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Input
+                  label="City (optional)"
+                  placeholder="e.g. Bonny Island"
+                  value={locationCity}
+                  onChange={(e) => setLocationCity(e.target.value)}
                   disabled={loading}
                 />
               </>

@@ -8,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NIGERIAN_STATES } from "@/lib/constants";
 import { SearchSuggestions, addToSearchHistory } from "./search-suggestions";
 
 type ListingTypeFilter = "all" | "swap" | "buy" | "saved";
@@ -40,6 +41,8 @@ interface ListingFiltersProps {
   isSignedIn?: boolean;
   priceRange: { min: string; max: string };
   onPriceRangeChange: (range: { min: string; max: string }) => void;
+  locationState: string;
+  onLocationStateChange: (state: string) => void;
   listingTitles?: string[];
 }
 
@@ -52,6 +55,8 @@ export function ListingFilters({
   isSignedIn,
   priceRange,
   onPriceRangeChange,
+  locationState,
+  onLocationStateChange,
   listingTitles,
 }: ListingFiltersProps) {
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
@@ -170,6 +175,30 @@ export function ListingFilters({
             </button>
           );
         })}
+
+        {/* Divider */}
+        <div className="w-px bg-border/50 shrink-0 my-1" />
+
+        {/* State filter */}
+        <select
+          value={locationState}
+          onChange={(e) => onLocationStateChange(e.target.value)}
+          aria-label="Filter by state"
+          className={cn(
+            "px-3 py-1.5 rounded-lg text-[11px] font-semibold border whitespace-nowrap cursor-pointer",
+            "transition-all duration-200 active:scale-95",
+            locationState
+              ? "bg-cyan/15 text-cyan border-cyan/30"
+              : "bg-surface-alt text-text-muted border-border hover:text-text hover:border-cyan/20"
+          )}
+        >
+          <option value="">All states</option>
+          {NIGERIAN_STATES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
 
         {/* Divider */}
         {listingTypeFilter !== "swap" && (

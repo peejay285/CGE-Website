@@ -10,6 +10,7 @@ interface ListingFilters {
   category?: string;
   search?: string;
   status?: string;
+  locationState?: string;
   limit?: number;
   offset?: number;
 }
@@ -26,6 +27,8 @@ interface CreateListingData {
   swap_for_tags?: string[];
   buyout_price?: number | null;
   location?: string | null;
+  location_state?: string;
+  location_city?: string | null;
 }
 
 interface UpdateListingData {
@@ -89,6 +92,9 @@ export function useMarketplace(filters?: ListingFilters) {
       if (activeFilters?.search) {
         const safe = escapePostgrestSearch(activeFilters.search);
         query = query.ilike("title", `%${safe}%`);
+      }
+      if (activeFilters?.locationState) {
+        query = query.eq("location_state", activeFilters.locationState);
       }
 
       const { data, error: fetchError } = await query;
@@ -249,6 +255,8 @@ export function useMarketplace(filters?: ListingFilters) {
             swap_for_tags: listingData.swap_for_tags ?? [],
             buyout_price: listingData.buyout_price ?? null,
             location: listingData.location ?? null,
+            location_state: listingData.location_state ?? null,
+            location_city: listingData.location_city ?? null,
             status: "active",
           })
           .select("*, seller:profiles!seller_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps)")

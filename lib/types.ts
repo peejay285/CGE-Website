@@ -23,6 +23,9 @@ export interface Profile {
   following_count?: number;
   tournament_count?: number;
   achievement_count?: number;
+  // Location (PR #2)
+  location_state?: string | null;
+  location_city?: string | null;
 }
 
 export interface Zone {
@@ -259,6 +262,8 @@ export interface MarketplaceListing {
   swap_for_tags: string[];
   buyout_price: number | null;
   location: string | null;
+  location_state: string | null;
+  location_city: string | null;
   views_count: number;
   status: "active" | "sold" | "archived";
   created_at: string;

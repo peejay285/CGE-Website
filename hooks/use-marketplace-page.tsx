@@ -92,6 +92,7 @@ export function useMarketplacePage() {
     min: "",
     max: "",
   });
+  const [locationState, setLocationState] = useState("");
   const [selectedListing, setSelectedListing] =
     useState<MarketplaceListing | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -147,8 +148,8 @@ export function useMarketplacePage() {
   /* ── Effects ───────────────────────────────────────────── */
 
   // Infinite scroll observer — loads more when sentinel enters viewport
-  const loadMoreFiltersRef = useRef({ debouncedSearch, category });
-  loadMoreFiltersRef.current = { debouncedSearch, category };
+  const loadMoreFiltersRef = useRef({ debouncedSearch, category, locationState });
+  loadMoreFiltersRef.current = { debouncedSearch, category, locationState };
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -157,11 +158,13 @@ export function useMarketplacePage() {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
-          const filters: { search?: string; category?: string } = {};
+          const filters: { search?: string; category?: string; locationState?: string } = {};
           if (loadMoreFiltersRef.current.debouncedSearch)
             filters.search = loadMoreFiltersRef.current.debouncedSearch;
           if (loadMoreFiltersRef.current.category !== "All")
             filters.category = loadMoreFiltersRef.current.category;
+          if (loadMoreFiltersRef.current.locationState)
+            filters.locationState = loadMoreFiltersRef.current.locationState;
           loadMore(filters);
         }
       },
@@ -216,13 +219,14 @@ export function useMarketplacePage() {
     };
   }, [search]);
 
-  // Re-fetch listings when debounced search or category changes
+  // Re-fetch listings when debounced search, category, or state changes
   useEffect(() => {
-    const filters: { search?: string; category?: string } = {};
+    const filters: { search?: string; category?: string; locationState?: string } = {};
     if (debouncedSearch) filters.search = debouncedSearch;
     if (category !== "All") filters.category = category;
+    if (locationState) filters.locationState = locationState;
     getListings(filters);
-  }, [debouncedSearch, category, getListings]);
+  }, [debouncedSearch, category, locationState, getListings]);
 
   /* ── Memoized filtered listings ────────────────────────── */
 
@@ -648,6 +652,8 @@ export function useMarketplacePage() {
     setListingTypeFilter,
     priceRange,
     setPriceRange,
+    locationState,
+    setLocationState,
     selectedListing,
     setSelectedListing,
     createOpen,
