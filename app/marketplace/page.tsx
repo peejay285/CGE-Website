@@ -285,6 +285,10 @@ export default function MarketplacePage() {
         proposalsLoading={mp.proposalsLoading}
         onAcceptProposal={mp.handleAcceptProposal}
         onDeclineProposal={mp.handleDeclineProposal}
+        onMarkOwnerShipped={mp.handleMarkOwnerShipped}
+        onMarkOwnerReceived={mp.handleMarkOwnerReceived}
+        onCancelSwap={mp.handleCancelSwap}
+        onDisputeSwap={mp.handleDisputeSwap}
         onViewSellerProfile={mp.handleViewSellerProfile}
         onLeaveReview={() => triggerAppGate("marketplace-buy")}
         allListings={mp.listings}

@@ -277,14 +277,42 @@ export interface MarketplaceListing {
   user_has_saved: boolean;
 }
 
+export type SwapProposalStatus =
+  | "pending"
+  | "accepted"
+  | "declined"
+  | "in_transit"
+  | "completed"
+  | "cancelled"
+  | "disputed"
+  | "expired";
+
 export interface SwapProposal {
   id: string;
   listing_id: string;
   proposer_id: string;
   offered_listing_id: string;
   message: string | null;
-  status: "pending" | "accepted" | "declined";
+  status: SwapProposalStatus;
   created_at: string;
+  // Tier 3 lifecycle
+  accepted_at: string | null;
+  declined_at: string | null;
+  proposer_shipped_at: string | null;
+  proposer_tracking: string | null;
+  owner_shipped_at: string | null;
+  owner_tracking: string | null;
+  proposer_received_at: string | null;
+  owner_received_at: string | null;
+  completed_at: string | null;
+  cancelled_at: string | null;
+  cancelled_by: string | null;
+  cancellation_reason: string | null;
+  disputed_at: string | null;
+  disputed_by: string | null;
+  dispute_reason: string | null;
+  expires_at: string | null;
+  // Joined
   proposer?: Pick<Profile, "id" | "full_name" | "avatar_url" | "gamertag">;
   offered_listing?: Pick<MarketplaceListing, "id" | "title" | "images" | "condition" | "category">;
 }

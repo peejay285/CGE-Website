@@ -52,6 +52,10 @@ interface ListingDetailModalProps {
   proposalsLoading?: boolean;
   onAcceptProposal?: (proposalId: string) => void;
   onDeclineProposal?: (proposalId: string) => void;
+  onMarkOwnerShipped?: (proposalId: string, tracking?: string) => void;
+  onMarkOwnerReceived?: (proposalId: string) => void;
+  onCancelSwap?: (proposalId: string, reason: string) => void;
+  onDisputeSwap?: (proposalId: string, reason: string) => void;
   // Trust system
   onViewSellerProfile?: (sellerId: string) => void;
   onLeaveReview?: (listing: MarketplaceListing) => void;
@@ -338,6 +342,10 @@ export function ListingDetailModal({
   proposalsLoading,
   onAcceptProposal,
   onDeclineProposal,
+  onMarkOwnerShipped,
+  onMarkOwnerReceived,
+  onCancelSwap,
+  onDisputeSwap,
   onViewSellerProfile,
   onLeaveReview,
   allListings,
@@ -710,6 +718,10 @@ export function ListingDetailModal({
                 loading={proposalsLoading}
                 onAccept={(id) => onAcceptProposal?.(id)}
                 onDecline={(id) => onDeclineProposal?.(id)}
+                onMarkOwnerShipped={onMarkOwnerShipped}
+                onMarkOwnerReceived={onMarkOwnerReceived}
+                onCancel={onCancelSwap}
+                onDispute={onDisputeSwap}
               />
             )}
         </div>

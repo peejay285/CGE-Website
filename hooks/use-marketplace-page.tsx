@@ -148,6 +148,10 @@ export function useMarketplacePage() {
     createSwapProposal,
     getSwapProposals,
     updateProposalStatus,
+    markShipped,
+    markReceived,
+    cancelSwap,
+    disputeSwap,
   } = useMarketplace();
 
   /* ── Effects ───────────────────────────────────────────── */
@@ -584,6 +588,72 @@ export function useMarketplacePage() {
     [updateProposalStatus]
   );
 
+  /* ── Tier 3 lifecycle handlers (listing-owner side) ───── */
+
+  const refreshProposalsFor = useCallback(
+    async (listingId: string) => {
+      const fresh = await getSwapProposals(listingId);
+      setProposals(fresh);
+    },
+    [getSwapProposals],
+  );
+
+  const handleMarkOwnerShipped = useCallback(
+    async (proposalId: string, tracking?: string) => {
+      const ok = await markShipped(proposalId, "owner", tracking);
+      if (!ok) {
+        toast.error("Couldn't mark as shipped. Try again.");
+        return;
+      }
+      toast.success("Marked as shipped.");
+      const listingId = selectedListing?.id;
+      if (listingId) await refreshProposalsFor(listingId);
+    },
+    [markShipped, selectedListing, refreshProposalsFor],
+  );
+
+  const handleMarkOwnerReceived = useCallback(
+    async (proposalId: string) => {
+      const ok = await markReceived(proposalId, "owner");
+      if (!ok) {
+        toast.error("Couldn't confirm receipt. Try again.");
+        return;
+      }
+      toast.success("Receipt confirmed.");
+      const listingId = selectedListing?.id;
+      if (listingId) await refreshProposalsFor(listingId);
+    },
+    [markReceived, selectedListing, refreshProposalsFor],
+  );
+
+  const handleCancelSwap = useCallback(
+    async (proposalId: string, reason: string) => {
+      const ok = await cancelSwap(proposalId, reason);
+      if (!ok) {
+        toast.error("Couldn't cancel the swap.");
+        return;
+      }
+      toast.success("Swap cancelled.");
+      const listingId = selectedListing?.id;
+      if (listingId) await refreshProposalsFor(listingId);
+    },
+    [cancelSwap, selectedListing, refreshProposalsFor],
+  );
+
+  const handleDisputeSwap = useCallback(
+    async (proposalId: string, reason: string) => {
+      const ok = await disputeSwap(proposalId, reason);
+      if (!ok) {
+        toast.error("Couldn't open the dispute.");
+        return;
+      }
+      toast.success("Reported. Our team will follow up.");
+      const listingId = selectedListing?.id;
+      if (listingId) await refreshProposalsFor(listingId);
+    },
+    [disputeSwap, selectedListing, refreshProposalsFor],
+  );
+
   /* ── Save from detail modal ───────────────────────────── */
 
   const handleSaveFromDetail = useCallback(
@@ -743,6 +813,10 @@ export function useMarketplacePage() {
     handleSubmitSwapProposal,
     handleAcceptProposal,
     handleDeclineProposal,
+    handleMarkOwnerShipped,
+    handleMarkOwnerReceived,
+    handleCancelSwap,
+    handleDisputeSwap,
     handleSaveFromDetail,
     handleCloseDetailModal,
     handleCloseSwapModal,

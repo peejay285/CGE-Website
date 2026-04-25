@@ -606,9 +606,12 @@ export function useMarketplace(filters?: ListingFilters) {
     ): Promise<boolean> => {
       try {
         setActionLoading(true);
+        const patch: Record<string, unknown> = { status };
+        if (status === "accepted") patch.accepted_at = new Date().toISOString();
+        if (status === "declined") patch.declined_at = new Date().toISOString();
         const { error: updateError } = await supabase
           .from("swap_proposals")
-          .update({ status })
+          .update(patch)
           .eq("id", proposalId);
 
         if (updateError) throw updateError;
@@ -620,6 +623,115 @@ export function useMarketplace(filters?: ListingFilters) {
       }
     },
     [supabase]
+  );
+
+  /* ─────────────────────────────────────────
+   *  TIER 3 LIFECYCLE
+   *
+   * Either party calls markShipped / markReceived for their own side.
+   * The status-keeper trigger derives the proposal's status from the
+   * timestamps. Cancellation is also either-party. Dispute flags the
+   * proposal for manual review.
+   * ───────────────────────────────────────── */
+
+  const markShipped = useCallback(
+    async (
+      proposalId: string,
+      side: "proposer" | "owner",
+      tracking?: string,
+    ): Promise<boolean> => {
+      try {
+        setActionLoading(true);
+        const patch: Record<string, unknown> = {
+          [`${side}_shipped_at`]: new Date().toISOString(),
+        };
+        if (tracking?.trim()) patch[`${side}_tracking`] = tracking.trim();
+        const { error } = await supabase
+          .from("swap_proposals")
+          .update(patch)
+          .eq("id", proposalId);
+        if (error) throw error;
+        return true;
+      } catch {
+        return false;
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [supabase],
+  );
+
+  const markReceived = useCallback(
+    async (proposalId: string, side: "proposer" | "owner"): Promise<boolean> => {
+      try {
+        setActionLoading(true);
+        const { error } = await supabase
+          .from("swap_proposals")
+          .update({ [`${side}_received_at`]: new Date().toISOString() })
+          .eq("id", proposalId);
+        if (error) throw error;
+        return true;
+      } catch {
+        return false;
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [supabase],
+  );
+
+  const cancelSwap = useCallback(
+    async (proposalId: string, reason?: string): Promise<boolean> => {
+      try {
+        setActionLoading(true);
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) throw new Error("User not authenticated");
+        const { error } = await supabase
+          .from("swap_proposals")
+          .update({
+            cancelled_at: new Date().toISOString(),
+            cancelled_by: user.id,
+            cancellation_reason: reason?.trim() ?? null,
+          })
+          .eq("id", proposalId);
+        if (error) throw error;
+        return true;
+      } catch {
+        return false;
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [supabase],
+  );
+
+  const disputeSwap = useCallback(
+    async (proposalId: string, reason: string): Promise<boolean> => {
+      try {
+        setActionLoading(true);
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) throw new Error("User not authenticated");
+        const { error } = await supabase
+          .from("swap_proposals")
+          .update({
+            disputed_at: new Date().toISOString(),
+            disputed_by: user.id,
+            dispute_reason: reason.trim(),
+          })
+          .eq("id", proposalId);
+        if (error) throw error;
+        return true;
+      } catch {
+        return false;
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [supabase],
   );
 
   /* ────────────────────────────────────────
@@ -712,6 +824,10 @@ export function useMarketplace(filters?: ListingFilters) {
     createSwapProposal,
     getSwapProposals,
     updateProposalStatus,
+    markShipped,
+    markReceived,
+    cancelSwap,
+    disputeSwap,
     subscribeToListings,
   };
 }
