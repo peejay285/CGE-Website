@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, Navigation, Check } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { TabBar } from "@/components/ui/tab-bar";
 import { useAuth } from "@/hooks/use-auth";
+import { useGeolocation } from "@/hooks/use-geolocation";
 import { NIGERIAN_STATES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 
 interface AuthModalProps {
@@ -45,6 +47,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const { signIn, signUp, signInWithProvider, resetPassword } = useAuth();
+  const geolocation = useGeolocation();
 
   const strength = useMemo(() => getPasswordStrength(password), [password]);
 
@@ -106,6 +109,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
           phone.replace(/\s/g, ""),
           locationState,
           locationCity.trim() || undefined,
+          geolocation.coords,
         );
         if (error) {
           if (error.message.includes("already registered")) {
@@ -325,6 +329,51 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
                   onChange={(e) => setLocationCity(e.target.value)}
                   disabled={loading}
                 />
+                {geolocation.permission !== "unsupported" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (geolocation.coords) {
+                        geolocation.clear();
+                      } else {
+                        geolocation.request();
+                      }
+                    }}
+                    disabled={
+                      loading || geolocation.permission === "requesting"
+                    }
+                    className={cn(
+                      "flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-medium border cursor-pointer transition-all",
+                      "disabled:cursor-wait disabled:opacity-60",
+                      geolocation.coords
+                        ? "bg-cyan/15 text-cyan border-cyan/30"
+                        : "bg-surface-alt text-text-muted border-border hover:text-text hover:border-cyan/20",
+                    )}
+                  >
+                    {geolocation.permission === "requesting" ? (
+                      <>
+                        <Loader2 size={12} className="animate-spin" />
+                        Getting location...
+                      </>
+                    ) : geolocation.coords ? (
+                      <>
+                        <Check size={12} />
+                        Location captured (tap to clear)
+                      </>
+                    ) : (
+                      <>
+                        <Navigation size={12} />
+                        Use my current location (optional)
+                      </>
+                    )}
+                  </button>
+                )}
+                {geolocation.permission === "denied" && (
+                  <p className="text-[11px] text-text-muted -mt-1">
+                    Location access was blocked. You can still sign up — enable
+                    it later in your browser settings to use &ldquo;Near me&rdquo;.
+                  </p>
+                )}
               </>
             )}
 

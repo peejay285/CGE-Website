@@ -36,6 +36,7 @@ export function useAuth() {
       phone: string,
       locationState: string,
       locationCity?: string,
+      coords?: { lat: number; lng: number } | null,
     ) => {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -46,6 +47,8 @@ export function useAuth() {
             phone,
             location_state: locationState,
             location_city: locationCity ?? null,
+            location_lat: coords?.lat ?? null,
+            location_lng: coords?.lng ?? null,
           },
         },
       });
