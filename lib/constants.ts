@@ -156,6 +156,36 @@ export const SWAP_SUGGESTIONS = [
   "Any Xbox Game",
 ] as const;
 
+export const SAFETY_GUIDELINES = {
+  short:
+    "CGE is not a party to peer-to-peer trades. Verify the other user, meet in public or ship with tracking, and inspect items before exchanging.",
+  title: "How to swap and sell safely",
+  intro:
+    "Trades happen directly between users. CGE provides the platform — we don't hold items, handle payments, or referee disputes. A few habits will keep you safe.",
+  tips: [
+    {
+      heading: "Verify before you commit",
+      body: "Check the other user's rating, swap count, and how long they've been a member. Ask for extra photos or a video call to confirm the item.",
+    },
+    {
+      heading: "Meet in public, or ship with tracking",
+      body: "If you can meet, choose a busy public place with cameras and people around. If you're shipping, use a courier with tracking on both sides of the swap.",
+    },
+    {
+      heading: "Inspect on arrival",
+      body: "Open the item and confirm it matches the listing before you hand over yours or release payment.",
+    },
+    {
+      heading: "Keep the conversation in-app",
+      body: "If something goes wrong, the on-platform record is your evidence. Off-platform chats can't be reviewed by our team.",
+    },
+    {
+      heading: "Report problems",
+      body: "If a user behaves badly, report them. We can suspend bad actors — but only if you tell us.",
+    },
+  ],
+} as const;
+
 export const NAV_LINKS = [
   { label: "Lounge", href: "/lounge" },
   { label: "Marketplace", href: "/marketplace" },

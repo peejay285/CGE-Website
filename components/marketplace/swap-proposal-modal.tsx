@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { MarketplaceListing } from "@/lib/types";
+import { SafetyDisclaimerBanner } from "./safety-disclaimer-banner";
 
 interface SwapProposalModalProps {
   open: boolean;
@@ -174,6 +175,9 @@ export function SwapProposalModal({
           />
         </div>
       )}
+
+      {/* Safety disclaimer */}
+      <SafetyDisclaimerBanner className="mb-5" />
 
       {/* Submit button */}
       <div className="flex justify-end gap-3">

@@ -13,7 +13,6 @@ import {
   ArrowLeftRight,
   Heart,
   Eye,
-  Shield,
   Sparkles,
   MapPin,
   X as XIcon,
@@ -33,6 +32,7 @@ import { SwapProposalsPanel } from "./swap-proposals-panel";
 import { SellerProfileCard } from "./seller-profile-card";
 import { SellerReviewsSection } from "./seller-reviews-section";
 import { RelatedListings } from "./related-listings";
+import { SafetyDisclaimerBanner } from "./safety-disclaimer-banner";
 import type { MarketplaceListing, SwapProposal } from "@/lib/types";
 
 // ── Props ────────────────────────────────────────────────────────────────────
@@ -657,14 +657,8 @@ export function ListingDetailModal({
       )}
 
       {/* ── Safety tip ────────────────────────────────────── */}
-      <div className="rounded-xl border border-border bg-surface-alt px-4 py-3 flex items-start gap-2.5">
-        <Shield size={14} className="text-cyan shrink-0 mt-0.5" />
-        <p className="text-[11px] text-text-muted leading-relaxed">
-          <span className="font-semibold text-text">Safety tip:</span> Meet at
-          CGE lounge for in-person trades. Inspect items before paying. CGE is
-          not responsible for peer-to-peer transactions.
-        </p>
-      </div>
+      <SafetyDisclaimerBanner variant="compact" />
+
 
       {/* ── Related listings ──────────────────────────────── */}
       {allListings && onRelatedClick && (
