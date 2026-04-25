@@ -114,6 +114,18 @@ export default function MarketplacePage() {
           onPriceRangeChange={mp.setPriceRange}
           locationState={mp.locationState}
           onLocationStateChange={mp.setLocationState}
+          nearMe={mp.nearMe}
+          onNearMeToggle={() => {
+            if (mp.nearMe) {
+              mp.setNearMe(false);
+            } else if (mp.geolocation.coords) {
+              mp.setNearMe(true);
+            } else {
+              mp.geolocation.request();
+              mp.setNearMe(true);
+            }
+          }}
+          geolocationStatus={mp.geolocation.permission}
           listingTitles={mp.listingTitles}
         />
 

@@ -6,6 +6,8 @@ import {
   ArrowLeftRight,
   Heart,
   X,
+  Navigation,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NIGERIAN_STATES } from "@/lib/constants";
@@ -43,6 +45,9 @@ interface ListingFiltersProps {
   onPriceRangeChange: (range: { min: string; max: string }) => void;
   locationState: string;
   onLocationStateChange: (state: string) => void;
+  nearMe: boolean;
+  onNearMeToggle: () => void;
+  geolocationStatus: "prompt" | "requesting" | "granted" | "denied" | "unsupported";
   listingTitles?: string[];
 }
 
@@ -57,6 +62,9 @@ export function ListingFilters({
   onPriceRangeChange,
   locationState,
   onLocationStateChange,
+  nearMe,
+  onNearMeToggle,
+  geolocationStatus,
   listingTitles,
 }: ListingFiltersProps) {
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
@@ -178,6 +186,35 @@ export function ListingFilters({
 
         {/* Divider */}
         <div className="w-px bg-border/50 shrink-0 my-1" />
+
+        {/* Near me */}
+        {geolocationStatus !== "unsupported" && (
+          <button
+            type="button"
+            onClick={onNearMeToggle}
+            disabled={geolocationStatus === "requesting"}
+            aria-pressed={nearMe}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 cursor-pointer border flex items-center gap-1 whitespace-nowrap",
+              "active:scale-95 disabled:cursor-wait disabled:opacity-60",
+              nearMe
+                ? "bg-cyan/15 text-cyan border-cyan/30"
+                : "bg-surface-alt text-text-muted border-border hover:text-text hover:border-cyan/20",
+            )}
+            title={
+              geolocationStatus === "denied"
+                ? "Location access was denied — enable it in your browser settings"
+                : undefined
+            }
+          >
+            {geolocationStatus === "requesting" ? (
+              <Loader2 size={11} className="animate-spin" />
+            ) : (
+              <Navigation size={11} />
+            )}
+            Near me
+          </button>
+        )}
 
         {/* State filter */}
         <select

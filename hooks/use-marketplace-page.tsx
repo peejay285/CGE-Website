@@ -5,7 +5,9 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { useMarketplace } from "@/hooks/use-marketplace";
 import { useAuth } from "@/hooks/use-auth";
+import { useGeolocation } from "@/hooks/use-geolocation";
 import { createClient } from "@/lib/supabase/client";
+import { haversineKm } from "@/lib/utils";
 import { trackView } from "@/components/marketplace/recently-viewed";
 import { addSavedSearch } from "@/components/marketplace/saved-searches";
 import type { MarketplaceListing, SwapProposal } from "@/lib/types";
@@ -93,6 +95,9 @@ export function useMarketplacePage() {
     max: "",
   });
   const [locationState, setLocationState] = useState("");
+  const [nearMe, setNearMe] = useState(false);
+  const geolocation = useGeolocation();
+  const [profileLocationDefaulted, setProfileLocationDefaulted] = useState(false);
   const [selectedListing, setSelectedListing] =
     useState<MarketplaceListing | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -191,13 +196,25 @@ export function useMarketplacePage() {
     const supabase = createClient();
     supabase
       .from("profiles")
-      .select("phone")
+      .select("phone, location_state")
       .eq("id", user.id)
       .single()
-      .then(({ data }: { data: { phone: string | null } | null }) => {
-        setSellerPhone(data?.phone || null);
-      });
-  }, [user]);
+      .then(
+        ({
+          data,
+        }: {
+          data: { phone: string | null; location_state: string | null } | null;
+        }) => {
+          setSellerPhone(data?.phone || null);
+          // Default the marketplace state filter to the user's profile state,
+          // but only on first load — don't override an explicit user choice.
+          if (data?.location_state && !profileLocationDefaulted) {
+            setLocationState(data.location_state);
+            setProfileLocationDefaulted(true);
+          }
+        },
+      );
+  }, [user, profileLocationDefaulted]);
 
   // Listen for share clipboard copy events from detail modal
   useEffect(() => {
@@ -231,7 +248,31 @@ export function useMarketplacePage() {
   /* ── Memoized filtered listings ────────────────────────── */
 
   const filteredListings = useMemo(() => {
-    const sorted = sortListings(listings, sort);
+    // When "Near me" is on and we have coords, decorate with distance and
+    // override the sort to distance-asc. Listings without coords sink to the
+    // bottom in unspecified order.
+    const userCoords = nearMe ? geolocation.coords : null;
+    const decorated = userCoords
+      ? listings.map((l) => ({
+          ...l,
+          distance_km:
+            l.location_lat != null && l.location_lng != null
+              ? haversineKm(userCoords, {
+                  lat: l.location_lat,
+                  lng: l.location_lng,
+                })
+              : undefined,
+        }))
+      : listings;
+
+    const sorted = userCoords
+      ? [...decorated].sort((a, b) => {
+          const da = a.distance_km ?? Infinity;
+          const db = b.distance_km ?? Infinity;
+          return da - db;
+        })
+      : sortListings(decorated, sort);
+
     return sorted.filter((listing) => {
       if (listingTypeFilter === "swap") {
         if (
@@ -263,7 +304,7 @@ export function useMarketplacePage() {
 
       return true;
     });
-  }, [listings, sort, listingTypeFilter, priceRange]);
+  }, [listings, sort, listingTypeFilter, priceRange, nearMe, geolocation.coords]);
 
   /* ── Memoized listing titles (used by ListingFilters) ─── */
 
@@ -654,6 +695,9 @@ export function useMarketplacePage() {
     setPriceRange,
     locationState,
     setLocationState,
+    nearMe,
+    setNearMe,
+    geolocation,
     selectedListing,
     setSelectedListing,
     createOpen,

@@ -76,7 +76,7 @@ export function useMarketplace(filters?: ListingFilters) {
       let query = supabase
         .from("marketplace_listings")
         .select(
-          "*, seller:profiles!seller_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps), listing_saves(user_id)"
+          "*, seller:profiles!seller_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, location_state, location_city), listing_saves(user_id)"
         )
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);

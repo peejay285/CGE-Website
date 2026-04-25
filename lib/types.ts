@@ -26,6 +26,8 @@ export interface Profile {
   // Location (PR #2)
   location_state?: string | null;
   location_city?: string | null;
+  location_lat?: number | null;
+  location_lng?: number | null;
 }
 
 export interface Zone {
@@ -264,7 +266,10 @@ export interface MarketplaceListing {
   location: string | null;
   location_state: string | null;
   location_city: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
   views_count: number;
+  distance_km?: number;
   status: "active" | "sold" | "archived";
   created_at: string;
   seller?: Profile;
