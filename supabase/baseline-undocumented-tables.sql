@@ -7,12 +7,12 @@
 --
 -- ── KNOWN ISSUES (preserved here, do NOT fix in this file) ──────────────────
 --
---   1. swap_proposals has TWO SELECT policies: a restrictive one
---      ("Users can view their proposals" — proposer or listing owner) and
---      a permissive one ("proposals_select" — USING TRUE). RLS combines
---      with OR, so the permissive policy wins. **All swap proposals,
---      including the personal `message` field, are readable by anyone
---      with the anon key.** PRIVACY BUG — fix in a follow-up PR.
+--   1. swap_proposals had TWO SELECT policies: a restrictive one
+--      ("Users can view their proposals") and a permissive one
+--      ("proposals_select" — USING TRUE). The permissive policy made all
+--      proposals (including private `message` text) readable by any anon
+--      client. FIXED in swap-proposals-privacy-fix.sql; the public policy
+--      is no longer recreated by this baseline.
 --
 --   2. swap_proposals has duplicate INSERT policies ("Users can create
 --      proposals" + "proposals_insert"). Identical effect, harmless noise.
@@ -158,19 +158,11 @@ CREATE TABLE IF NOT EXISTS swap_proposals (
 
 ALTER TABLE swap_proposals ENABLE ROW LEVEL SECURITY;
 
--- See known-issue (1) above: this policy is broader than intended and
--- effectively makes the table publicly readable.
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE tablename = 'swap_proposals' AND policyname = 'proposals_select'
-  ) THEN
-    CREATE POLICY "proposals_select" ON swap_proposals
-      FOR SELECT USING (TRUE);
-  END IF;
-END $$;
+-- "proposals_select" (USING TRUE) intentionally NOT recreated here — it was
+-- the public-read policy that caused the privacy issue described in the
+-- header. See swap-proposals-privacy-fix.sql.
 
--- Restrictive SELECT policy — currently neutered by `proposals_select` above.
+-- Restrictive SELECT policy — the only one that should exist on this table.
 DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
