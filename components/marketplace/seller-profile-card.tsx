@@ -114,6 +114,8 @@ interface SellerProfileCardProps {
     | "wins"
     | "tournament_count"
     | "follower_count"
+    | "is_id_verified"
+    | "premium_tier"
   >;
   onViewProfile?: (sellerId: string) => void;
   compact?: boolean;
@@ -195,7 +197,7 @@ export function SellerProfileCard({
 
           {/* Info */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <p className="text-sm font-semibold text-text truncate">
                 {seller.full_name || "CGE Member"}
               </p>
@@ -210,6 +212,18 @@ export function SellerProfileCard({
                 <TrustIcon size={9} />
                 {config.label}
               </span>
+              {seller.is_id_verified && (
+                <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold rounded-md px-1.5 py-0.5 border bg-cyan/15 border-cyan/35 text-cyan shrink-0">
+                  <ShieldCheck size={9} />
+                  Verified
+                </span>
+              )}
+              {seller.premium_tier === "premium" && (
+                <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold rounded-md px-1.5 py-0.5 border bg-gold/15 border-gold/35 text-gold shrink-0">
+                  <Crown size={9} />
+                  Premium
+                </span>
+              )}
             </div>
 
             {statsLoading ? (

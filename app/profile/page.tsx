@@ -15,6 +15,8 @@ import {
   ChevronRight,
   Loader2,
   Shield,
+  ShieldCheck,
+  Crown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -97,6 +99,20 @@ export default function ProfilePage() {
       description: "Track outgoing swaps & ship/receive",
       href: "/profile/swaps",
       color: "text-magenta",
+    },
+    {
+      icon: ShieldCheck,
+      label: "Verify your profile",
+      description: "Submit your ID for the verified badge",
+      href: "/profile/verification",
+      color: "text-cyan",
+    },
+    {
+      icon: Crown,
+      label: "Premium",
+      description: "Unlock verified badge + listing perks",
+      href: "/profile/upgrade",
+      color: "text-gold",
     },
     {
       icon: Trophy,

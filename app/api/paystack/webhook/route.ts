@@ -148,6 +148,71 @@ export async function POST(request: Request) {
             }
           );
         }
+      } else if (metadata?.type === "premium") {
+        // Premium subscription. metadata should include user_id and
+        // period_days (default 30). Idempotent: skip if reference is
+        // already recorded.
+        const userId = metadata.user_id as string | undefined;
+        const periodDays = Number(metadata.period_days ?? 30);
+
+        if (!userId) {
+          console.error("[Webhook] Premium payment missing user_id", {
+            reference,
+          });
+          return NextResponse.json({ received: true });
+        }
+
+        const { data: existing } = await supabase
+          .from("premium_subscriptions")
+          .select("id")
+          .eq("paystack_reference", reference)
+          .maybeSingle();
+
+        if (existing) {
+          console.info("[Webhook] Premium subscription already recorded", {
+            reference,
+          });
+          return NextResponse.json({ received: true });
+        }
+
+        const periodStart = new Date();
+        const periodEnd = new Date(
+          periodStart.getTime() + periodDays * 24 * 60 * 60 * 1000,
+        );
+
+        const { error: insertError } = await supabase
+          .from("premium_subscriptions")
+          .insert({
+            user_id: userId,
+            paystack_reference: reference,
+            amount: amount / 100,
+            period_start: periodStart.toISOString(),
+            period_end: periodEnd.toISOString(),
+            status: "active",
+          });
+
+        if (insertError) {
+          console.error("[Webhook] Failed to record premium subscription", {
+            reference,
+            error: insertError.message,
+          });
+          return NextResponse.json({ received: true });
+        }
+
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            premium_tier: "premium",
+            premium_expires_at: periodEnd.toISOString(),
+          })
+          .eq("id", userId);
+
+        if (profileError) {
+          console.error(
+            "[Webhook] Failed to flip premium_tier on profile",
+            { reference, error: profileError.message },
+          );
+        }
       } else {
         console.error("[Webhook] Unknown metadata type", {
           reference,

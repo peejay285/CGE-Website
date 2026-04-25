@@ -28,6 +28,24 @@ export interface Profile {
   location_city?: string | null;
   location_lat?: number | null;
   location_lng?: number | null;
+  // Tier 4 — verified profile + premium
+  is_admin?: boolean;
+  is_id_verified?: boolean;
+  id_verified_at?: string | null;
+  premium_tier?: "free" | "premium";
+  premium_expires_at?: string | null;
+}
+
+export interface IdVerificationSubmission {
+  id: string;
+  user_id: string;
+  id_document_url: string;
+  supporting_doc_urls: string[];
+  status: "pending" | "approved" | "rejected";
+  rejection_reason: string | null;
+  submitted_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
 }
 
 export interface Zone {

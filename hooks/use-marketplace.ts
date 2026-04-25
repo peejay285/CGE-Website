@@ -76,7 +76,7 @@ export function useMarketplace(filters?: ListingFilters) {
       let query = supabase
         .from("marketplace_listings")
         .select(
-          "*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, location_state, location_city), listing_saves(user_id)"
+          "*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, location_state, location_city, is_id_verified, premium_tier), listing_saves(user_id)"
         )
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);
@@ -184,7 +184,7 @@ export function useMarketplace(filters?: ListingFilters) {
         const { data, error: fetchError } = await supabase
           .from("marketplace_listings")
           .select(
-            "*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps), listing_saves(user_id)"
+            "*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, is_id_verified, premium_tier), listing_saves(user_id)"
           )
           .eq("id", id)
           .single();
@@ -259,7 +259,7 @@ export function useMarketplace(filters?: ListingFilters) {
             location_city: listingData.location_city ?? null,
             status: "active",
           })
-          .select("*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps)")
+          .select("*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, is_id_verified, premium_tier)")
           .single();
 
         if (insertError) throw insertError;
@@ -307,7 +307,7 @@ export function useMarketplace(filters?: ListingFilters) {
           .update(updates)
           .eq("id", id)
           .eq("user_id", user.id)
-          .select("*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps)")
+          .select("*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, is_id_verified, premium_tier)")
           .single();
 
         if (updateError) throw updateError;
@@ -502,7 +502,7 @@ export function useMarketplace(filters?: ListingFilters) {
 
       const { data, error: fetchError } = await supabase
         .from("marketplace_listings")
-        .select("*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps)")
+        .select("*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, is_id_verified, premium_tier)")
         .eq("user_id", user.id)
         .eq("status", "active")
         .order("created_at", { ascending: false });

@@ -3,7 +3,7 @@ import { z } from "zod";
 // Paystack initialize
 export const paystackInitializeSchema = z.object({
   amount: z.number().positive().int(),
-  type: z.enum(["booking", "tournament", "event"]),
+  type: z.enum(["booking", "tournament", "event", "premium"]),
   metadata: z.record(z.string(), z.unknown()),
 });
 
