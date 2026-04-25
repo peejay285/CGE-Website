@@ -9,6 +9,9 @@
 -- Idempotent — safe to re-run.
 -- ════════════════════════════════════════════════════════════════════════════
 
+-- Note: the seller column on marketplace_listings is `user_id` (not
+-- seller_id, despite some older code aliasing it that way via PostgREST
+-- foreign-key constraint names).
 CREATE OR REPLACE FUNCTION inherit_listing_coords()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -16,7 +19,7 @@ BEGIN
     SELECT location_lat, location_lng
     INTO NEW.location_lat, NEW.location_lng
     FROM profiles
-    WHERE id = NEW.seller_id;
+    WHERE id = NEW.user_id;
   END IF;
   RETURN NEW;
 END;
@@ -34,6 +37,6 @@ SET
   location_lat = p.location_lat,
   location_lng = p.location_lng
 FROM profiles p
-WHERE p.id = l.seller_id
+WHERE p.id = l.user_id
   AND l.location_lat IS NULL
   AND p.location_lat IS NOT NULL;

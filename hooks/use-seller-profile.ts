@@ -67,9 +67,9 @@ export function useSellerProfile() {
         const { data: activeListings } = await supabase
           .from("marketplace_listings")
           .select(
-            "*, seller:profiles!seller_id(id, full_name, avatar_url, gamertag), listing_saves(user_id)"
+            "*, seller:profiles!user_id(id, full_name, avatar_url, gamertag), listing_saves(user_id)"
           )
-          .eq("seller_id", sellerId)
+          .eq("user_id", sellerId)
           .eq("status", "active")
           .order("created_at", { ascending: false });
 

@@ -93,7 +93,7 @@ export function LeaveReviewModal({
     if (rating === 0) return;
 
     const result = await submitRating({
-      seller_id: listing.seller_id,
+      seller_id: listing.user_id,
       listing_id: listing.id,
       rating,
       communication_rating: communicationRating || undefined,

@@ -358,7 +358,7 @@ export function useMarketplacePage() {
       recordView(listing.id);
       trackView(listing.id);
 
-      const isOwner = user && listing.seller_id === user.id;
+      const isOwner = user && listing.user_id === user.id;
       const acceptsSwap =
         listing.listing_type === "swap" ||
         listing.listing_type === "sell_or_swap";
@@ -486,7 +486,7 @@ export function useMarketplacePage() {
         return;
       }
 
-      if (listing.seller_id === user.id) {
+      if (listing.user_id === user.id) {
         toast("You can't message yourself", { icon: "😅" });
         return;
       }
@@ -509,7 +509,7 @@ export function useMarketplacePage() {
         return;
       }
 
-      if (listing.seller_id === user.id) {
+      if (listing.user_id === user.id) {
         toast("You can't swap with yourself", { icon: "😅" });
         return;
       }

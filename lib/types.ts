@@ -252,7 +252,7 @@ export interface Event {
 
 export interface MarketplaceListing {
   id: string;
-  seller_id: string;
+  user_id: string;
   title: string;
   price: number;
   condition: string;

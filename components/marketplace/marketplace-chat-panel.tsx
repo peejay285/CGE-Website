@@ -55,7 +55,7 @@ export function MarketplaceChatPanel({
     setLoading(true);
 
     // Get or create conversation
-    const conv = await getOrCreateConversation(listing.id, listing.seller_id);
+    const conv = await getOrCreateConversation(listing.id, listing.user_id);
     if (!conv) {
       setLoading(false);
       return;

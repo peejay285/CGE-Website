@@ -345,7 +345,7 @@ export function ListingDetailModal({
 }: ListingDetailModalProps) {
   if (!listing) return null;
 
-  const isOwner = currentUserId && listing.seller_id === currentUserId;
+  const isOwner = currentUserId && listing.user_id === currentUserId;
   const isSold = listing.status === "sold";
   const isSwap = listing.listing_type === "swap";
   const isSwapOrSell = listing.listing_type === "sell_or_swap";
@@ -574,7 +574,7 @@ export function ListingDetailModal({
       {listing.seller && (
         <SellerProfileCard
           seller={{
-            id: listing.seller_id,
+            id: listing.user_id,
             full_name: listing.seller.full_name,
             avatar_url: listing.seller.avatar_url ?? null,
             gamertag: listing.seller.gamertag ?? null,
@@ -595,7 +595,7 @@ export function ListingDetailModal({
 
       {/* ── Seller reviews ──────────────────────────────── */}
       <SellerReviewsSection
-        sellerId={listing.seller_id}
+        sellerId={listing.user_id}
         onLeaveReview={
           !isOwner && !isSold && onLeaveReview
             ? () => onLeaveReview(listing)
@@ -603,7 +603,7 @@ export function ListingDetailModal({
         }
         onViewAllReviews={
           onViewSellerProfile
-            ? () => onViewSellerProfile(listing.seller_id)
+            ? () => onViewSellerProfile(listing.user_id)
             : undefined
         }
       />
