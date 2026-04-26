@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
+import { createClient } from "@/lib/supabase/client";
 import { ZONES } from "@/lib/constants";
 import { getUnitPrice, getBookingTotals } from "@/lib/pricing";
 import { useAuth } from "@/hooks/use-auth";
@@ -113,7 +114,7 @@ export default function LoungePage() {
         return;
       }
 
-      // Create the booking in Supabase
+      // Create the booking in Supabase (payment_status = 'pending')
       const booking = await createBooking({
         zone_id: zone,
         game_name: game,
@@ -127,15 +128,59 @@ export default function LoungePage() {
         payment_method: method,
       });
 
-      setIsSubmitting(false);
+      if (!booking) {
+        setIsSubmitting(false);
+        toast.error("Failed to create booking. Please try again.");
+        return;
+      }
 
-      if (booking) {
+      // Venue: nothing more to do — confirmation is "Reserved, pay on arrival".
+      if (method === "venue") {
+        setIsSubmitting(false);
         setBookingId(booking.id);
         setConfirmed(true);
         setBookingStep(4);
-        toast.success("Booking confirmed!");
-      } else {
-        toast.error("Failed to create booking. Please try again.");
+        toast.success("Reservation confirmed!");
+        return;
+      }
+
+      // Paystack: initialize a transaction, stamp the booking with the
+      // returned reference so the webhook can find it, then redirect to
+      // Paystack's hosted checkout. The webhook flips payment_status to
+      // 'paid' once Paystack confirms.
+      try {
+        const res = await fetch("/api/paystack/initialize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: total,
+            type: "booking",
+            metadata: { booking_id: booking.id },
+          }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body?.error ?? "Failed to start payment");
+        }
+        const { authorization_url, reference } = (await res.json()) as {
+          authorization_url: string;
+          reference: string;
+        };
+
+        const supabase = createClient();
+        await supabase
+          .from("bookings")
+          .update({ paystack_reference: reference })
+          .eq("id", booking.id);
+
+        // Off to Paystack. The callback URL is /lounge?payment_ref=... so
+        // we'll come back here and pick up the confirmation flow.
+        window.location.href = authorization_url;
+      } catch (err) {
+        setIsSubmitting(false);
+        toast.error(
+          err instanceof Error ? err.message : "Could not start Paystack",
+        );
       }
     },
     [
@@ -153,6 +198,61 @@ export default function LoungePage() {
       checkAvailability,
     ]
   );
+
+  // After a Paystack redirect-back: ?payment_ref=... — fetch the booking,
+  // poll briefly for the webhook, and pop the confirmation step.
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const ref = searchParams.get("payment_ref");
+    if (!ref) return;
+    let cancelled = false;
+    const supabase = createClient();
+    let attempts = 0;
+    const maxAttempts = 6; // ~12 seconds
+    const tick = async () => {
+      const { data: row } = await supabase
+        .from("bookings")
+        .select("id, zone_id, game_name, booking_date, time_slot, duration, total, payment_status")
+        .eq("paystack_reference", ref)
+        .maybeSingle();
+      if (cancelled) return;
+      if (row && row.payment_status === "paid") {
+        const r = row as {
+          id: string;
+          zone_id: string;
+          game_name: string;
+          booking_date: string;
+          time_slot: string;
+          duration: number;
+          total: number;
+        };
+        setZone(r.zone_id);
+        setGame(r.game_name);
+        setDate(r.booking_date);
+        setTime(r.time_slot);
+        setDuration(r.duration);
+        setBookingId(r.id);
+        setPayMethod("paystack");
+        setConfirmed(true);
+        setBookingStep(4);
+        toast.success("Payment confirmed!");
+        return;
+      }
+      attempts++;
+      if (attempts < maxAttempts) {
+        setTimeout(tick, 2000);
+      } else if (row) {
+        toast(
+          "Payment is processing. We'll mark this booking as paid as soon as Paystack confirms.",
+          { icon: "⏳" },
+        );
+      }
+    };
+    tick();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
 
   function handleBookAnother() {
     setBookingStep(0);
