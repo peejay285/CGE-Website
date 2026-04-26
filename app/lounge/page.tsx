@@ -421,6 +421,7 @@ export default function LoungePage() {
                 total,
                 payMethod,
               }}
+              bookingId={bookingId}
               onBookAnother={handleBookAnother}
               onGoHome={handleGoHome}
             />

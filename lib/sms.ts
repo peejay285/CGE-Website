@@ -83,10 +83,19 @@ export async function sendBookingSMS(args: {
   date: string;
   time: string;
   bookingId: string;
+  isPaid: boolean;
+  receiptUrl?: string | null;
 }): Promise<boolean> {
-  const body =
-    `CGE: Your ${args.zoneName} booking on ${args.date} at ${args.time} is confirmed. ` +
-    `Show booking ID ${args.bookingId.slice(0, 8).toUpperCase()} at the counter. ` +
-    `Questions? WhatsApp 08160658509.`;
-  return sendSMS({ to: args.to, body });
+  const id8 = args.bookingId.slice(0, 8).toUpperCase();
+  const status = args.isPaid ? "PAID — see you there" : "Reserved — pay at the counter";
+  const lines = [
+    `CGE: ${args.zoneName} on ${args.date} at ${args.time}.`,
+    status,
+    `Booking ${id8}.`,
+  ];
+  if (args.receiptUrl) {
+    lines.push(`Receipt + QR: ${args.receiptUrl}`);
+  }
+  lines.push("WhatsApp 08160658509 for help.");
+  return sendSMS({ to: args.to, body: lines.join(" ") });
 }

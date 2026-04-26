@@ -1,10 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { BRAND } from "@/lib/constants";
 import { formatBookingDate, formatPrice } from "@/lib/utils";
-import { CalendarPlus, CheckCircle, Home, RotateCcw, Share2, MapPin, MessageCircle } from "lucide-react";
+import {
+  CalendarPlus,
+  CheckCircle,
+  Home,
+  RotateCcw,
+  Share2,
+  MapPin,
+  MessageCircle,
+  QrCode,
+} from "lucide-react";
 
 interface ConfirmationData {
   zoneName: string;
@@ -19,6 +29,7 @@ interface ConfirmationData {
 
 interface BookingConfirmationProps {
   bookingData: ConfirmationData;
+  bookingId: string | null;
   onBookAnother: () => void;
   onGoHome: () => void;
 }
@@ -65,6 +76,7 @@ function getWhatsAppShareUrl(data: ConfirmationData): string {
 
 export function BookingConfirmation({
   bookingData,
+  bookingId,
   onBookAnother,
   onGoHome,
 }: BookingConfirmationProps) {
@@ -172,6 +184,19 @@ export function BookingConfirmation({
           <li>• Show this confirmation at the counter</li>
         </ul>
       </div>
+
+      {/* Receipt + QR call-to-action */}
+      {bookingId && (
+        <Link
+          href={`/booking/${bookingId}/receipt`}
+          className="block mb-4"
+        >
+          <Button variant="primary" fullWidth>
+            <QrCode size={16} />
+            View Receipt & QR Code
+          </Button>
+        </Link>
+      )}
 
       {/* Actions */}
       <div className="grid grid-cols-2 gap-3">

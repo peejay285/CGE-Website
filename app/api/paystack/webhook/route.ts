@@ -117,12 +117,17 @@ export async function POST(request: Request) {
               booking_date: string;
               time_slot: string;
             };
+            const origin =
+              new URL(request.url).origin ?? process.env.NEXT_PUBLIC_SITE_URL;
+            const receiptUrl = `${origin}/booking/${b.id}/receipt`;
             sendBookingSMS({
               to: profile.phone,
               zoneName: b.zone_id,
               date: b.booking_date,
               time: b.time_slot,
               bookingId: b.id,
+              isPaid: true,
+              receiptUrl,
             }).catch((e) =>
               console.error("[Webhook] sendBookingSMS threw", {
                 message: e instanceof Error ? e.message : String(e),
