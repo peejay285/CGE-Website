@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageCircle, Calendar } from "lucide-react";
+import { MessageCircle, Calendar, User } from "lucide-react";
 import { CGELogo } from "./cge-logo";
 import { Button } from "@/components/ui/button";
 import { NAV_LINKS } from "@/lib/constants";
@@ -76,12 +76,28 @@ export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarP
               <Button size="sm">Book Now</Button>
             </Link>
             {user ? (
-              <button
-                onClick={onLogout}
-                className="text-xs font-semibold text-text-muted hover:text-text uppercase tracking-wider cursor-pointer"
-              >
-                Sign Out
-              </button>
+              <>
+                <Link
+                  href="/profile"
+                  aria-label="Open your profile"
+                  aria-current={pathname.startsWith("/profile") ? "page" : undefined}
+                  className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all cursor-pointer ${
+                    pathname.startsWith("/profile")
+                      ? "bg-cyan/15 border-cyan/50 text-cyan"
+                      : "bg-surface-alt border-border hover:border-cyan/40 text-text"
+                  }`}
+                >
+                  <span className="text-xs font-bold uppercase">
+                    {(user.email?.[0] ?? "U").toUpperCase()}
+                  </span>
+                </Link>
+                <button
+                  onClick={onLogout}
+                  className="text-xs font-semibold text-text-muted hover:text-text uppercase tracking-wider cursor-pointer"
+                >
+                  Sign Out
+                </button>
+              </>
             ) : (
               <Button variant="ghost" size="sm" onClick={onAuthClick}>
                 Sign In
@@ -89,7 +105,7 @@ export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarP
             )}
           </div>
 
-          {/* Mobile: Quick actions (Book Now + Auth) — nav is handled by bottom bar */}
+          {/* Mobile: Quick actions (Book Now + Profile + Auth) — bottom bar handles main nav */}
           <div className="flex items-center gap-2 lg:hidden">
             <Link href="/lounge">
               <Button size="sm" className="text-[11px] px-3 py-1.5 h-auto">
@@ -98,12 +114,17 @@ export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarP
               </Button>
             </Link>
             {user ? (
-              <button
-                onClick={onLogout}
-                className="text-[11px] font-semibold text-text-muted hover:text-text uppercase tracking-wider cursor-pointer px-2 py-1.5"
+              <Link
+                href="/profile"
+                aria-label="Open your profile"
+                className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all ${
+                  pathname.startsWith("/profile")
+                    ? "bg-cyan/15 border-cyan/50 text-cyan"
+                    : "bg-surface-alt border-border text-text"
+                }`}
               >
-                Sign Out
-              </button>
+                <User size={14} />
+              </Link>
             ) : (
               <Button variant="ghost" size="sm" className="text-[11px] px-3 py-1.5 h-auto" onClick={onAuthClick}>
                 Sign In
