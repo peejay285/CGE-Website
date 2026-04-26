@@ -1,5 +1,6 @@
 import { Hero } from "@/components/home/hero";
 import { StatsBar } from "@/components/home/stats-bar";
+import { LivePreview } from "@/components/home/live-preview";
 import { EsportsShowcase, MarketplaceShowcase, CommunityShowcase } from "@/components/home/feature-showcase";
 import { HowItWorks } from "@/components/home/how-it-works";
 import { ZoneComparison } from "@/components/home/zone-comparison";
@@ -19,7 +20,10 @@ export default function Home() {
         <StatsBar />
       </section>
 
-      {/* 3. Esports showcase — tournament system preview */}
+      {/* 3. Live preview — real tournaments, posts, listings (auto-hides if empty) */}
+      <LivePreview />
+
+      {/* 4. Esports showcase — tournament system preview */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 py-20">
         <EsportsShowcase />
       </section>
