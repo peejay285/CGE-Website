@@ -156,6 +156,19 @@ export const SWAP_SUGGESTIONS = [
   "Any Xbox Game",
 ] as const;
 
+// Preset avatars — DiceBear "bottts-neutral" (gaming bot heads, free SVGs).
+// avatar_url just holds the URL so any picture (preset or upload) is uniform.
+export const DEFAULT_AVATARS = [
+  "https://api.dicebear.com/7.x/bottts-neutral/svg?seed=cge-rookie",
+  "https://api.dicebear.com/7.x/bottts-neutral/svg?seed=cge-shadow",
+  "https://api.dicebear.com/7.x/bottts-neutral/svg?seed=cge-pixel",
+  "https://api.dicebear.com/7.x/bottts-neutral/svg?seed=cge-titan",
+  "https://api.dicebear.com/7.x/bottts-neutral/svg?seed=cge-nova",
+  "https://api.dicebear.com/7.x/bottts-neutral/svg?seed=cge-ghost",
+  "https://api.dicebear.com/7.x/bottts-neutral/svg?seed=cge-flux",
+  "https://api.dicebear.com/7.x/bottts-neutral/svg?seed=cge-kappa",
+] as const;
+
 export const NIGERIAN_STATES = [
   "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue",
   "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu",

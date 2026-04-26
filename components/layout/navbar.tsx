@@ -7,16 +7,18 @@ import { MessageCircle, Calendar, User } from "lucide-react";
 import { CGELogo } from "./cge-logo";
 import { Button } from "@/components/ui/button";
 import { NAV_LINKS } from "@/lib/constants";
+import { createClient } from "@/lib/supabase/client";
 
 interface NavbarProps {
   onAuthClick: () => void;
-  user?: { email?: string } | null;
+  user?: { id?: string; email?: string } | null;
   onLogout?: () => void;
   unreadCount?: number;
 }
 
 export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -26,6 +28,35 @@ export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarP
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Pull the user's avatar_url so the navbar shows their actual picture, not
+  // just an initial. Refetches when the user changes or another tab/page
+  // dispatches an "avatar-updated" event (the AvatarPicker fires it).
+  useEffect(() => {
+    if (!user?.id) {
+      setAvatarUrl(null);
+      return;
+    }
+    const supabase = createClient();
+    let cancelled = false;
+    const fetchAvatar = () => {
+      supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", user.id!)
+        .maybeSingle()
+        .then(({ data }: { data: { avatar_url: string | null } | null }) => {
+          if (!cancelled) setAvatarUrl(data?.avatar_url ?? null);
+        });
+    };
+    fetchAvatar();
+    const onUpdated = () => fetchAvatar();
+    window.addEventListener("avatar-updated", onUpdated);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("avatar-updated", onUpdated);
+    };
+  }, [user?.id]);
 
   return (
     <nav
@@ -81,15 +112,24 @@ export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarP
                   href="/profile"
                   aria-label="Open your profile"
                   aria-current={pathname.startsWith("/profile") ? "page" : undefined}
-                  className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all cursor-pointer ${
+                  className={`flex items-center justify-center w-9 h-9 rounded-full border-2 overflow-hidden transition-all cursor-pointer ${
                     pathname.startsWith("/profile")
                       ? "bg-cyan/15 border-cyan/50 text-cyan"
                       : "bg-surface-alt border-border hover:border-cyan/40 text-text"
                   }`}
                 >
-                  <span className="text-xs font-bold uppercase">
-                    {(user.email?.[0] ?? "U").toUpperCase()}
-                  </span>
+                  {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatarUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-xs font-bold uppercase">
+                      {(user.email?.[0] ?? "U").toUpperCase()}
+                    </span>
+                  )}
                 </Link>
                 <button
                   onClick={onLogout}
@@ -117,13 +157,18 @@ export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarP
               <Link
                 href="/profile"
                 aria-label="Open your profile"
-                className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all ${
+                className={`flex items-center justify-center w-8 h-8 rounded-full border-2 overflow-hidden transition-all ${
                   pathname.startsWith("/profile")
                     ? "bg-cyan/15 border-cyan/50 text-cyan"
                     : "bg-surface-alt border-border text-text"
                 }`}
               >
-                <User size={14} />
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <User size={14} />
+                )}
               </Link>
             ) : (
               <Button variant="ghost" size="sm" className="text-[11px] px-3 py-1.5 h-auto" onClick={onAuthClick}>

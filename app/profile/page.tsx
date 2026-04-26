@@ -17,11 +17,13 @@ import {
   Shield,
   ShieldCheck,
   Crown,
+  Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useSellerProfile } from "@/hooks/use-seller-profile";
 import { StarRating, TRUST_CONFIG } from "@/components/marketplace/seller-profile-card";
+import { AvatarPicker } from "@/components/profile/avatar-picker";
 import { cn } from "@/lib/utils";
 import type { SellerProfile } from "@/lib/types";
 
@@ -30,6 +32,7 @@ export default function ProfilePage() {
   const { user, signOut } = useAuth();
   const { getSellerProfile, loading } = useSellerProfile();
   const [profile, setProfile] = useState<SellerProfile | null>(null);
+  const [avatarOpen, setAvatarOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -135,7 +138,12 @@ export default function ProfilePage() {
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         {/* Profile header */}
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-cyan/10 border-2 border-cyan/25 flex items-center justify-center overflow-hidden shrink-0">
+          <button
+            type="button"
+            onClick={() => setAvatarOpen(true)}
+            aria-label="Change avatar"
+            className="relative w-16 h-16 rounded-full bg-cyan/10 border-2 border-cyan/25 flex items-center justify-center overflow-hidden shrink-0 cursor-pointer group"
+          >
             {profile.avatar_url ? (
               <img
                 src={profile.avatar_url}
@@ -147,7 +155,10 @@ export default function ProfilePage() {
                 {(profile.full_name || "CM").slice(0, 2).toUpperCase()}
               </span>
             )}
-          </div>
+            <span className="absolute inset-0 bg-base/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <Camera size={18} className="text-white" />
+            </span>
+          </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold font-heading text-text truncate">
               {profile.full_name || "CGE Member"}
@@ -224,6 +235,16 @@ export default function ProfilePage() {
             {user.email}
           </p>
         </div>
+
+        <AvatarPicker
+          open={avatarOpen}
+          onClose={() => setAvatarOpen(false)}
+          userId={user.id}
+          currentUrl={profile.avatar_url ?? null}
+          onChange={(url) =>
+            setProfile((prev) => (prev ? { ...prev, avatar_url: url } : prev))
+          }
+        />
 
         {/* Sign out */}
         <Button
