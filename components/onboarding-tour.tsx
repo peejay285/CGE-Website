@@ -63,7 +63,7 @@ const STEPS: Step[] = [
     bgClass: "bg-gold/10 border-gold/25",
     eyebrow: "Lounge",
     title: "Game in person",
-    body: "Our first physical branch is on Bonny Island — book PS4, PS5, or VR sessions. More locations coming as we expand.",
+    body: "Visit one of our gaming lounges — book PS4, PS5, or VR sessions, settle in with friends, and play.",
   },
 ];
 
