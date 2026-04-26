@@ -153,6 +153,22 @@ export function useEsportsPage() {
     return { upcomingTournaments: upcoming, pastTournaments: past };
   }, [filteredTournaments]);
 
+  // Tournaments starting within the next 7 days, sorted soonest first.
+  // Surfaces "what's happening this week" so newcomers don't see an empty page.
+  const thisWeekTournaments = useMemo(() => {
+    const now = Date.now();
+    const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+    return upcomingTournaments
+      .filter((t) => {
+        const start = new Date(t.date).getTime();
+        if (Number.isNaN(start)) return false;
+        return start >= now && start - now <= oneWeekMs;
+      })
+      .sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      );
+  }, [upcomingTournaments]);
+
   const myTournaments = useMemo(() => {
     const myIds = new Set(registrations.map((r) => r.tournament_id));
     return tournaments.filter((t) => myIds.has(t.id));
@@ -439,6 +455,7 @@ export function useEsportsPage() {
     stats,
     filteredTournaments,
     upcomingTournaments,
+    thisWeekTournaments,
     pastTournaments,
     myTournaments,
     leaderboardPlayers,

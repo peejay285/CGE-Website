@@ -13,7 +13,7 @@ const QUICK_ACTIONS = ["Lounge", "Esports", "Market", "Community", "Prices"];
 
 const INITIAL_MESSAGE: Message = {
   from: "bot",
-  text: "Hey! 👋 I'm the CGE Assistant. Ask me about our Lounge (Bonny Island), Esports tournaments, Marketplace, or Community!",
+  text: "Hey! 👋 I'm the CGE Assistant. Ask me about Esports tournaments nationwide, the Marketplace, the Community, or the Lounge (first branch on Bonny Island).",
 };
 
 export function AIConcierge() {

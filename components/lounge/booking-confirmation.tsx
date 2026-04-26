@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { BRAND } from "@/lib/constants";
 import { formatBookingDate, formatPrice } from "@/lib/utils";
-import { CalendarPlus, CheckCircle, Home, RotateCcw, Share2 } from "lucide-react";
+import { CalendarPlus, CheckCircle, Home, RotateCcw, Share2, MapPin, MessageCircle } from "lucide-react";
 
 interface ConfirmationData {
   zoneName: string;
@@ -130,6 +130,37 @@ export function BookingConfirmation({
         </div>
       </Card>
 
+      {/* Getting there */}
+      <div className="rounded-lg border border-border bg-surface-alt px-5 py-4 mb-4 text-left">
+        <p className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-3">
+          Getting There — Bonny Island Branch
+        </p>
+        <p className="text-sm text-text mb-3 flex items-start gap-2">
+          <MapPin size={14} className="text-cyan shrink-0 mt-0.5" />
+          {BRAND.address}
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(BRAND.address)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-cyan/30 bg-cyan/10 px-3 py-2 text-xs font-semibold text-cyan hover:bg-cyan/15 transition-colors"
+          >
+            <MapPin size={12} />
+            Open in Maps
+          </a>
+          <a
+            href={BRAND.whatsapp}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-green/30 bg-green/10 px-3 py-2 text-xs font-semibold text-green hover:bg-green/15 transition-colors"
+          >
+            <MessageCircle size={12} />
+            Message us
+          </a>
+        </div>
+      </div>
+
       {/* Arrival Tip */}
       <div className="rounded-lg border border-border bg-surface-alt px-5 py-4 mb-8">
         <p className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-2">
@@ -138,7 +169,7 @@ export function BookingConfirmation({
         <ul className="space-y-1.5 text-xs" style={{ color: "#C4C4CC" }}>
           <li>• Arrive 5 minutes early to get set up</li>
           <li>• Bring a valid ID (age policy: {BRAND.agePolicy})</li>
-          <li>• 📍 {BRAND.address}</li>
+          <li>• Show this confirmation at the counter</li>
         </ul>
       </div>
 

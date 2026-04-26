@@ -207,7 +207,7 @@ export default function MarketplacePage() {
               subtitle={
                 mp.search || mp.category !== "All" || mp.listingTypeFilter !== "all"
                   ? "Try adjusting your search or filters"
-                  : "Be the first to list something for swap or sale!"
+                  : "We're seeding the first listings with our beta cohort. The marketplace opens nationwide when beta launches — list your gear early to be ready."
               }
               action={
                 mp.search || mp.category !== "All" || mp.listingTypeFilter !== "all"

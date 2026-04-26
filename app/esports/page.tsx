@@ -67,8 +67,9 @@ export default function EsportsPage() {
           </h1>
 
           <p className="text-sm md:text-base text-text-muted max-w-xl mx-auto leading-relaxed mb-10">
-            Join tournaments, climb the leaderboard, and prove yourself as the best gamer
-            in the lounge. Weekly competitions with real prizes.
+            Tournaments across Nigeria — solo or with your team. Climb the
+            national leaderboard and earn prizes from open weekly brackets to
+            major events.
           </p>
 
           {/* Stats banner */}
@@ -178,11 +179,30 @@ export default function EsportsPage() {
             ) : ep.filteredTournaments.length === 0 ? (
               <EmptyState
                 icon="🏆"
-                title={ep.searchQuery ? "No matching tournaments" : "No tournaments yet"}
-                subtitle={ep.searchQuery ? "Try a different search term or clear the filters." : "Check back soon for upcoming tournaments and competitions."}
+                title={ep.searchQuery ? "No matching tournaments" : "Tournaments launching with our beta cohort"}
+                subtitle={ep.searchQuery ? "Try a different search term or clear the filters." : "We're rolling out the first tournaments with beta users now. The full national bracket launches when beta opens."}
               />
             ) : (
               <div className="space-y-10">
+                {ep.thisWeekTournaments.length > 0 && (
+                  <section>
+                    <h3 className="text-sm font-semibold uppercase tracking-widest text-magenta mb-4 flex items-center gap-2">
+                      <Calendar size={14} /> This week
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {ep.thisWeekTournaments.map((t) => (
+                        <TournamentCard
+                          key={t.id}
+                          tournament={t}
+                          onClick={() => ep.setSelectedTournament(t)}
+                          isRegistered={ep.isRegisteredForTournament(t.id)}
+                          isHost={ep.isHostOfTournament(t)}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                )}
+
                 {ep.upcomingTournaments.length > 0 && (
                   <section>
                     <h3 className="text-sm font-semibold uppercase tracking-widest text-cyan mb-4 flex items-center gap-2">
@@ -294,7 +314,7 @@ export default function EsportsPage() {
                 {Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)}
               </div>
             ) : ep.teams.length === 0 ? (
-              <EmptyState icon="👥" title="No teams yet" subtitle="Be the first to create a team and start recruiting!" />
+              <EmptyState icon="👥" title="Teams launching with beta" subtitle="Create one of the first teams on the platform — recruiting opens when beta does." />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {ep.teams.filter((t) => t.id !== ep.myTeam?.id).map((team, i) => (
@@ -317,7 +337,7 @@ export default function EsportsPage() {
                   {Array.from({ length: 5 }).map((_, i) => <CardSkeleton key={i} />)}
                 </div>
               ) : ep.leaderboardPlayers.length === 0 ? (
-                <EmptyState icon="📊" title="No rankings yet" subtitle="Compete in tournaments to appear on the leaderboard." />
+                <EmptyState icon="📊" title="National leaderboard launches with beta" subtitle="Once tournaments start running, the top players nationwide will appear here." />
               ) : (
                 <LeaderboardTable
                   players={ep.leaderboardPlayers}

@@ -37,8 +37,8 @@ export default function CommunityPage() {
         <Users className="h-6 w-6 text-green" />
         <SectionTitle
           eyebrow="Connect & Play"
-          title="The Gaming Community"
-          subtitle="Share your wins, find opponents, and stay connected."
+          title="Nigeria's Gaming Community"
+          subtitle="Share your wins, find opponents, swap notes — gamers nationwide."
         />
       </div>
 
@@ -132,7 +132,7 @@ export default function CommunityPage() {
                   ? "Try a different search term or topic."
                   : cp.sortMode === "bookmarks"
                   ? "Save posts you want to come back to."
-                  : "Be the first to share something!"
+                  : "We're seeding the first conversations with our beta cohort now. The full feed opens to everyone when beta launches."
               }
             />
           ) : (

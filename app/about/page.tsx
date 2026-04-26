@@ -7,7 +7,7 @@ import { BRAND } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "About CGE",
-  description: "Learn about Creative Gaming Entertainment — Bonny Island's premier gaming lounge. Our mission, zones, contact info, and operating hours.",
+  description: "Learn about CGE (Creative Gaming Entertainment) — Nigeria's gaming platform for esports, marketplace, community, and lounges. Our mission, branches, contact info, and operating hours.",
 };
 
 const PILLARS = [

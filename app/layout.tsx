@@ -31,15 +31,16 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "CGE | Creative Gaming Entertainment — Bonny Island Gaming Lounge",
+    default: "CGE | Nigeria's Gaming Platform — Esports, Marketplace, Community & Lounge",
     template: "%s | CGE Gaming",
   },
   description:
-    "Nigeria's premier gaming lounge on Bonny Island. PS4, PS5 & VR gaming, esports tournaments, marketplace, and a thriving gaming community.",
+    "Nigeria's gaming platform — esports tournaments nationwide, a peer-to-peer gaming marketplace with safe swaps, a community for gamers across the country, and our first physical lounge on Bonny Island.",
   keywords: [
-    "gaming lounge", "bonny island", "PS5 gaming", "PS4 gaming", "VR gaming",
-    "esports tournaments Nigeria", "gaming center", "CGE", "Creative Gaming Entertainment",
-    "Bonny Island gaming", "FIFA gaming lounge", "Tekken tournament",
+    "gaming Nigeria", "esports tournaments Nigeria", "gaming marketplace Nigeria",
+    "swap gaming gear", "Nigerian gamers community", "PS5 gaming", "PS4 gaming",
+    "VR gaming", "FIFA tournament", "Tekken tournament", "CGE",
+    "Creative Gaming Entertainment", "Bonny Island gaming lounge",
   ],
   authors: [{ name: "Creative Gaming Entertainment" }],
   creator: "CGE",
@@ -48,16 +49,16 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_NG",
     siteName: "CGE — Creative Gaming Entertainment",
-    title: "CGE | Creative Gaming Entertainment — Bonny Island Gaming Lounge",
+    title: "CGE | Nigeria's Gaming Platform",
     description:
-      "Premium PS4, PS5 & VR gaming on Bonny Island. Esports tournaments, gaming marketplace, and community.",
+      "Esports tournaments, peer-to-peer marketplace, gaming community, and physical lounges. Built for Nigerian gamers.",
     images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: "CGE Gaming Lounge" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "CGE | Creative Gaming Entertainment",
     description:
-      "Nigeria's premier gaming lounge. PS4, PS5, VR, esports & more on Bonny Island.",
+      "Nigeria's gaming platform — tournaments, marketplace, community, and lounges. First branch on Bonny Island.",
     images: ["/og-image.jpg"],
   },
   robots: {
