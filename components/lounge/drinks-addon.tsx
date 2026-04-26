@@ -1,11 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { PRICING } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SectionTitle } from "@/components/ui/section-title";
 import { formatPrice } from "@/lib/utils";
-import { ArrowLeft, ArrowRight, Minus, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Minus, Plus, ChevronDown } from "lucide-react";
 
 interface DrinksAddonProps {
   drinks: Record<string, number>;
@@ -25,6 +26,12 @@ for (const item of ALL_ITEMS) {
 }
 
 export function DrinksAddon({ drinks, onChange, onNext, onBack }: DrinksAddonProps) {
+  const hasItems = Object.keys(drinks).length > 0;
+  // Open by default only if the user has already picked items (so going back
+  // doesn't hide their selections). Otherwise collapsed — this step is
+  // optional and most bookings skip it.
+  const [open, setOpen] = useState(hasItems);
+
   function updateQty(name: string, delta: number) {
     const current = drinks[name] || 0;
     const next = Math.max(0, current + delta);
@@ -48,43 +55,67 @@ export function DrinksAddon({ drinks, onChange, onNext, onBack }: DrinksAddonPro
         align="center"
       />
 
-      {/* Drinks */}
-      <div className="mb-6">
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-3">
-          Drinks
-        </h4>
-        <div className="space-y-3">
-          {PRICING.drinks.map((item) => (
-            <ItemRow
-              key={item.name}
-              name={item.name}
-              price={item.price}
-              qty={drinks[item.name] || 0}
-              onIncrement={() => updateQty(item.name, 1)}
-              onDecrement={() => updateQty(item.name, -1)}
-            />
-          ))}
-        </div>
-      </div>
+      {/* Toggle — collapsed by default since most bookings skip extras */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between rounded-xl border border-border bg-surface-alt px-4 py-3 mb-4 cursor-pointer hover:border-cyan/30 transition-colors"
+      >
+        <span className="text-sm font-semibold text-text">
+          Add refreshments?
+        </span>
+        <span className="flex items-center gap-2 text-xs text-text-muted">
+          {hasItems
+            ? `${Object.values(drinks).reduce((a, b) => a + b, 0)} item${Object.values(drinks).reduce((a, b) => a + b, 0) === 1 ? "" : "s"}`
+            : "Tap to browse"}
+          <ChevronDown
+            size={14}
+            className={open ? "rotate-180 transition-transform" : "transition-transform"}
+          />
+        </span>
+      </button>
 
-      {/* Snacks */}
-      <div className="mb-6">
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-3">
-          Snacks
-        </h4>
-        <div className="space-y-3">
-          {PRICING.snacks.map((item) => (
-            <ItemRow
-              key={item.name}
-              name={item.name}
-              price={item.price}
-              qty={drinks[item.name] || 0}
-              onIncrement={() => updateQty(item.name, 1)}
-              onDecrement={() => updateQty(item.name, -1)}
-            />
-          ))}
-        </div>
-      </div>
+      {open && (
+        <>
+          {/* Drinks */}
+          <div className="mb-6">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-3">
+              Drinks
+            </h4>
+            <div className="space-y-3">
+              {PRICING.drinks.map((item) => (
+                <ItemRow
+                  key={item.name}
+                  name={item.name}
+                  price={item.price}
+                  qty={drinks[item.name] || 0}
+                  onIncrement={() => updateQty(item.name, 1)}
+                  onDecrement={() => updateQty(item.name, -1)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Snacks */}
+          <div className="mb-6">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-3">
+              Snacks
+            </h4>
+            <div className="space-y-3">
+              {PRICING.snacks.map((item) => (
+                <ItemRow
+                  key={item.name}
+                  name={item.name}
+                  price={item.price}
+                  qty={drinks[item.name] || 0}
+                  onIncrement={() => updateQty(item.name, 1)}
+                  onDecrement={() => updateQty(item.name, -1)}
+                />
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Running Total */}
       {runningTotal > 0 && (

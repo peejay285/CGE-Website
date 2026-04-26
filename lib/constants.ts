@@ -35,6 +35,8 @@ export const PRICING = {
   ],
 } as const;
 
+// Zone photos: drop real images into /public/zones/{main,vip,vr}.jpg and they
+// auto-replace the gradient placeholder. Path is relative to /public.
 export const ZONES = [
   {
     id: "main",
@@ -43,6 +45,8 @@ export const ZONES = [
     capacity: 6,
     console: "PS4",
     desc: "6-player gaming arena with PS4 consoles",
+    image: "/zones/main.jpg",
+    gradient: "from-cyan/30 via-cyan/10 to-base",
   },
   {
     id: "vip",
@@ -51,6 +55,8 @@ export const ZONES = [
     capacity: 2,
     console: "PS5",
     desc: "Premium PS5 experience, 2 consoles",
+    image: "/zones/vip.jpg",
+    gradient: "from-gold/30 via-gold/10 to-base",
   },
   {
     id: "vr",
@@ -59,6 +65,8 @@ export const ZONES = [
     capacity: 1,
     console: "VR",
     desc: "Immersive virtual reality",
+    image: "/zones/vr.jpg",
+    gradient: "from-magenta/30 via-magenta/10 to-base",
   },
 ] as const;
 

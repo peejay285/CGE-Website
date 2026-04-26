@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
+import { sendBookingSMS } from "@/lib/sms";
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
         // Fetch the booking to check idempotency and verify amount
         const { data: booking, error: fetchError } = await supabase
           .from("bookings")
-          .select("id, payment_status, total")
+          .select("id, payment_status, total, zone_id, booking_date, time_slot, user_id")
           .eq("paystack_reference", reference)
           .single();
 
@@ -101,6 +102,33 @@ export async function POST(request: Request) {
             bookingId: booking.id,
             error: updateError.message,
           });
+        } else {
+          // Fire-and-forget SMS confirmation. No-ops cleanly if Termii isn't
+          // configured. Don't block the webhook response on its outcome.
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("phone")
+            .eq("id", (booking as { user_id: string }).user_id)
+            .maybeSingle();
+          if (profile?.phone) {
+            const b = booking as {
+              id: string;
+              zone_id: string;
+              booking_date: string;
+              time_slot: string;
+            };
+            sendBookingSMS({
+              to: profile.phone,
+              zoneName: b.zone_id,
+              date: b.booking_date,
+              time: b.time_slot,
+              bookingId: b.id,
+            }).catch((e) =>
+              console.error("[Webhook] sendBookingSMS threw", {
+                message: e instanceof Error ? e.message : String(e),
+              }),
+            );
+          }
         }
       } else if (metadata?.type === "tournament") {
         // Fetch the registration to check idempotency

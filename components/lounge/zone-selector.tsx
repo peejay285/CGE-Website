@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn, formatPrice } from "@/lib/utils";
 import { Gamepad2, Crown, Glasses, CalendarDays, Zap, Clock, ArrowRight } from "lucide-react";
+import { ZoneAvailability } from "./zone-availability";
 
 interface ZoneSelectorProps {
   selected: string | null;
@@ -138,31 +139,40 @@ export function ZoneSelector({ selected, onSelect }: ZoneSelectorProps) {
               key={zone.id}
               onClick={() => setPicked(zone.id)}
               className={cn(
-                "text-center group relative",
+                "text-center group relative !p-0 overflow-hidden",
                 isPicked &&
                   "border-cyan bg-cyan/5 shadow-[0_0_25px_rgba(0,240,255,0.12)]"
               )}
             >
               {/* VIP badge */}
               {zone.id === "vip" && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <div className="absolute top-3 right-3 z-10">
                   <Badge color="gold" size="sm">
                     Premium
                   </Badge>
                 </div>
               )}
 
-              {/* Icon */}
-              <div
-                className={cn(
-                  "w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4 transition-colors",
-                  isPicked
-                    ? "bg-cyan/15 text-cyan"
-                    : "bg-surface-alt text-text-muted group-hover:text-cyan group-hover:bg-cyan/10"
-                )}
+              {/* Photo header — falls back to gradient + icon if /public/zones/{id}.jpg is missing */}
+              <ZoneHeader
+                src={zone.image}
+                gradient={zone.gradient}
+                alt={zone.name}
+                isPicked={isPicked}
               >
-                {icon}
-              </div>
+                <div
+                  className={cn(
+                    "w-14 h-14 rounded-xl flex items-center justify-center transition-colors backdrop-blur-md bg-base/40 border border-white/10",
+                    isPicked
+                      ? "text-cyan"
+                      : "text-white group-hover:text-cyan",
+                  )}
+                >
+                  {icon}
+                </div>
+              </ZoneHeader>
+
+              <div className="p-6 pt-5">
 
               <h3 className="text-lg font-bold font-heading tracking-tight text-text mb-1">
                 {zone.name}
@@ -220,10 +230,14 @@ export function ZoneSelector({ selected, onSelect }: ZoneSelectorProps) {
                   Selected
                 </div>
               )}
+              </div>
             </Card>
           );
         })}
       </div>
+
+      {/* Next 7 days at a glance — actual booking-load per zone */}
+      <ZoneAvailability className="mt-10" />
 
       {/* Continue Button */}
       <div className="flex justify-center mt-8">
@@ -236,6 +250,53 @@ export function ZoneSelector({ selected, onSelect }: ZoneSelectorProps) {
           Continue
           <ArrowRight size={18} />
         </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Photo header for a zone card. If the configured /public/zones/{id}.jpg
+ * is missing, the <img> hides itself onError and the gradient + icon block
+ * underneath is what shows. So pre-photos this still looks intentional;
+ * post-photos it just becomes a real image.
+ */
+function ZoneHeader({
+  src,
+  gradient,
+  alt,
+  isPicked,
+  children,
+}: {
+  src: string;
+  gradient: string;
+  alt: string;
+  isPicked: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative h-28 sm:h-32 w-full overflow-hidden bg-gradient-to-br",
+        gradient,
+      )}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        className="absolute inset-0 w-full h-full object-cover opacity-90"
+        onError={(e) => {
+          (e.currentTarget as HTMLImageElement).style.display = "none";
+        }}
+      />
+      <div
+        className={cn(
+          "absolute inset-0 flex items-center justify-center transition-opacity",
+          isPicked ? "bg-base/30" : "bg-base/15 group-hover:bg-base/25",
+        )}
+      >
+        {children}
       </div>
     </div>
   );
