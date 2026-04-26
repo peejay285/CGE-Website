@@ -10,6 +10,7 @@ import {
   LISTING_CONDITIONS,
   SWAP_SUGGESTIONS,
   NIGERIAN_STATES,
+  PREMIUM_LIMITS,
 } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -36,9 +37,8 @@ interface CreateListingModalProps {
   }) => void;
   loading?: boolean;
   sellerPhone?: string | null;
+  isPremium?: boolean;
 }
-
-const MAX_IMAGES = 4;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_SWAP_TAGS = 8;
 
@@ -48,7 +48,17 @@ const LISTING_TYPE_OPTIONS: { value: ListingType; label: string; desc: string }[
   { value: "sell", label: "Sell Only", desc: "Cash price only" },
 ];
 
-export function CreateListingModal({ open, onClose, onSubmit, loading, sellerPhone }: CreateListingModalProps) {
+export function CreateListingModal({
+  open,
+  onClose,
+  onSubmit,
+  loading,
+  sellerPhone,
+  isPremium = false,
+}: CreateListingModalProps) {
+  const MAX_IMAGES = isPremium
+    ? PREMIUM_LIMITS.premiumMaxImages
+    : PREMIUM_LIMITS.freeMaxImages;
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [buyoutPrice, setBuyoutPrice] = useState("");

@@ -32,14 +32,24 @@ function generateVoucherCode(): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { month, adminSecret } = body;
-
-    // Simple admin auth — compare against env secret
-    const expectedSecret = process.env.GIVEAWAY_ADMIN_SECRET;
-    if (!expectedSecret || adminSecret !== expectedSecret) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (!profile?.is_admin) {
+      return NextResponse.json({ error: "Admin only" }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const { month } = body;
 
     if (!month || !/^\d{4}-\d{2}$/.test(month)) {
       return NextResponse.json(
@@ -47,8 +57,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    const supabase = await createServerSupabaseClient();
 
     // Check if draw already happened for this month
     const { data: existingDraw } = await supabase

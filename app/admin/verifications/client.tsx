@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   ShieldCheck,
   Check,
@@ -8,6 +9,7 @@ import {
   ExternalLink,
   Loader2,
   ChevronDown,
+  UserCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { Badge } from "@/components/ui/badge";
@@ -214,6 +216,17 @@ function SubmissionRow({
 
       {open && (
         <div className="border-t border-border px-4 py-4 space-y-4">
+          <Link
+            href={`/marketplace/seller/${row.user_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-cyan hover:underline"
+          >
+            <UserCircle size={14} />
+            Open user profile
+            <ExternalLink size={11} />
+          </Link>
+
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-2">
               ID document

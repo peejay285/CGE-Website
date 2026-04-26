@@ -102,6 +102,7 @@ export function useMarketplacePage() {
     useState<MarketplaceListing | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [sellerPhone, setSellerPhone] = useState<string | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
 
   // Swap proposal state
   const [swapProposalTarget, setSwapProposalTarget] =
@@ -200,14 +201,19 @@ export function useMarketplacePage() {
     const supabase = createClient();
     supabase
       .from("profiles")
-      .select("phone, location_state")
+      .select("phone, location_state, premium_tier, premium_expires_at")
       .eq("id", user.id)
       .single()
       .then(
         ({
           data,
         }: {
-          data: { phone: string | null; location_state: string | null } | null;
+          data: {
+            phone: string | null;
+            location_state: string | null;
+            premium_tier: string | null;
+            premium_expires_at: string | null;
+          } | null;
         }) => {
           setSellerPhone(data?.phone || null);
           // Default the marketplace state filter to the user's profile state,
@@ -216,6 +222,11 @@ export function useMarketplacePage() {
             setLocationState(data.location_state);
             setProfileLocationDefaulted(true);
           }
+          const premiumActive =
+            data?.premium_tier === "premium" &&
+            data?.premium_expires_at != null &&
+            new Date(data.premium_expires_at) > new Date();
+          setIsPremium(premiumActive);
         },
       );
   }, [user, profileLocationDefaulted]);
@@ -773,6 +784,7 @@ export function useMarketplacePage() {
     createOpen,
     setCreateOpen,
     sellerPhone,
+    isPremium,
     swapProposalTarget,
     myListings,
     myListingsLoading,

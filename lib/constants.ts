@@ -169,6 +169,13 @@ export const DEFAULT_AVATARS = [
   "https://api.dicebear.com/7.x/bottts-neutral/svg?seed=cge-kappa",
 ] as const;
 
+// Premium tier perks. Single source of truth for the gating logic and the
+// upgrade page copy.
+export const PREMIUM_LIMITS = {
+  freeMaxImages: 4,
+  premiumMaxImages: 8,
+} as const;
+
 export const NIGERIAN_STATES = [
   "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue",
   "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu",

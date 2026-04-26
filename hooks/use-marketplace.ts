@@ -78,6 +78,8 @@ export function useMarketplace(filters?: ListingFilters) {
         .select(
           "*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, location_state, location_city, is_id_verified, premium_tier), listing_saves(user_id)"
         )
+        // Premium sellers' listings appear first; ties break on created_at.
+        .order("premium_tier", { foreignTable: "seller", ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);
 

@@ -311,6 +311,7 @@ export default function MarketplacePage() {
         onSubmit={mp.handleCreateListing}
         loading={mp.actionLoading}
         sellerPhone={mp.sellerPhone}
+        isPremium={mp.isPremium}
       />
 
       {mp.reviewTarget && (
