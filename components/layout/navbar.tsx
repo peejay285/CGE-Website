@@ -18,8 +18,9 @@ interface NavbarProps {
 
 export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState<{ userId: string; url: string | null } | null>(null);
   const pathname = usePathname();
+  const avatarUrl = avatar && avatar.userId === user?.id ? avatar.url : null;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,10 +34,7 @@ export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarP
   // just an initial. Refetches when the user changes or another tab/page
   // dispatches an "avatar-updated" event (the AvatarPicker fires it).
   useEffect(() => {
-    if (!user?.id) {
-      setAvatarUrl(null);
-      return;
-    }
+    if (!user?.id) return;
     const supabase = createClient();
     let cancelled = false;
     const fetchAvatar = () => {
@@ -46,7 +44,9 @@ export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarP
         .eq("id", user.id!)
         .maybeSingle()
         .then(({ data }: { data: { avatar_url: string | null } | null }) => {
-          if (!cancelled) setAvatarUrl(data?.avatar_url ?? null);
+          if (!cancelled) {
+            setAvatar({ userId: user.id!, url: data?.avatar_url ?? null });
+          }
         });
     };
     fetchAvatar();

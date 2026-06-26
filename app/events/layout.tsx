@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 export const metadata: Metadata = {
   title: "Events",
@@ -6,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function EventsLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return <ErrorBoundary section="events">{children}</ErrorBoundary>;
 }

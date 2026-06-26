@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Team, TeamMember } from "@/lib/types";
+import type { Profile, Team, TeamJoinRequest, TeamMember } from "@/lib/types";
 
 interface CreateTeamData {
   name: string;
@@ -11,10 +11,109 @@ interface CreateTeamData {
   game?: string;
 }
 
+type TeamProfile = Pick<Profile, "id" | "full_name" | "avatar_url" | "gamertag">;
+
+async function hydrateTeamCaptains(
+  supabase: ReturnType<typeof createClient>,
+  rows: Team[]
+) {
+  const captainIds = Array.from(new Set(rows.map((team) => team.captain_id)));
+  if (captainIds.length === 0) return rows;
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url, gamertag")
+    .in("id", captainIds);
+
+  const profileMap = new Map<string, TeamProfile>();
+  for (const profile of (profiles ?? []) as TeamProfile[]) {
+    profileMap.set(profile.id, profile);
+  }
+
+  return rows.map((team) => ({
+    ...team,
+    captain: profileMap.get(team.captain_id),
+  }));
+}
+
+async function hydrateTeamRows(
+  supabase: ReturnType<typeof createClient>,
+  rows: Team[]
+) {
+  const withCaptains = await hydrateTeamCaptains(supabase, rows);
+  const teamIds = withCaptains.map((team) => team.id);
+  if (teamIds.length === 0) return withCaptains;
+
+  const { data: memberships } = await supabase
+    .from("team_members")
+    .select("team_id")
+    .in("team_id", teamIds);
+
+  const memberCountMap = new Map<number, number>();
+  for (const membership of (memberships ?? []) as Array<{ team_id: number }>) {
+    memberCountMap.set(
+      membership.team_id,
+      (memberCountMap.get(membership.team_id) ?? 0) + 1
+    );
+  }
+
+  return withCaptains.map((team) => ({
+    ...team,
+    member_count: memberCountMap.get(team.id) ?? team.member_count ?? 1,
+  }));
+}
+
+async function hydrateMemberProfiles(
+  supabase: ReturnType<typeof createClient>,
+  rows: TeamMember[]
+) {
+  const userIds = Array.from(new Set(rows.map((member) => member.user_id)));
+  if (userIds.length === 0) return rows;
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url, gamertag")
+    .in("id", userIds);
+
+  const profileMap = new Map<string, TeamProfile>();
+  for (const profile of (profiles ?? []) as TeamProfile[]) {
+    profileMap.set(profile.id, profile);
+  }
+
+  return rows.map((member) => ({
+    ...member,
+    profile: profileMap.get(member.user_id),
+  }));
+}
+
+async function hydrateJoinRequestProfiles(
+  supabase: ReturnType<typeof createClient>,
+  rows: TeamJoinRequest[]
+) {
+  const userIds = Array.from(new Set(rows.map((request) => request.user_id)));
+  if (userIds.length === 0) return rows;
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url, gamertag")
+    .in("id", userIds);
+
+  const profileMap = new Map<string, TeamProfile>();
+  for (const profile of (profiles ?? []) as TeamProfile[]) {
+    profileMap.set(profile.id, profile);
+  }
+
+  return rows.map((request) => ({
+    ...request,
+    profile: profileMap.get(request.user_id),
+  }));
+}
+
 export function useTeams() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [myTeam, setMyTeam] = useState<Team | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [joinRequests, setJoinRequests] = useState<TeamJoinRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
@@ -28,7 +127,7 @@ export function useTeams() {
 
         let query = supabase
           .from("teams")
-          .select("*, captain:profiles!captain_id(id, full_name, avatar_url, gamertag)")
+          .select("*")
           .order("created_at", { ascending: false });
 
         if (game) {
@@ -38,7 +137,7 @@ export function useTeams() {
         const { data, error: fetchError } = await query;
         if (fetchError) throw fetchError;
 
-        const result = (data ?? []) as Team[];
+        const result = await hydrateTeamRows(supabase, (data ?? []) as Team[]);
         setTeams(result);
         return result;
       } catch (err) {
@@ -77,13 +176,13 @@ export function useTeams() {
 
       const { data, error: fetchError } = await supabase
         .from("teams")
-        .select("*, captain:profiles!captain_id(id, full_name, avatar_url, gamertag)")
+        .select("*")
         .eq("id", membership.team_id)
         .single();
 
       if (fetchError) throw fetchError;
 
-      const team = data as Team;
+      const [team] = await hydrateTeamRows(supabase, [data as Team]);
       setMyTeam(team);
       return team;
     } catch (err) {
@@ -104,12 +203,13 @@ export function useTeams() {
 
         const { data, error: fetchError } = await supabase
           .from("teams")
-          .select("*, captain:profiles!captain_id(id, full_name, avatar_url, gamertag)")
+          .select("*")
           .eq("id", teamId)
           .single();
 
         if (fetchError) throw fetchError;
-        return data as Team;
+        const [team] = await hydrateTeamRows(supabase, [data as Team]);
+        return team ?? null;
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to fetch team";
         setError(message);
@@ -130,17 +230,17 @@ export function useTeams() {
 
         const { data, error: fetchError } = await supabase
           .from("team_members")
-          .select("*, profile:profiles!user_id(id, full_name, avatar_url, gamertag)")
+          .select("*")
           .eq("team_id", teamId)
           .order("role", { ascending: true })
           .order("joined_at", { ascending: true });
 
         if (fetchError) throw fetchError;
 
-        const result = (data ?? []).map((item: Record<string, unknown>) => ({
-          ...item,
-          profile: item.profile ?? undefined,
-        })) as TeamMember[];
+        const result = await hydrateMemberProfiles(
+          supabase,
+          (data ?? []) as TeamMember[]
+        );
 
         setMembers(result);
         return result;
@@ -148,6 +248,84 @@ export function useTeams() {
         const message = err instanceof Error ? err.message : "Failed to fetch members";
         setError(message);
         return [];
+      } finally {
+        setLoading(false);
+      }
+    },
+    [supabase]
+  );
+
+  // ── Get pending requests for a team ─────────────────
+  const getTeamJoinRequests = useCallback(
+    async (teamId: number): Promise<TeamJoinRequest[]> => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const { data, error: fetchError } = await supabase
+          .from("team_join_requests")
+          .select("*")
+          .eq("team_id", teamId)
+          .eq("status", "pending")
+          .order("created_at", { ascending: true });
+
+        if (fetchError) throw fetchError;
+
+        const result = await hydrateJoinRequestProfiles(
+          supabase,
+          (data ?? []) as TeamJoinRequest[]
+        );
+        setJoinRequests((prev) => [
+          ...prev.filter((request) => request.team_id !== teamId),
+          ...result,
+        ]);
+        return result;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to fetch join requests";
+        setError(message);
+        return [];
+      } finally {
+        setLoading(false);
+      }
+    },
+    [supabase]
+  );
+
+  const getMyJoinRequestForTeam = useCallback(
+    async (teamId: number): Promise<TeamJoinRequest | null> => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return null;
+
+        const { data, error: fetchError } = await supabase
+          .from("team_join_requests")
+          .select("*")
+          .eq("team_id", teamId)
+          .eq("user_id", user.id)
+          .eq("status", "pending")
+          .maybeSingle();
+
+        if (fetchError) throw fetchError;
+
+        const request = data as TeamJoinRequest | null;
+        setJoinRequests((prev) => {
+          const withoutCurrent = prev.filter(
+            (item) => !(item.team_id === teamId && item.user_id === user.id)
+          );
+          return request ? [...withoutCurrent, request] : withoutCurrent;
+        });
+        return request;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to fetch your join request";
+        setError(message);
+        return null;
       } finally {
         setLoading(false);
       }
@@ -179,7 +357,7 @@ export function useTeams() {
 
         if (insertError) throw insertError;
 
-        const team = data as Team;
+        const team = { ...(data as Team), member_count: 1 };
 
         // Auto-add captain as team member
         await supabase.from("team_members").insert({
@@ -208,42 +386,41 @@ export function useTeams() {
     [supabase]
   );
 
-  // ── Join a team ────────────────────────────────────
+  // ── Request to join a team ─────────────────────────
   const joinTeam = useCallback(
     async (teamId: number): Promise<boolean> => {
       try {
         setLoading(true);
         setError(null);
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("User not authenticated");
+        const { data, error: requestError } = await supabase
+          .rpc("request_team_join", {
+            p_team_id: teamId,
+            p_message: null,
+          })
+          .single();
 
-        const { error: insertError } = await supabase
-          .from("team_members")
-          .insert({
-            team_id: teamId,
-            user_id: user.id,
-            role: "member",
-          });
+        if (requestError) throw requestError;
 
-        if (insertError) throw insertError;
-
-        await supabase
-          .from("profiles")
-          .update({ team_id: teamId })
-          .eq("id", user.id);
-
-        await getMyTeam();
+        const request = data as TeamJoinRequest;
+        setJoinRequests((prev) => {
+          const exists = prev.some((item) => item.id === request.id);
+          if (exists) {
+            return prev.map((item) => (item.id === request.id ? request : item));
+          }
+          return [...prev, request];
+        });
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to join team";
+        const message =
+          err instanceof Error ? err.message : "Failed to request team access";
         setError(message);
         return false;
       } finally {
         setLoading(false);
       }
     },
-    [supabase, getMyTeam]
+    [supabase]
   );
 
   // ── Leave a team ───────────────────────────────────
@@ -270,6 +447,13 @@ export function useTeams() {
           .eq("id", user.id);
 
         setMyTeam(null);
+        setTeams((prev) =>
+          prev.map((team) =>
+            team.id === teamId
+              ? { ...team, member_count: Math.max(0, (team.member_count ?? 1) - 1) }
+              : team
+          )
+        );
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to leave team";
@@ -303,9 +487,138 @@ export function useTeams() {
           .eq("id", userId);
 
         setMembers((prev) => prev.filter((m) => m.user_id !== userId));
+        setTeams((prev) =>
+          prev.map((team) =>
+            team.id === teamId
+              ? { ...team, member_count: Math.max(0, (team.member_count ?? 1) - 1) }
+              : team
+          )
+        );
+        setMyTeam((current) =>
+          current?.id === teamId
+            ? { ...current, member_count: Math.max(0, (current.member_count ?? 1) - 1) }
+            : current
+        );
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to remove member";
+        setError(message);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [supabase]
+  );
+
+  // ── Join request decisions ─────────────────────────
+  const approveJoinRequest = useCallback(
+    async (requestId: string): Promise<TeamMember | null> => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const request = joinRequests.find((item) => item.id === requestId);
+        const { data, error: approveError } = await supabase
+          .rpc("approve_team_join_request", {
+            p_request_id: requestId,
+          })
+          .single();
+
+        if (approveError) throw approveError;
+
+        const [member] = await hydrateMemberProfiles(supabase, [data as TeamMember]);
+        setMembers((prev) => {
+          if (prev.some((item) => item.id === member.id)) return prev;
+          return [...prev, member];
+        });
+        setJoinRequests((prev) => prev.filter((item) => item.id !== requestId));
+
+        const teamId = member.team_id;
+        setTeams((prev) =>
+          prev.map((team) =>
+            team.id === teamId
+              ? { ...team, member_count: (team.member_count ?? 1) + 1 }
+              : team
+          )
+        );
+        setMyTeam((current) =>
+          current?.id === teamId
+            ? { ...current, member_count: (current.member_count ?? 1) + 1 }
+            : current
+        );
+
+        if (request) {
+          setJoinRequests((prev) =>
+            prev.filter(
+              (item) =>
+                !(
+                  item.user_id === request.user_id &&
+                  item.status === "pending" &&
+                  item.id !== requestId
+                )
+            )
+          );
+        }
+
+        return member;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to approve join request";
+        setError(message);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [supabase, joinRequests]
+  );
+
+  const declineJoinRequest = useCallback(
+    async (requestId: string): Promise<boolean> => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const { error: declineError } = await supabase.rpc(
+          "decline_team_join_request",
+          { p_request_id: requestId }
+        );
+
+        if (declineError) throw declineError;
+
+        setJoinRequests((prev) => prev.filter((item) => item.id !== requestId));
+        return true;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to decline join request";
+        setError(message);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [supabase]
+  );
+
+  const cancelJoinRequest = useCallback(
+    async (requestId: string): Promise<boolean> => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const { error: cancelError } = await supabase.rpc(
+          "cancel_team_join_request",
+          { p_request_id: requestId }
+        );
+
+        if (cancelError) throw cancelError;
+
+        setJoinRequests((prev) => prev.filter((item) => item.id !== requestId));
+        return true;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to cancel join request";
         setError(message);
         return false;
       } finally {
@@ -369,7 +682,7 @@ export function useTeams() {
 
         if (updateError) throw updateError;
 
-        const team = data as Team;
+        const [team] = await hydrateTeamRows(supabase, [data as Team]);
         setMyTeam(team);
         setTeams((prev) => prev.map((t) => (t.id === teamId ? team : t)));
         return team;
@@ -409,6 +722,7 @@ export function useTeams() {
 
         setMyTeam(null);
         setTeams((prev) => prev.filter((t) => t.id !== teamId));
+        setJoinRequests((prev) => prev.filter((request) => request.team_id !== teamId));
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to delete team";
@@ -425,16 +739,22 @@ export function useTeams() {
     teams,
     myTeam,
     members,
+    joinRequests,
     loading,
     error,
     getTeams,
     getMyTeam,
     getTeamById,
     getTeamMembers,
+    getTeamJoinRequests,
+    getMyJoinRequestForTeam,
     createTeam,
     joinTeam,
     leaveTeam,
     removeMember,
+    approveJoinRequest,
+    declineJoinRequest,
+    cancelJoinRequest,
     updateMemberRole,
     updateTeam,
     deleteTeam,

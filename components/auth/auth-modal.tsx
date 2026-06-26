@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
+import Link from "next/link";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { Eye, EyeOff, Loader2, Navigation, Check } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
@@ -11,6 +13,8 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { NIGERIAN_STATES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 interface AuthModalProps {
   open: boolean;
@@ -46,6 +50,8 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance | null>(null);
   const { signIn, signUp, signInWithProvider, resetPassword } = useAuth();
   const geolocation = useGeolocation();
 
@@ -102,6 +108,10 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
           toast.error("Please select your state");
           return;
         }
+        if (TURNSTILE_SITE_KEY && !captchaToken) {
+          toast.error("Please complete the captcha before continuing");
+          return;
+        }
         const { error } = await signUp(
           email.toLowerCase().trim(),
           password,
@@ -110,8 +120,13 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
           locationState,
           locationCity.trim() || undefined,
           geolocation.coords,
+          captchaToken ?? undefined,
         );
         if (error) {
+          // The Turnstile token is single-use — reset the widget so the
+          // user can retry after a server-side rejection.
+          turnstileRef.current?.reset();
+          setCaptchaToken(null);
           if (error.message.includes("already registered")) {
             toast.error("This email is already registered. Try signing in instead.");
           } else {
@@ -137,6 +152,8 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
     setLocationState("");
     setLocationCity("");
     setShowPassword(false);
+    setCaptchaToken(null);
+    turnstileRef.current?.reset();
   };
 
   const handleSocialLogin = useCallback(
@@ -458,7 +475,28 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               </div>
             )}
 
-            <Button type="submit" fullWidth disabled={loading || (mode === "Sign Up" && password !== confirmPassword)}>
+            {mode === "Sign Up" && TURNSTILE_SITE_KEY && (
+              <div className="flex justify-center">
+                <Turnstile
+                  ref={turnstileRef}
+                  siteKey={TURNSTILE_SITE_KEY}
+                  options={{ theme: "dark", size: "flexible" }}
+                  onSuccess={(token) => setCaptchaToken(token)}
+                  onError={() => setCaptchaToken(null)}
+                  onExpire={() => setCaptchaToken(null)}
+                />
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              fullWidth
+              disabled={
+                loading ||
+                (mode === "Sign Up" && password !== confirmPassword) ||
+                (mode === "Sign Up" && !!TURNSTILE_SITE_KEY && !captchaToken)
+              }
+            >
               {loading ? "Please wait..." : mode === "Sign In" ? "Sign In" : "Create Account"}
             </Button>
 
@@ -477,7 +515,15 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
 
             {mode === "Sign Up" && (
               <p className="text-[11px] text-text-muted text-center leading-relaxed">
-                By creating an account, you agree to CGE&apos;s Terms of Service. Ages 13+ only.
+                By creating an account, you agree to CGE&apos;s{" "}
+                <Link href="/terms" target="_blank" className="text-cyan hover:underline">
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" target="_blank" className="text-cyan hover:underline">
+                  Privacy Policy
+                </Link>
+                . Ages 13+ only.
               </p>
             )}
           </>

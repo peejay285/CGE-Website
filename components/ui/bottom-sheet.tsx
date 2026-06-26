@@ -3,6 +3,7 @@
 import { useEffect, useCallback, useRef } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "./use-focus-trap";
 
 interface BottomSheetProps {
   open: boolean;
@@ -10,6 +11,8 @@ interface BottomSheetProps {
   title?: string;
   children: React.ReactNode;
   fullHeight?: boolean;
+  /** Accessible name for the dialog; falls back to `title`, then "Dialog". */
+  ariaLabel?: string;
 }
 
 export function BottomSheet({
@@ -18,28 +21,22 @@ export function BottomSheet({
   title,
   children,
   fullHeight = true,
+  ariaLabel,
 }: BottomSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const startYRef = useRef(0);
   const currentYRef = useRef(0);
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    },
-    [onClose]
-  );
+  useFocusTrap(sheetRef, open, { onEscape: onClose });
 
   useEffect(() => {
     if (open) {
-      document.addEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "hidden";
     }
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
     };
-  }, [open, handleKeyDown]);
+  }, [open]);
 
   /* ── Swipe-to-close on the drag handle ─────────── */
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -71,6 +68,7 @@ export function BottomSheet({
       className="fixed inset-0 z-50 flex items-end justify-center"
       role="dialog"
       aria-modal="true"
+      aria-label={ariaLabel ?? title ?? "Dialog"}
       onClick={onClose}
     >
       {/* Backdrop */}
@@ -79,9 +77,10 @@ export function BottomSheet({
       {/* Sheet */}
       <div
         ref={sheetRef}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "relative w-full bg-surface border-t border-border rounded-t-2xl shadow-2xl",
+          "relative w-full bg-surface border-t border-border rounded-t-2xl shadow-2xl focus:outline-none",
           "animate-slideUp transition-transform duration-200 ease-out",
           fullHeight ? "max-h-[92vh]" : "max-h-[70vh]"
         )}
@@ -115,6 +114,7 @@ export function BottomSheet({
         {/* Content */}
         <div className="overflow-y-auto overscroll-contain" style={{ maxHeight: "calc(92vh - 80px)" }}>
           {children}
+
         </div>
       </div>
     </div>

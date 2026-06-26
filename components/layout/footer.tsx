@@ -26,7 +26,7 @@ export function Footer() {
           <div>
             <CGELogo size={36} showText />
             <p className="mt-4 text-sm leading-relaxed" style={{ color: "#C4C4CC" }}>
-              Africa&apos;s gaming ecosystem. Play, compete, trade, and connect
+              Nigeria&apos;s gaming ecosystem. Play, compete, trade, and connect
               — all on one platform.
             </p>
             <div className="flex gap-3 mt-4">

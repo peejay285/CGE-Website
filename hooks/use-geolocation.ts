@@ -25,16 +25,23 @@ function loadCachedCoords(): Coords | null {
   return null;
 }
 
+function getInitialPermission(coords: Coords | null): PermissionState {
+  if (coords) return "granted";
+  if (typeof navigator !== "undefined" && !navigator.geolocation) {
+    return "unsupported";
+  }
+  return "prompt";
+}
+
 export function useGeolocation() {
   const [coords, setCoords] = useState<Coords | null>(loadCachedCoords);
   const [permission, setPermission] = useState<PermissionState>(
-    coords ? "granted" : "prompt",
+    () => getInitialPermission(coords),
   );
 
   // Sync permission state with the browser's actual state when possible.
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setPermission("unsupported");
       return;
     }
     if (!navigator.permissions?.query) return;

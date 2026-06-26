@@ -6,8 +6,9 @@ import {
   Home,
   ShoppingBag,
   Trophy,
+  Gamepad2,
+  Users,
   MessageCircle,
-  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,14 +25,16 @@ interface NavItem {
   label: string;
   href: string;
   requiresAuth?: boolean;
+  showBadge?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { icon: Home, label: "Home", href: "/" },
-  { icon: ShoppingBag, label: "Market", href: "/marketplace" },
   { icon: Trophy, label: "Esports", href: "/esports" },
-  { icon: MessageCircle, label: "Messages", href: "/messages", requiresAuth: true },
-  { icon: User, label: "Profile", href: "/profile", requiresAuth: true },
+  { icon: ShoppingBag, label: "Market", href: "/marketplace" },
+  { icon: Gamepad2, label: "Lounge", href: "/lounge" },
+  { icon: Users, label: "Community", href: "/community" },
+  { icon: MessageCircle, label: "Chats", href: "/messages", requiresAuth: true, showBadge: true },
 ];
 
 export function MobileBottomNav({
@@ -47,13 +50,15 @@ export function MobileBottomNav({
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-surface/95 backdrop-blur-xl border-t border-border safe-area-pb">
+    <nav
+      aria-label="Primary"
+      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-surface/95 backdrop-blur-xl border-t border-border safe-area-pb"
+    >
       <div className="flex items-center justify-around h-14 px-1">
         {NAV_ITEMS.map((item) => {
           const active = isActive(item.href);
           const Icon = item.icon;
           const needsAuth = item.requiresAuth && !user;
-          const showBadge = item.href === "/messages" && unreadCount > 0 && user;
 
           const handleClick = (e: React.MouseEvent) => {
             if (needsAuth) {
@@ -67,8 +72,9 @@ export function MobileBottomNav({
               key={item.href}
               href={needsAuth ? "#" : item.href}
               onClick={handleClick}
+              aria-current={active ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 w-16 h-full relative transition-colors active:scale-95",
+                "flex flex-col items-center justify-center gap-0.5 flex-1 max-w-16 h-full relative transition-colors active:scale-95",
                 active ? "text-cyan" : "text-text-muted"
               )}
             >
@@ -78,9 +84,8 @@ export function MobileBottomNav({
                   strokeWidth={active ? 2.5 : 1.8}
                   className="transition-all"
                 />
-                {/* Unread badge */}
-                {showBadge && (
-                  <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 px-1 rounded-full bg-magenta text-[9px] font-bold text-white flex items-center justify-center">
+                {item.showBadge && unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-2 min-w-[15px] h-[15px] px-0.5 rounded-full bg-magenta text-[9px] font-bold text-white flex items-center justify-center">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}

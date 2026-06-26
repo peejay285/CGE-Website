@@ -58,11 +58,6 @@ export function EventCalendar({ events, onEventSelect }: EventCalendarProps) {
     }
   }, [expandedDay]);
 
-  // Reset expanded day when month changes
-  useEffect(() => {
-    setExpandedDay(null);
-  }, [month, year]);
-
   // Map dates to events for the current month
   const eventsByDay = useMemo(() => {
     const map = new Map<number, Event[]>();
@@ -92,8 +87,14 @@ export function EventCalendar({ events, onEventSelect }: EventCalendarProps) {
     return cellDate < todayStart;
   };
 
-  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
-  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+  const prevMonth = () => {
+    setCurrentDate(new Date(year, month - 1, 1));
+    setExpandedDay(null);
+  };
+  const nextMonth = () => {
+    setCurrentDate(new Date(year, month + 1, 1));
+    setExpandedDay(null);
+  };
 
   const cells: (number | null)[] = [];
   for (let i = 0; i < firstDay; i++) cells.push(null);

@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Crown,
   Camera,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -116,6 +117,15 @@ export default function ProfilePage() {
       description: "Unlock verified badge + listing perks",
       href: "/profile/upgrade",
       color: "text-gold",
+    },
+    {
+      icon: Wallet,
+      label: "Payout Account",
+      description: profile.payout_profile_verified_at
+        ? "Ready for tournament prize releases"
+        : "Add bank details for tournament prizes",
+      href: "/profile/payout",
+      color: "text-green",
     },
     {
       icon: Trophy,

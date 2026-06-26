@@ -37,11 +37,13 @@ export function useAuth() {
       locationState: string,
       locationCity?: string,
       coords?: { lat: number; lng: number } | null,
+      captchaToken?: string,
     ) => {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          captchaToken,
           data: {
             full_name: fullName,
             phone,

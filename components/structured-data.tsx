@@ -6,7 +6,7 @@ export function StructuredData() {
     description:
       "Premium gaming lounge on Bonny Island, Nigeria. PS4, PS5, VR gaming, esports tournaments, and community hub.",
     url: "https://cge.ng",
-    telephone: "+234-XXX-XXXX",
+    telephone: "+234 911 023 3056",
     email: "info@cge.ng",
     address: {
       "@type": "PostalAddress",
@@ -23,23 +23,34 @@ export function StructuredData() {
     openingHoursSpecification: [
       {
         "@type": "OpeningHoursSpecification",
-        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-        opens: "12:00",
-        closes: "22:00",
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        opens: "10:00",
+        closes: "21:00",
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: "Saturday",
+        opens: "09:00",
+        closes: "21:00",
       },
       {
         "@type": "OpeningHoursSpecification",
         dayOfWeek: "Sunday",
         opens: "14:00",
-        closes: "20:00",
+        closes: "21:00",
       },
     ],
     priceRange: "₦1500 - ₦5000",
     image: "https://cge.ng/cge-logo.png",
-    sameAs: [],
+    sameAs: [
+      "https://instagram.com/cge_lounge",
+      "https://x.com/caborsgaming",
+      "https://tiktok.com/@caborsgaming",
+    ],
   };
 
   return (
+
     <script
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

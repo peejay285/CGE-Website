@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Plus, ArrowUpDown, ArrowLeftRight, MapPin, Loader2 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -12,7 +11,7 @@ import { CategoryShowcase } from "@/components/marketplace/category-showcase";
 import { RecentlyViewed } from "@/components/marketplace/recently-viewed";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { SavedSearchesButton } from "@/components/marketplace/saved-searches";
-import { triggerAppGate, AppGateBanner } from "@/components/ui/app-gate";
+import { AppGateBanner } from "@/components/ui/app-gate";
 import { LiveTournamentsWidget } from "@/components/cross-pillar/live-tournaments-widget";
 import { CommunityBuzzWidget } from "@/components/cross-pillar/community-buzz-widget";
 import { PillarQuickNav } from "@/components/cross-pillar/pillar-quick-nav";
@@ -47,7 +46,7 @@ import {
 } from "@/hooks/use-marketplace-page";
 
 export default function MarketplacePage() {
-  const mp = useMarketplacePage();
+  const { sentinelRef, ...mp } = useMarketplacePage();
 
   return (
     <PullToRefresh onRefresh={async () => { await mp.getListings(); }}>
@@ -76,7 +75,7 @@ export default function MarketplacePage() {
             />
             <Button
               variant="magenta"
-              onClick={() => triggerAppGate("marketplace-create")}
+              onClick={() => mp.openAuthOrAction(() => mp.setCreateOpen(true))}
               className="hidden sm:flex"
             >
               <Plus size={16} />
@@ -231,7 +230,7 @@ export default function MarketplacePage() {
 
         {/* Infinite scroll sentinel */}
         {!mp.loading && mp.filteredListings.length > 0 && (
-          <div ref={mp.sentinelRef} className="flex justify-center py-8">
+          <div ref={sentinelRef} className="flex justify-center py-8">
             {mp.loadingMore ? (
               <div className="flex items-center gap-2 text-text-muted text-xs">
                 <Loader2 size={14} className="animate-spin" />
@@ -261,7 +260,7 @@ export default function MarketplacePage() {
       {/* Floating "+" button — mobile only */}
       <div className="fixed bottom-[5.5rem] right-4 z-40 sm:hidden">
         <button
-          onClick={() => triggerAppGate("marketplace-create")}
+          onClick={() => mp.openAuthOrAction(() => mp.setCreateOpen(true))}
           className="w-14 h-14 rounded-full bg-magenta flex items-center justify-center shadow-[0_8px_30px_rgba(255,45,120,0.35)] active:scale-90 transition-transform cursor-pointer"
           aria-label="List a new item"
         >
@@ -276,8 +275,8 @@ export default function MarketplacePage() {
         onClose={mp.handleCloseDetailModal}
         onDelete={mp.handleDeleteListing}
         onMarkAsSold={mp.handleMarkAsSold}
-        onMessage={() => triggerAppGate("marketplace-buy")}
-        onProposeSwap={() => triggerAppGate("marketplace-swap")}
+        onMessage={mp.handleMessageSeller}
+        onProposeSwap={mp.handleProposeSwap}
         onSave={mp.handleSaveFromDetail}
         currentUserId={mp.user?.id ?? null}
         deleteLoading={mp.actionLoading}
@@ -289,8 +288,11 @@ export default function MarketplacePage() {
         onMarkOwnerReceived={mp.handleMarkOwnerReceived}
         onCancelSwap={mp.handleCancelSwap}
         onDisputeSwap={mp.handleDisputeSwap}
+        onAssistChanged={() => {
+          if (mp.selectedListing) mp.refreshProposalsFor(mp.selectedListing.id);
+        }}
         onViewSellerProfile={mp.handleViewSellerProfile}
-        onLeaveReview={() => triggerAppGate("marketplace-buy")}
+        onLeaveReview={mp.setReviewTarget}
         allListings={mp.listings}
         onRelatedClick={mp.handleRelatedClick}
       />

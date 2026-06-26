@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { useCommunityEnhanced } from "@/hooks/use-community-enhanced";
 import { useAuth } from "@/hooks/use-auth";
-import { triggerAppGate } from "@/components/ui/app-gate";
 import { calculateTrendingScore } from "@/lib/community-constants";
 import type {
   PostComment,
@@ -16,8 +15,11 @@ import type {
 
 export type SortMode = "recent" | "trending" | "most_liked" | "my_posts" | "bookmarks";
 
-export function useCommunityPage() {
+export function useCommunityPage(scope?: { eventId?: number; tournamentId?: number }) {
   const { user } = useAuth();
+  // Stable primitives so callbacks/effects don't churn on the object identity.
+  const scopeEventId = scope?.eventId;
+  const scopeTournamentId = scope?.tournamentId;
   const {
     posts,
     loading,
@@ -72,8 +74,10 @@ export function useCommunityPage() {
         | "my_posts",
       search: searchQuery || undefined,
       bookmarksOnly: sortMode === "bookmarks",
+      eventId: scopeEventId,
+      tournamentId: scopeTournamentId,
     }),
-    [selectedTopic, sortMode, searchQuery]
+    [selectedTopic, sortMode, searchQuery, scopeEventId, scopeTournamentId]
   );
 
   // Initial load
@@ -123,17 +127,19 @@ export function useCommunityPage() {
     return unsub;
   }, [expandedPost, subscribeToComments]);
 
-  /* ── App gate — all engagement actions require the app ── */
-  function requireApp(
-    context: "community-post" | "community-comment" | "community-react" = "community-react"
-  ): boolean {
-    triggerAppGate(context);
-    return false;
-  }
+  const requireAuth = useCallback(
+    (message = "Sign in to join the conversation"): boolean => {
+      if (user) return true;
+      window.dispatchEvent(new Event("open-auth-modal"));
+      toast(message);
+      return false;
+    },
+    [user]
+  );
 
   /* ── Sort & filter (client-side for trending) ── */
   const displayPosts = (() => {
-    let result = [...posts];
+    const result = [...posts];
 
     if (sortMode === "trending") {
       result.sort((a, b) => calculateTrendingScore(b) - calculateTrendingScore(a));
@@ -148,32 +154,29 @@ export function useCommunityPage() {
   /* ── Handlers ── */
   const handleLike = useCallback(
     async (postId: string) => {
-      if (!requireApp()) return;
+      if (!requireAuth()) return;
       await toggleLike(postId);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, toggleLike]
+    [requireAuth, toggleLike]
   );
 
   const handleReaction = useCallback(
     async (postId: string, type: ReactionType) => {
-      if (!requireApp()) return;
+      if (!requireAuth()) return;
       await toggleReaction(postId, type);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, toggleReaction]
+    [requireAuth, toggleReaction]
   );
 
   const handleBookmark = useCallback(
     async (postId: string) => {
-      if (!requireApp()) return;
+      if (!requireAuth("Sign in to save posts")) return;
       await toggleBookmark(postId);
       toast.success(
         posts.find((p) => p.id === postId)?.bookmarked ? "Removed from saved" : "Saved!"
       );
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, toggleBookmark, posts]
+    [requireAuth, toggleBookmark, posts]
   );
 
   const handleToggleComments = useCallback(
@@ -205,7 +208,7 @@ export function useCommunityPage() {
         pollDuration?: number;
       }
     ) => {
-      if (!requireApp()) return;
+      if (!requireAuth("Sign in to post in the community")) return;
       try {
         await createPost(content, {
           imageUrl: options?.imageUrl,
@@ -214,14 +217,16 @@ export function useCommunityPage() {
           pollQuestion: options?.pollQuestion,
           pollOptions: options?.pollOptions,
           pollDuration: options?.pollDuration,
+          eventId: scopeEventId,
+          tournamentId: scopeTournamentId,
         });
         toast.success("Post published!");
-      } catch {
-        toast.error("Failed to create post");
+      } catch (e) {
+        const msg = (e as { message?: string })?.message;
+        toast.error(msg || "Failed to create post");
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, createPost, selectedTopic]
+    [requireAuth, createPost, selectedTopic, scopeEventId, scopeTournamentId]
   );
 
   const handleEditPost = useCallback(
@@ -243,19 +248,23 @@ export function useCommunityPage() {
 
   const handleAddComment = useCallback(
     async (postId: string, text: string) => {
-      if (!requireApp()) return;
-      const comment = await addComment(postId, text);
-      if (comment) {
-        setComments((prev) => ({
-          ...prev,
-          [postId]: [...(prev[postId] ?? []), comment],
-        }));
-      } else {
-        toast.error("Failed to add comment");
+      if (!requireAuth("Sign in to comment")) return;
+      try {
+        const comment = await addComment(postId, text);
+        if (comment) {
+          setComments((prev) => ({
+            ...prev,
+            [postId]: [...(prev[postId] ?? []), comment],
+          }));
+        } else {
+          toast.error("Failed to add comment");
+        }
+      } catch (e) {
+        const msg = (e as { message?: string })?.message;
+        toast.error(msg || "Failed to add comment");
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, addComment]
+    [requireAuth, addComment]
   );
 
   const handleDeleteComment = useCallback(
@@ -292,11 +301,10 @@ export function useCommunityPage() {
 
   const handleVotePoll = useCallback(
     async (pollId: string, optionId: string, postId: string) => {
-      if (!requireApp()) return;
+      if (!requireAuth("Sign in to vote")) return;
       await votePoll(pollId, optionId, postId);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, votePoll]
+    [requireAuth, votePoll]
   );
 
   const handleLoadPoll = useCallback(
@@ -321,9 +329,15 @@ export function useCommunityPage() {
     setLikersModal({ open: false, postId: null, likers: [], loading: false });
   };
 
+  // Pull-to-refresh: reload the feed from the top with current filters
+  const refresh = useCallback(async () => {
+    await getPosts(0, fetchOpts());
+  }, [getPosts, fetchOpts]);
+
   return {
     // Auth
     user,
+    refresh,
 
     // Data
     posts,
@@ -368,5 +382,7 @@ export function useCommunityPage() {
     // Pass-through for sidebar
     getTrendingHashtags,
     reportPost,
+    uploadPostImage,
+    searchUsers,
   };
 }

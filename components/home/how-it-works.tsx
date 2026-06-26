@@ -1,11 +1,11 @@
-import { Download, UserPlus, Gamepad2, ArrowRight } from "lucide-react";
+import { Globe2, UserPlus, Gamepad2, ArrowRight } from "lucide-react";
 
 const STEPS = [
   {
     step: "01",
-    icon: <Download size={24} />,
-    title: "Download the App",
-    description: "Get CGE on iOS or Android. Free to download, free to join.",
+    icon: <Globe2 size={24} />,
+    title: "Start on the Web",
+    description: "Browse tournaments, gear, community posts, and lounge bookings from any device.",
     color: "cyan",
   },
   {
@@ -19,7 +19,7 @@ const STEPS = [
     step: "03",
     icon: <Gamepad2 size={24} />,
     title: "Start Gaming",
-    description: "Enter tournaments, list gear, join the community, and book sessions.",
+    description: "Enter tournaments, list gear, propose swaps, join discussions, and book sessions.",
     color: "green",
   },
 ];

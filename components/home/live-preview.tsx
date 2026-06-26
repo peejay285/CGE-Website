@@ -46,10 +46,11 @@ interface RawPost {
 export async function LivePreview() {
   const supabase = await createServerSupabaseClient();
 
-  const now = new Date().toISOString();
-  const sevenDaysAgo = new Date(
-    Date.now() - 7 * 24 * 60 * 60 * 1000,
-  ).toISOString();
+  const nowDate = new Date();
+  const sevenDaysAgoDate = new Date(nowDate);
+  sevenDaysAgoDate.setDate(nowDate.getDate() - 7);
+  const now = nowDate.toISOString();
+  const sevenDaysAgo = sevenDaysAgoDate.toISOString();
 
   const [tournamentsRes, listingsRes, postsRes] = await Promise.all([
     supabase

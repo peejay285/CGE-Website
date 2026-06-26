@@ -16,10 +16,8 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
+import { PREMIUM_PERIOD_DAYS, PREMIUM_PRICE_NAIRA } from "@/lib/premium";
 import type { Profile } from "@/lib/types";
-
-const PREMIUM_PRICE_NAIRA = 2000;
-const PREMIUM_PERIOD_DAYS = 30;
 
 const PERKS = [
   {
@@ -73,17 +71,9 @@ export default function UpgradePage() {
     if (!user) return;
     setPaying(true);
     try {
-      const res = await fetch("/api/paystack/initialize", {
+      const res = await fetch("/api/premium/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: PREMIUM_PRICE_NAIRA,
-          type: "premium",
-          metadata: {
-            user_id: user.id,
-            period_days: PREMIUM_PERIOD_DAYS,
-          },
-        }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));

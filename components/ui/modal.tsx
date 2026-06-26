@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "./use-focus-trap";
 
 interface ModalProps {
   open: boolean;
@@ -18,66 +19,20 @@ const widthMap = {
   lg: "max-w-2xl",
 };
 
-const FOCUSABLE_SELECTORS =
-  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
 export function Modal({ open, onClose, title, children, width = "md" }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const titleId = title ? "modal-title" : undefined;
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-        return;
-      }
-
-      // Focus trap: handle Tab / Shift+Tab
-      if (e.key === "Tab" && modalRef.current) {
-        const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS);
-        if (focusableElements.length === 0) return;
-
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
-
-        if (e.shiftKey) {
-          // Shift+Tab: if at first element, wrap to last
-          if (document.activeElement === firstElement) {
-            e.preventDefault();
-            lastElement.focus();
-          }
-        } else {
-          // Tab: if at last element, wrap to first
-          if (document.activeElement === lastElement) {
-            e.preventDefault();
-            firstElement.focus();
-          }
-        }
-      }
-    },
-    [onClose]
-  );
+  useFocusTrap(modalRef, open, { onEscape: onClose });
 
   useEffect(() => {
     if (open) {
-      document.addEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "hidden";
-
-      // Focus the first focusable element inside the modal
-      requestAnimationFrame(() => {
-        if (modalRef.current) {
-          const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS);
-          if (focusableElements.length > 0) {
-            focusableElements[0].focus();
-          }
-        }
-      });
     }
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
     };
-  }, [open, handleKeyDown]);
+  }, [open]);
 
   if (!open) return null;
 

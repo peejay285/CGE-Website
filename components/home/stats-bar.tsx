@@ -1,61 +1,17 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
-import { Trophy, ShoppingBag, Users, Gamepad2 } from "lucide-react";
+import { Layers, Trophy, MapPin, Globe } from "lucide-react";
 
 interface StatItem {
   icon: React.ReactNode;
-  value: number;
-  suffix: string;
+  value: string;
   label: string;
 }
 
 const STATS: StatItem[] = [
-  { icon: <Trophy size={20} className="text-magenta" />, value: 500, suffix: "+", label: "Tournaments Played" },
-  { icon: <ShoppingBag size={20} className="text-cyan" />, value: 2000, suffix: "+", label: "Items Listed" },
-  { icon: <Users size={20} className="text-green" />, value: 5000, suffix: "+", label: "Gamers Connected" },
-  { icon: <Gamepad2 size={20} className="text-gold" />, value: 10000, suffix: "+", label: "Hours Gamed" },
+  { icon: <Layers size={20} className="text-magenta" />, value: "4", label: "Pillars, One Platform" },
+  { icon: <Trophy size={20} className="text-gold" />, value: "₦500K+", label: "Prize Pool Paid Out" },
+  { icon: <MapPin size={20} className="text-cyan" />, value: "Bonny Island", label: "Flagship Lounge" },
+  { icon: <Globe size={20} className="text-green" />, value: "Nationwide", label: "Esports & Marketplace" },
 ];
-
-function AnimatedNumber({ target, suffix }: { target: number; suffix: string }) {
-  const [count, setCount] = useState(0);
-  const ref = useRef<HTMLSpanElement>(null);
-  const hasAnimated = useRef(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasAnimated.current) {
-          hasAnimated.current = true;
-          const duration = 2000;
-          const step = target / (duration / 16);
-          let current = 0;
-          const timer = setInterval(() => {
-            current += step;
-            if (current >= target) {
-              setCount(target);
-              clearInterval(timer);
-            } else {
-              setCount(Math.floor(current));
-            }
-          }, 16);
-        }
-      },
-      { threshold: 0.5 }
-    );
-
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [target]);
-
-  const display = count >= 1000 ? `${(count / 1000).toFixed(count >= target ? 0 : 1)}K` : count.toString();
-
-  return (
-    <span ref={ref} className="font-heading text-3xl sm:text-4xl font-bold text-text">
-      {display}{suffix}
-    </span>
-  );
-}
 
 export function StatsBar() {
   return (
@@ -72,8 +28,10 @@ export function StatsBar() {
             <div className="w-10 h-10 rounded-xl bg-surface-alt border border-border flex items-center justify-center mb-1">
               {stat.icon}
             </div>
-            <AnimatedNumber target={stat.value} suffix={stat.suffix} />
-            <span className="text-xs text-text-muted font-medium uppercase tracking-wider">
+            <span className="font-heading text-2xl sm:text-3xl font-bold text-text text-center">
+              {stat.value}
+            </span>
+            <span className="text-xs text-text-muted font-medium uppercase tracking-wider text-center">
               {stat.label}
             </span>
           </div>

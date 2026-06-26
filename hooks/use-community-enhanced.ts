@@ -37,6 +37,8 @@ export function useCommunityEnhanced() {
         sort?: "recent" | "trending" | "most_liked" | "my_posts";
         search?: string;
         bookmarksOnly?: boolean;
+        eventId?: number;
+        tournamentId?: number;
         append?: boolean;
       }
     ) => {
@@ -54,7 +56,17 @@ export function useCommunityEnhanced() {
           .from("community_posts")
           .select(
             "*, author:profiles!community_posts_author_id_fkey(id, full_name, avatar_url, gamertag, trust_level)"
-          );
+          )
+          // Moderator-hidden posts never appear in the public feed.
+          .eq("is_hidden", false);
+
+        // Scope to an event or tournament discussion thread
+        if (options?.eventId != null) {
+          query = query.eq("event_id", options.eventId);
+        }
+        if (options?.tournamentId != null) {
+          query = query.eq("tournament_id", options.tournamentId);
+        }
 
         // Topic filter
         if (options?.topic && options.topic !== "all") {
@@ -190,6 +202,8 @@ export function useCommunityEnhanced() {
         pollQuestion?: string;
         pollOptions?: string[];
         pollDuration?: number; // ms, 0 = no end
+        eventId?: number | null;
+        tournamentId?: number | null;
       }
     ) => {
       setActionLoading(true);
@@ -213,6 +227,8 @@ export function useCommunityEnhanced() {
             embed_url: options?.embedUrl ?? null,
             hashtags: hashtags.length > 0 ? hashtags : null,
             mentions: mentions.length > 0 ? mentions : null,
+            event_id: options?.eventId ?? null,
+            tournament_id: options?.tournamentId ?? null,
           })
           .select(
             "*, author:profiles!community_posts_author_id_fkey(id, full_name, avatar_url, gamertag, trust_level)"
@@ -664,7 +680,8 @@ export function useCommunityEnhanced() {
         )
         .single();
 
-      if (commentError) return null;
+      // Surface DB-enforced rules (rate limit / blocked words) to the caller.
+      if (commentError) throw new Error(commentError.message);
 
       setPosts((prev) =>
         prev.map((p) =>

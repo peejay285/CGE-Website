@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Esports — Tournaments, Teams & Leaderboards",
   description:
-    "Compete in gaming tournaments across Nigeria. FIFA, Tekken, Mortal Kombat and more. Cash prizes, team competitions, leaderboards, and achievements. Download the CGE app to join.",
+    "Compete in gaming tournaments across Nigeria. FIFA, Tekken, Mortal Kombat and more. Cash prizes, team competitions, leaderboards, and achievements on the web.",
   keywords: [
     "esports Nigeria", "gaming tournaments Lagos", "FIFA tournament",
     "Tekken competition", "CGE esports", "competitive gaming Africa",

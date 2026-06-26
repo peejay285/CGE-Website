@@ -75,7 +75,10 @@ export function SearchSuggestions({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setHistory(getSearchHistory());
+    const timer = setTimeout(() => {
+      setHistory(getSearchHistory());
+    }, 0);
+    return () => clearTimeout(timer);
   }, [visible]);
 
   // Close on outside click

@@ -40,18 +40,21 @@ export function RecentlyViewed({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const ids: string[] = JSON.parse(raw);
-      // Match IDs to current listings
-      const matched = ids
-        .map((id) => allListings.find((l) => l.id === id))
-        .filter(Boolean) as MarketplaceListing[];
-      setRecentListings(matched);
-    } catch {
-      // Silent fail
-    }
+    const timer = setTimeout(() => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const ids: string[] = JSON.parse(raw);
+        // Match IDs to current listings
+        const matched = ids
+          .map((id) => allListings.find((l) => l.id === id))
+          .filter(Boolean) as MarketplaceListing[];
+        setRecentListings(matched);
+      } catch {
+        // Silent fail
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [allListings]);
 
   if (recentListings.length === 0) return null;

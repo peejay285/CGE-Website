@@ -42,8 +42,11 @@ export function SellerReviewsSection({
   }, [sellerId, limit, getSellerRatings, getSellerQuickStats]);
 
   useEffect(() => {
-    fetchReviews();
-  }, [sellerId]); // eslint-disable-line react-hooks/exhaustive-deps
+    const timer = setTimeout(() => {
+      void fetchReviews();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchReviews]);
 
   if (loading) {
     return (

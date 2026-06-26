@@ -15,15 +15,17 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { PostCard } from "@/components/community/post-card";
 import { CommentSection } from "@/components/community/comment-section";
+import { CreatePost } from "@/components/community/create-post";
 import TopicBar from "@/components/community/topic-bar";
 import TrendingSidebar from "@/components/community/trending-sidebar";
+import { AppGateBanner } from "@/components/ui/app-gate";
 import { getInitials } from "@/lib/utils";
-import { triggerAppGate, AppGateBanner } from "@/components/ui/app-gate";
 import { LiveTournamentsWidget } from "@/components/cross-pillar/live-tournaments-widget";
 import { HotListingsWidget } from "@/components/cross-pillar/hot-listings-widget";
 import { PillarQuickNav } from "@/components/cross-pillar/pillar-quick-nav";
 import { ErrorBoundary, WidgetErrorFallback } from "@/components/ui/error-boundary";
 import { useCommunityPage, type SortMode } from "@/hooks/use-community-page";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 
 // Lazy-loaded modal
 const ReportModal = dynamic(() => import("@/components/community/report-modal"), { ssr: false });
@@ -32,6 +34,7 @@ export default function CommunityPage() {
   const cp = useCommunityPage();
 
   return (
+    <PullToRefresh onRefresh={cp.refresh}>
     <section className="max-w-5xl mx-auto px-4 md:px-6 py-12">
       <div className="flex items-center gap-3 mb-6">
         <Users className="h-6 w-6 text-green" />
@@ -53,24 +56,33 @@ export default function CommunityPage() {
       <div className="flex gap-6">
         {/* Left: main feed */}
         <div className="flex-1 min-w-0 max-w-2xl">
-          {/* Create Post — gated to app */}
+          {/* Create Post */}
           <div className="mb-6">
-            <button
-              type="button"
-              onClick={() => triggerAppGate("community-post")}
-              className="w-full rounded-xl border border-border bg-surface-alt px-4 py-4 text-left transition-all hover:border-cyan/30 cursor-pointer group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-cyan/10 border border-cyan/20 flex items-center justify-center shrink-0">
-                  <span className="text-xs font-bold text-cyan">
-                    {cp.user ? getInitials(cp.user.user_metadata?.full_name || "CGE") : "?"}
-                  </span>
+            {cp.user ? (
+              <CreatePost
+                onSubmit={cp.handleNewPost}
+                onUploadImage={cp.uploadPostImage}
+                onSearchUsers={cp.searchUsers}
+                defaultTopic={cp.selectedTopic === "all" ? "general" : cp.selectedTopic}
+              />
+            ) : (
+              <div className="rounded-xl border border-border bg-surface-alt px-4 py-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-text">Join the conversation on web</p>
+                    <p className="text-xs text-text-muted mt-1">
+                      Sign in to post clips, polls, tournament talk, and marketplace questions.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => window.dispatchEvent(new Event("open-auth-modal"))}
+                  >
+                    Sign In
+                  </Button>
                 </div>
-                <span className="text-sm text-text-muted group-hover:text-text transition-colors">
-                  What&apos;s on your mind? Share on the app...
-                </span>
               </div>
-            </button>
+            )}
           </div>
 
           {/* Search & sort */}
@@ -132,7 +144,7 @@ export default function CommunityPage() {
                   ? "Try a different search term or topic."
                   : cp.sortMode === "bookmarks"
                   ? "Save posts you want to come back to."
-                  : "We're seeding the first conversations with our beta cohort now. The full feed opens to everyone when beta launches."
+                  : "Be one of the first to start a CGE community conversation."
               }
             />
           ) : (
@@ -300,5 +312,6 @@ export default function CommunityPage() {
         />
       )}
     </section>
+    </PullToRefresh>
   );
 }

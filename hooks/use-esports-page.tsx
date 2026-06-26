@@ -9,8 +9,7 @@ import { usePlayerFollows } from "@/hooks/use-player-follows";
 import { useAuth } from "@/hooks/use-auth";
 import { isTournamentPast } from "@/lib/esports-utils";
 import type { TournamentWithCount } from "@/lib/esports-utils";
-import { triggerAppGate } from "@/components/ui/app-gate";
-import type { Team } from "@/lib/types";
+import type { Team, TournamentRegistration, TournamentTeamRegistration } from "@/lib/types";
 
 export const TABS = ["Tournaments", "My Tournaments", "Teams", "Leaderboard", "Achievements"];
 
@@ -23,7 +22,11 @@ export const STATUS_FILTERS = [
 
 export function useEsportsPage() {
   // --------------- State ---------------
-  const [activeTab, setActiveTab] = useState("Tournaments");
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === "undefined") return "Tournaments";
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    return tab?.toLowerCase() === "teams" ? "Teams" : "Tournaments";
+  });
   const [selectedTournament, setSelectedTournament] = useState<TournamentWithCount | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -34,9 +37,11 @@ export function useEsportsPage() {
   const [hostedTournaments, setHostedTournaments] = useState<TournamentWithCount[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
+  const [nowMs] = useState(() => Date.now());
 
   // --------------- Refs ---------------
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const paymentToastShownRef = useRef(false);
 
   // --------------- Debounce search input (300ms) ---------------
   useEffect(() => {
@@ -53,12 +58,23 @@ export function useEsportsPage() {
   const {
     tournaments,
     registrations,
+    teamRegistrations,
     leaderboard,
     loading,
     actionLoading,
+    getTournaments,
     registerForTournament,
+    registerTeamForTournament,
+    initializeTournamentRegistrationPayment,
+    initializeTournamentTeamRegistrationPayment,
     unregisterFromTournament,
+    unregisterTeamFromTournament,
     isRegisteredForTournament,
+    isTeamRegisteredForTournament,
+    getRegistrationForTournament,
+    getTeamRegistrationForTournament,
+    getUserRegistrations,
+    getUserTeamRegistrations,
     getLeaderboard,
     getTournamentById,
     getUniqueGames,
@@ -73,14 +89,20 @@ export function useEsportsPage() {
     teams,
     myTeam,
     members: teamMembers,
+    joinRequests,
     loading: teamsLoading,
     getTeams,
     getMyTeam,
     getTeamMembers,
+    getTeamJoinRequests,
+    getMyJoinRequestForTeam,
     createTeam,
     joinTeam,
     leaveTeam,
     removeMember,
+    approveJoinRequest,
+    declineJoinRequest,
+    cancelJoinRequest,
     updateMemberRole,
     deleteTeam,
   } = useTeams();
@@ -156,23 +178,26 @@ export function useEsportsPage() {
   // Tournaments starting within the next 7 days, sorted soonest first.
   // Surfaces "what's happening this week" so newcomers don't see an empty page.
   const thisWeekTournaments = useMemo(() => {
-    const now = Date.now();
+    if (!nowMs) return [];
     const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
     return upcomingTournaments
       .filter((t) => {
         const start = new Date(t.date).getTime();
         if (Number.isNaN(start)) return false;
-        return start >= now && start - now <= oneWeekMs;
+        return start >= nowMs && start - nowMs <= oneWeekMs;
       })
       .sort(
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
       );
-  }, [upcomingTournaments]);
+  }, [upcomingTournaments, nowMs]);
 
   const myTournaments = useMemo(() => {
-    const myIds = new Set(registrations.map((r) => r.tournament_id));
+    const myIds = new Set([
+      ...registrations.map((r) => r.tournament_id),
+      ...teamRegistrations.map((r) => r.tournament_id),
+    ]);
     return tournaments.filter((t) => myIds.has(t.id));
-  }, [tournaments, registrations]);
+  }, [tournaments, registrations, teamRegistrations]);
 
   // --------------- Effects ---------------
 
@@ -207,27 +232,235 @@ export function useEsportsPage() {
     }
   }, [activeTab, user, getAllAchievements, getPlayerAchievements]);
 
+  useEffect(() => {
+    if (paymentToastShownRef.current || typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const paymentRef = params.get("payment_ref");
+    const paymentType = params.get("payment_type");
+
+    if (paymentRef && (paymentType === "tournament" || paymentType === "tournament_team")) {
+      paymentToastShownRef.current = true;
+      toast.success("Tournament payment submitted. Your registration will update shortly.");
+      getUserRegistrations();
+      getUserTeamRegistrations();
+      getTournaments();
+
+      const url = new URL(window.location.href);
+      url.searchParams.delete("payment_ref");
+      url.searchParams.delete("payment_type");
+      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+  }, [getUserRegistrations, getUserTeamRegistrations, getTournaments]);
+
   // --------------- Callbacks ---------------
 
-  const handleRegister = useCallback(
-    async (_tournamentId: number) => {
-      triggerAppGate("esports-register");
+  const requireAuth = useCallback(
+    (message: string): boolean => {
+      if (user) return true;
+      window.dispatchEvent(new Event("open-auth-modal"));
+      toast(message);
+      return false;
     },
-    []
+    [user]
+  );
+
+  const handleOpenCreateTournament = useCallback(() => {
+    if (!requireAuth("Sign in to host a tournament")) return;
+    setCreateOpen(true);
+  }, [requireAuth]);
+
+  const handleOpenCreateTeam = useCallback(() => {
+    if (!requireAuth("Sign in to create a team")) return;
+    setCreateTeamOpen(true);
+  }, [requireAuth]);
+
+  const redirectToTournamentPayment = useCallback(
+    async (registration: TournamentRegistration): Promise<boolean> => {
+      if ((registration.total ?? 0) <= 0 || registration.payment_status === "paid") {
+        return false;
+      }
+
+      toast.success("Registration reserved. Redirecting to Paystack...");
+      const authorizationUrl = await initializeTournamentRegistrationPayment(
+        registration.id,
+        registration.tournament_id
+      );
+
+      if (!authorizationUrl) {
+        toast.error("Could not start payment. Please try again.");
+        return false;
+      }
+
+      window.location.assign(authorizationUrl);
+      return true;
+    },
+    [initializeTournamentRegistrationPayment]
+  );
+
+  const redirectToTeamTournamentPayment = useCallback(
+    async (registration: TournamentTeamRegistration): Promise<boolean> => {
+      if ((registration.total ?? 0) <= 0 || registration.payment_status === "paid") {
+        return false;
+      }
+
+      toast.success("Team slot reserved. Redirecting to Paystack...");
+      const authorizationUrl = await initializeTournamentTeamRegistrationPayment(
+        registration.id,
+        registration.tournament_id
+      );
+
+      if (!authorizationUrl) {
+        toast.error("Could not start payment. Please try again.");
+        return false;
+      }
+
+      window.location.assign(authorizationUrl);
+      return true;
+    },
+    [initializeTournamentTeamRegistrationPayment]
+  );
+
+  const handleRegister = useCallback(
+    async (tournamentId: number) => {
+      if (!requireAuth("Sign in to register for tournaments")) return;
+
+      const tournament =
+        selectedTournament?.id === tournamentId
+          ? selectedTournament
+          : tournaments.find((item) => item.id === tournamentId);
+      const isTeamEvent = Number(tournament?.team_size ?? 1) > 1;
+
+      if (isTeamEvent) {
+        const team = myTeam ?? (await getMyTeam());
+        if (!team) {
+          toast.error("Create a team first, then register the team for this event.");
+          setActiveTab("Teams");
+          return;
+        }
+
+        if (team.captain_id !== user?.id) {
+          toast.error("Only the team captain can register the team for tournaments.");
+          return;
+        }
+
+        const registration = await registerTeamForTournament(tournamentId, team.id);
+        if (registration) {
+          const redirected = await redirectToTeamTournamentPayment(registration);
+          if (redirected) return;
+
+          toast.success("Team registration confirmed");
+          const updated = await getTournamentById(tournamentId);
+          if (updated) setSelectedTournament(updated);
+        } else {
+          toast.error("Failed to register team for tournament");
+        }
+        return;
+      }
+
+      const registration = await registerForTournament(tournamentId);
+      if (registration) {
+        const redirected = await redirectToTournamentPayment(registration);
+        if (redirected) return;
+
+        toast.success("Tournament registration confirmed");
+        const updated = await getTournamentById(tournamentId);
+        if (updated) setSelectedTournament(updated);
+      } else {
+        toast.error("Failed to register for tournament");
+      }
+    },
+    [
+      requireAuth,
+      selectedTournament,
+      tournaments,
+      myTeam,
+      getMyTeam,
+      user,
+      registerTeamForTournament,
+      redirectToTeamTournamentPayment,
+      getTournamentById,
+      registerForTournament,
+      redirectToTournamentPayment,
+    ]
+  );
+
+  const handlePayRegistration = useCallback(
+    async (tournamentId: number) => {
+      const tournament =
+        selectedTournament?.id === tournamentId
+          ? selectedTournament
+          : tournaments.find((item) => item.id === tournamentId);
+      const isTeamEvent = Number(tournament?.team_size ?? 1) > 1;
+
+      if (isTeamEvent) {
+        const team = myTeam ?? (await getMyTeam());
+        const registration = getTeamRegistrationForTournament(tournamentId, team?.id);
+        if (!registration) {
+          toast.error("Team registration not found. Try registering again.");
+          return;
+        }
+        await redirectToTeamTournamentPayment(registration);
+        return;
+      }
+
+      const registration = getRegistrationForTournament(tournamentId);
+      if (!registration) {
+        toast.error("Registration not found. Try registering again.");
+        return;
+      }
+      await redirectToTournamentPayment(registration);
+    },
+    [
+      selectedTournament,
+      tournaments,
+      myTeam,
+      getMyTeam,
+      getTeamRegistrationForTournament,
+      redirectToTeamTournamentPayment,
+      getRegistrationForTournament,
+      redirectToTournamentPayment,
+    ]
   );
 
   const handleUnregister = useCallback(
     async (tournamentId: number) => {
-      const success = await unregisterFromTournament(tournamentId);
+      const tournament =
+        selectedTournament?.id === tournamentId
+          ? selectedTournament
+          : tournaments.find((item) => item.id === tournamentId);
+      const isTeamEvent = Number(tournament?.team_size ?? 1) > 1;
+
+      const success = isTeamEvent
+        ? await (async () => {
+            const team = myTeam ?? (await getMyTeam());
+            const registration = getTeamRegistrationForTournament(tournamentId, team?.id);
+            const teamId = registration?.team_id ?? team?.id;
+            if (!teamId) {
+              toast.error("Team registration not found.");
+              return false;
+            }
+            return unregisterTeamFromTournament(tournamentId, teamId);
+          })()
+        : await unregisterFromTournament(tournamentId);
       if (success) {
-        toast.success("Withdrawn from tournament");
+        toast.success(isTeamEvent ? "Team withdrawn from tournament" : "Withdrawn from tournament");
         const updated = await getTournamentById(tournamentId);
         if (updated) setSelectedTournament(updated);
       } else {
         toast.error("Failed to withdraw");
       }
     },
-    [unregisterFromTournament, getTournamentById]
+    [
+      selectedTournament,
+      tournaments,
+      myTeam,
+      getMyTeam,
+      getTeamRegistrationForTournament,
+      unregisterTeamFromTournament,
+      unregisterFromTournament,
+      getTournamentById,
+    ]
   );
 
   const handleCreateTournament = useCallback(
@@ -320,11 +553,18 @@ export function useEsportsPage() {
     ? isTournamentPast(selectedTournament.date, selectedTournament.status)
     : false;
   const selectedIsRegistered = selectedTournament
-    ? isRegisteredForTournament(selectedTournament.id)
+    ? Number(selectedTournament.team_size ?? 1) > 1
+      ? isTeamRegisteredForTournament(selectedTournament.id, myTeam?.id)
+      : isRegisteredForTournament(selectedTournament.id)
     : false;
   const selectedIsHost = selectedTournament
     ? isHostOfTournament(selectedTournament)
     : false;
+  const selectedRegistration = selectedTournament
+    ? Number(selectedTournament.team_size ?? 1) > 1
+      ? getTeamRegistrationForTournament(selectedTournament.id, myTeam?.id)
+      : getRegistrationForTournament(selectedTournament.id)
+    : null;
 
   // --------------- Inline handlers for modals ---------------
 
@@ -353,14 +593,57 @@ export function useEsportsPage() {
     async (teamId: number) => {
       const success = await joinTeam(teamId);
       if (success) {
-        toast.success("Joined team!");
+        toast.success("Join request sent");
         getTeams();
       } else {
-        toast.error("Failed to join team");
+        toast.error("Failed to send join request");
       }
       return success;
     },
     [joinTeam, getTeams]
+  );
+
+  const handleApproveJoinRequest = useCallback(
+    async (requestId: string, teamId: number) => {
+      const member = await approveJoinRequest(requestId);
+      if (member) {
+        toast.success("Player added to team");
+        getTeamMembers(teamId);
+        getTeams();
+        getMyTeam();
+        return true;
+      }
+
+      toast.error("Failed to approve request");
+      return false;
+    },
+    [approveJoinRequest, getTeamMembers, getTeams, getMyTeam]
+  );
+
+  const handleDeclineJoinRequest = useCallback(
+    async (requestId: string) => {
+      const success = await declineJoinRequest(requestId);
+      if (success) {
+        toast.success("Join request declined");
+      } else {
+        toast.error("Failed to decline request");
+      }
+      return success;
+    },
+    [declineJoinRequest]
+  );
+
+  const handleCancelJoinRequest = useCallback(
+    async (requestId: string) => {
+      const success = await cancelJoinRequest(requestId);
+      if (success) {
+        toast.success("Join request cancelled");
+      } else {
+        toast.error("Failed to cancel request");
+      }
+      return success;
+    },
+    [cancelJoinRequest]
   );
 
   const handleLeaveTeam = useCallback(
@@ -418,7 +701,13 @@ export function useEsportsPage() {
 
   // --------------- Return ---------------
 
+  // Pull-to-refresh: reload tournament list
+  const refresh = useCallback(async () => {
+    await getTournaments();
+  }, [getTournaments]);
+
   return {
+    refresh,
     // State
     activeTab,
     setActiveTab,
@@ -462,11 +751,14 @@ export function useEsportsPage() {
     selectedIsPast,
     selectedIsRegistered,
     selectedIsHost,
+    selectedRegistration,
 
     // Tournament handlers
     handleRegister,
+    handlePayRegistration,
     handleUnregister,
     handleCreateTournament,
+    handleOpenCreateTournament,
     handleUpdateTournament,
     handleDeleteTournament,
     isHostOfTournament,
@@ -476,13 +768,20 @@ export function useEsportsPage() {
     teams,
     myTeam,
     teamMembers,
+    joinRequests,
     teamsLoading,
     getTeamMembers,
+    getTeamJoinRequests,
+    getMyJoinRequestForTeam,
     updateMemberRole,
 
     // Team handlers
     handleCreateTeam,
+    handleOpenCreateTeam,
     handleJoinTeam,
+    handleApproveJoinRequest,
+    handleDeclineJoinRequest,
+    handleCancelJoinRequest,
     handleLeaveTeam,
     handleRemoveMember,
     handleDeleteTeam,
@@ -499,6 +798,5 @@ export function useEsportsPage() {
 
     // Utility re-exports needed by JSX
     isTournamentPast,
-    triggerAppGate,
   };
 }

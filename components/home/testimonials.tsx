@@ -1,68 +1,46 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { cn, getInitials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
-interface Testimonial {
-  name: string;
+interface EventHighlight {
+  initials: string;
+  event: string;
   text: string;
-  rating: number;
+  attribution: string;
   color: string;
 }
 
-const TESTIMONIALS: Testimonial[] = [
+const HIGHLIGHTS: EventHighlight[] = [
   {
-    name: "Emeka Johnson",
-    text: "The PS5 VIP lounge is incredible — crystal-clear display and the controllers are always in perfect condition. Best gaming spot in Nigeria, hands down.",
-    rating: 5,
-    color: "bg-cyan/20 text-cyan",
-  },
-  {
-    name: "Amara Obi",
-    text: "Sold my old PS4 controller on the marketplace in under a day. The community here actually buys and sells — it's not dead like other platforms.",
-    rating: 5,
-    color: "bg-magenta/20 text-magenta",
-  },
-  {
-    name: "David Nwachukwu",
-    text: "Won my first FC 26 tournament here. The esports scene is growing fast — real brackets, real prizes, real competition. CGE is building something special.",
-    rating: 5,
+    initials: "FC",
+    event: "CGE Invasion",
+    text: "A stacked FC 26 bracket, a grand final that went the distance, and ₦500,000 on the line — CGE Invasion crowned its grand winner in front of a packed lounge.",
+    attribution: "FC 26 Grand Winner — CGE Invasion",
     color: "bg-gold/20 text-gold",
   },
   {
-    name: "Blessing Adekunle",
-    text: "The community feed keeps me connected even when I can't make it to the lounge. Found my Tekken crew through CGE — we run sets every weekend now.",
-    rating: 5,
-    color: "bg-green/20 text-green",
+    initials: "CD",
+    event: "CODM Tournament",
+    text: "From group stage grind to a clutch final circle — our Call of Duty: Mobile tournament went down to the wire before the champion took home the ₦100,000 prize.",
+    attribution: "CODM Champion — ₦100K Tournament",
+    color: "bg-magenta/20 text-magenta",
+  },
+  {
+    initials: "CGE",
+    event: "Tournament Day",
+    text: "Every station running, brackets on every screen, and gamers from across the island packing the lounge — this is what tournament day at CGE looks like.",
+    attribution: "Match Day — CGE Lounge, Bonny Island",
+    color: "bg-cyan/20 text-cyan",
   },
 ];
-
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex gap-1">
-      {Array.from({ length: 5 }, (_, i) => (
-        <svg
-          key={i}
-          className={cn(
-            "w-4 h-4",
-            i < rating ? "text-gold" : "text-border"
-          )}
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ))}
-    </div>
-  );
-}
 
 export function Testimonials() {
   const [activeIndex, setActiveIndex] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const next = useCallback(() => {
-    setActiveIndex((prev) => (prev + 1) % TESTIMONIALS.length);
+    setActiveIndex((prev) => (prev + 1) % HIGHLIGHTS.length);
   }, []);
 
   const startAutoRotate = useCallback(() => {
@@ -82,7 +60,7 @@ export function Testimonials() {
     return () => stopAutoRotate();
   }, [startAutoRotate, stopAutoRotate]);
 
-  const testimonial = TESTIMONIALS[activeIndex];
+  const highlight = HIGHLIGHTS[activeIndex];
 
   return (
     <div
@@ -90,35 +68,35 @@ export function Testimonials() {
       onMouseEnter={stopAutoRotate}
       onMouseLeave={startAutoRotate}
     >
-      {/* Testimonial card */}
+      {/* Event highlight card */}
       <div className="w-full max-w-2xl mx-auto text-center">
         <div className="mb-6 flex justify-center">
           <div
             className={cn(
               "w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold font-heading",
-              testimonial.color
+              highlight.color
             )}
           >
-            {getInitials(testimonial.name)}
+            {highlight.initials}
           </div>
         </div>
 
-        <div className="flex justify-center">
-          <StarRating rating={testimonial.rating} />
-        </div>
+        <p className="text-[11px] font-semibold text-text-muted uppercase tracking-widest">
+          {highlight.event}
+        </p>
 
         <blockquote className="mt-6 text-lg sm:text-xl text-text leading-relaxed">
-          &ldquo;{testimonial.text}&rdquo;
+          {highlight.text}
         </blockquote>
 
         <p className="mt-4 text-sm font-semibold text-cyan tracking-wide uppercase">
-          {testimonial.name}
+          {highlight.attribution}
         </p>
       </div>
 
       {/* Dot navigation */}
       <div className="flex gap-2 mt-10">
-        {TESTIMONIALS.map((_, i) => (
+        {HIGHLIGHTS.map((_, i) => (
           <button
             key={i}
             onClick={() => setActiveIndex(i)}
@@ -128,7 +106,7 @@ export function Testimonials() {
                 ? "bg-cyan w-8"
                 : "bg-border hover:bg-text-muted"
             )}
-            aria-label={`Go to testimonial ${i + 1} of ${TESTIMONIALS.length}`}
+            aria-label={`Go to highlight ${i + 1} of ${HIGHLIGHTS.length}`}
           />
         ))}
       </div>

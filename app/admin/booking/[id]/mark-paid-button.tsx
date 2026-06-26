@@ -1,31 +1,34 @@
 "use client";
-
+// Admin-only action — calls the server route guarded by requireAdmin.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
 
 export function MarkPaidButton({ bookingId }: { bookingId: string }) {
-  const supabase = createClient();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
   async function markPaid() {
     setBusy(true);
-    const { error } = await supabase
-      .from("bookings")
-      .update({ payment_status: "paid" })
-      .eq("id", bookingId);
-    setBusy(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const res = await fetch(`/api/admin/bookings/${bookingId}/mark-paid`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "Could not mark booking paid");
+        return;
+      }
+      toast.success("Marked as paid. Customer is checked in.");
+      router.refresh();
+    } catch {
+      toast.error("Network error — please try again");
+    } finally {
+      setBusy(false);
     }
-    toast.success("Marked as paid. Customer is checked in.");
-    router.refresh();
   }
 
   if (!confirming) {

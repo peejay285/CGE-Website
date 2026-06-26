@@ -12,6 +12,7 @@ import {
   Bookmark,
   Flag,
   ShieldCheck,
+  BadgeCheck,
   Hash,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -218,6 +219,13 @@ export const PostCard = memo(function PostCard({
             >
               {topicConfig.label}
             </span>
+          )}
+
+          {post.is_seeded && (
+            <Badge color="cyan">
+              <BadgeCheck className="mr-1 h-3 w-3" />
+              Official
+            </Badge>
           )}
 
           {post.is_pinned && (

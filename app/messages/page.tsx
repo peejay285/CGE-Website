@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { MessageCircle } from "lucide-react";
 import toast from "react-hot-toast";
@@ -23,12 +23,21 @@ export default function MessagesPage() {
     getConversations,
     getMessages,
     sendMessage,
-    markAsRead,
     subscribeToMessages,
   } = useMessages();
 
-  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+  const conversationId = searchParams.get("conversation");
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [mobileShowThread, setMobileShowThread] = useState(false);
+  const [urlThreadDismissed, setUrlThreadDismissed] = useState(false);
+  const activeConversation = useMemo(() => {
+    const id = selectedConversationId ?? conversationId;
+    if (!id) return null;
+    return conversations.find((c) => c.id === id) ?? null;
+  }, [selectedConversationId, conversationId, conversations]);
+  const showThread =
+    mobileShowThread ||
+    Boolean(conversationId && activeConversation && !urlThreadDismissed);
 
   // Fetch conversations on mount
   useEffect(() => {
@@ -36,18 +45,6 @@ export default function MessagesPage() {
       getConversations();
     }
   }, [user, getConversations]);
-
-  // Handle URL param: ?conversation=<id>
-  useEffect(() => {
-    const conversationId = searchParams.get("conversation");
-    if (conversationId && conversations.length > 0) {
-      const target = conversations.find((c) => c.id === conversationId);
-      if (target) {
-        setActiveConversation(target);
-        setMobileShowThread(true);
-      }
-    }
-  }, [searchParams, conversations]);
 
   // Load messages + subscribe when active conversation changes
   useEffect(() => {
@@ -61,8 +58,9 @@ export default function MessagesPage() {
 
   const handleSelectConversation = useCallback(
     (conversation: Conversation) => {
-      setActiveConversation(conversation);
+      setSelectedConversationId(conversation.id);
       setMobileShowThread(true);
+      setUrlThreadDismissed(false);
     },
     []
   );
@@ -80,7 +78,9 @@ export default function MessagesPage() {
   );
 
   const handleBack = useCallback(() => {
+    setSelectedConversationId(null);
     setMobileShowThread(false);
+    setUrlThreadDismissed(true);
     // Re-fetch conversations to update last message / unread counts
     if (user) getConversations();
   }, [user, getConversations]);
@@ -120,7 +120,7 @@ export default function MessagesPage() {
           {/* Conversation list — hidden on mobile when thread is active */}
           <div
             className={`w-full lg:w-80 lg:shrink-0 border border-border rounded-xl bg-surface overflow-hidden ${
-              mobileShowThread ? "hidden lg:flex lg:flex-col" : "flex flex-col"
+              showThread ? "hidden lg:flex lg:flex-col" : "flex flex-col"
             }`}
           >
             <div className="p-3 border-b border-border shrink-0">
@@ -142,7 +142,7 @@ export default function MessagesPage() {
           {/* Chat thread — hidden on mobile when list is shown */}
           <div
             className={`flex-1 border border-border rounded-xl bg-surface overflow-hidden ${
-              mobileShowThread
+              showThread
                 ? "flex flex-col"
                 : "hidden lg:flex lg:flex-col"
             }`}

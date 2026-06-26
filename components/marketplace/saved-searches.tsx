@@ -114,28 +114,31 @@ export function SavedSearchesButton({
 
   // Load saved searches and compute new matches
   useEffect(() => {
-    const saved = getSavedSearches();
-    setSearches(saved);
+    const timer = setTimeout(() => {
+      const saved = getSavedSearches();
+      setSearches(saved);
 
-    if (saved.length === 0 || listings.length === 0) {
-      setNewMatchCount(0);
-      return;
-    }
+      if (saved.length === 0 || listings.length === 0) {
+        setNewMatchCount(0);
+        return;
+      }
 
-    const seen = getSeenIds();
-    let count = 0;
+      const seen = getSeenIds();
+      let count = 0;
 
-    for (const listing of listings) {
-      if (seen.has(listing.id)) continue;
-      for (const search of saved) {
-        if (matchesSavedSearch(listing, search)) {
-          count++;
-          break; // Count listing only once even if it matches multiple searches
+      for (const listing of listings) {
+        if (seen.has(listing.id)) continue;
+        for (const search of saved) {
+          if (matchesSavedSearch(listing, search)) {
+            count++;
+            break; // Count listing only once even if it matches multiple searches
+          }
         }
       }
-    }
 
-    setNewMatchCount(count);
+      setNewMatchCount(count);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [listings]);
 
   const handleOpen = useCallback(() => {

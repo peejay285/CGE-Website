@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Community — Gaming Forum, Discussions & Gamer Network",
   description:
-    "Join Nigeria's most active gaming community. Discuss games, share clips, find teammates, and connect with fellow gamers across Africa. Download the CGE app to post and engage.",
+    "Join Nigeria's most active gaming community. Discuss games, share clips, find teammates, and connect with fellow gamers across Africa on the web.",
   keywords: [
     "gaming community Nigeria", "gaming forum Lagos", "gamer network Africa",
     "CGE community", "gaming discussions", "find gaming teammates",

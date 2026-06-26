@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import {
   X,
   Trophy,
@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/components/ui/use-focus-trap";
 import type { LucideIcon } from "lucide-react";
 
 const STORAGE_KEY = "cge:onboarding-seen:v1";
@@ -55,7 +56,7 @@ const STEPS: Step[] = [
     bgClass: "bg-green/10 border-green/25",
     eyebrow: "Community",
     title: "Find your people",
-    body: "Posts, polls, and topic threads from gamers nationwide. Lurk for free; post via the app.",
+    body: "Posts, polls, and topic threads from gamers nationwide. Read and post from the web; use the app later for faster alerts.",
   },
   {
     icon: Calendar,
@@ -71,17 +72,18 @@ interface OnboardingTourProps {
   isSignedIn: boolean;
 }
 
-export function OnboardingTour({ isSignedIn }: OnboardingTourProps) {
-  const [open, setOpen] = useState(false);
+// Shown to every first-time visitor, signed in or not — auth no longer gates the tour.
+export function OnboardingTour(_props: OnboardingTourProps) {
+  const [open, setOpen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.localStorage.getItem(STORAGE_KEY) !== "true";
+    } catch {
+      return true;
+    }
+  });
   const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    if (!isSignedIn) return;
-    if (typeof window === "undefined") return;
-    const seen = window.localStorage.getItem(STORAGE_KEY);
-    if (seen === "true") return;
-    setOpen(true);
-  }, [isSignedIn]);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   function dismiss() {
     setOpen(false);
@@ -92,6 +94,9 @@ export function OnboardingTour({ isSignedIn }: OnboardingTourProps) {
     }
   }
 
+  // Esc dismisses the tour (same as Skip, including the "seen" flag)
+  useFocusTrap(dialogRef, open, { onEscape: dismiss });
+
   if (!open) return null;
 
   const current = STEPS[step];
@@ -100,7 +105,14 @@ export function OnboardingTour({ isSignedIn }: OnboardingTourProps) {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 bg-base/85 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-surface shadow-2xl overflow-hidden">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-tour-title"
+        tabIndex={-1}
+        className="w-full max-w-md rounded-2xl border border-border bg-surface shadow-2xl overflow-hidden focus:outline-none"
+      >
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
             Step {step + 1} of {STEPS.length}
@@ -132,7 +144,10 @@ export function OnboardingTour({ isSignedIn }: OnboardingTourProps) {
           >
             {current.eyebrow}
           </p>
-          <h2 className="text-lg font-bold font-heading text-text mb-2">
+          <h2
+            id="onboarding-tour-title"
+            className="text-lg font-bold font-heading text-text mb-2"
+          >
             {current.title}
           </h2>
           <p className="text-sm text-text-muted leading-relaxed">
@@ -150,11 +165,15 @@ export function OnboardingTour({ isSignedIn }: OnboardingTourProps) {
           </button>
           <div className="flex items-center gap-1.5">
             {STEPS.map((_, i) => (
-              <span
+              <button
                 key={i}
+                type="button"
+                onClick={() => setStep(i)}
+                aria-label={`Go to step ${i + 1}`}
+                aria-current={i === step ? "step" : undefined}
                 className={cn(
-                  "h-1.5 rounded-full transition-all",
-                  i === step ? "w-5 bg-cyan" : "w-1.5 bg-border",
+                  "h-1.5 rounded-full transition-all cursor-pointer",
+                  i === step ? "w-5 bg-cyan" : "w-1.5 bg-border"
                 )}
               />
             ))}

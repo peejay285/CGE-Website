@@ -3,30 +3,36 @@ import { Sora, Orbitron, Rajdhani, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
+import { isEnvValid } from "@/lib/env";
 import { StructuredData } from "@/components/structured-data";
+import { getCanonicalSiteUrl, shouldDisableIndexing } from "@/lib/site-config";
+
+if (!isEnvValid && process.env.NODE_ENV === "production" && process.env.VERCEL) {
+  throw new Error("Invalid production environment configuration");
+}
 
 const sora = Sora({
   variable: "--font-sora",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const orbitron = Orbitron({
   variable: "--font-orbitron",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
+  weight: ["400", "600", "700", "900"],
 });
 
 const rajdhani = Rajdhani({
   variable: "--font-rajdhani",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "600"],
 });
 
 export const metadata: Metadata = {
@@ -44,7 +50,7 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Creative Gaming Entertainment" }],
   creator: "CGE",
-  metadataBase: new URL("https://cge.ng"),
+  metadataBase: new URL(getCanonicalSiteUrl()),
   openGraph: {
     type: "website",
     locale: "en_NG",
@@ -61,11 +67,21 @@ export const metadata: Metadata = {
       "Nigeria's gaming platform — tournaments, marketplace, community, and lounges. First branch on Bonny Island.",
     images: ["/og-image.jpg"],
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: { index: true, follow: true },
-  },
+  robots: shouldDisableIndexing()
+    ? {
+        index: false,
+        follow: false,
+        googleBot: {
+          index: false,
+          follow: false,
+          noimageindex: true,
+        },
+      }
+    : {
+        index: true,
+        follow: true,
+        googleBot: { index: true, follow: true },
+      },
 };
 
 export default function RootLayout({

@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { cn } from "@/lib/utils";
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -15,15 +16,21 @@ interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
   label?: string;
 }
 
-export function Input({ label, className, ...props }: InputProps) {
+export function Input({ label, className, id, ...props }: InputProps) {
+  const autoId = useId();
+  const inputId = id ?? autoId;
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label className="text-xs font-medium uppercase tracking-wider text-text-muted">
+        <label
+          htmlFor={inputId}
+          className="text-xs font-medium uppercase tracking-wider text-text-muted"
+        >
           {label}
         </label>
       )}
       <input
+        id={inputId}
         className={cn(
           "w-full rounded-lg border border-border bg-surface-alt px-4 py-2.5 text-sm text-text",
           "placeholder:text-text-muted/50 focus:border-cyan/50 focus:outline-none focus:ring-1 focus:ring-cyan/25",
@@ -36,16 +43,22 @@ export function Input({ label, className, ...props }: InputProps) {
   );
 }
 
-export function Select({ label, options, className, ...props }: SelectProps) {
+export function Select({ label, options, className, id, ...props }: SelectProps) {
+  const autoId = useId();
+  const selectId = id ?? autoId;
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label className="text-xs font-medium uppercase tracking-wider text-text-muted">
+        <label
+          htmlFor={selectId}
+          className="text-xs font-medium uppercase tracking-wider text-text-muted"
+        >
           {label}
         </label>
       )}
       <div className="relative">
         <select
+          id={selectId}
           className={cn(
             "w-full rounded-lg border border-border bg-surface-alt px-4 py-2.5 pr-10 text-sm text-text",
             "focus:border-cyan/50 focus:outline-none focus:ring-1 focus:ring-cyan/25",
@@ -70,6 +83,7 @@ export function Select({ label, options, className, ...props }: SelectProps) {
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
+          aria-hidden="true"
         >
           <path d="m6 9 6 6 6-6" />
         </svg>
@@ -78,15 +92,21 @@ export function Select({ label, options, className, ...props }: SelectProps) {
   );
 }
 
-export function Textarea({ label, className, ...props }: TextareaProps) {
+export function Textarea({ label, className, id, ...props }: TextareaProps) {
+  const autoId = useId();
+  const textareaId = id ?? autoId;
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label className="text-xs font-medium uppercase tracking-wider text-text-muted">
+        <label
+          htmlFor={textareaId}
+          className="text-xs font-medium uppercase tracking-wider text-text-muted"
+        >
           {label}
         </label>
       )}
       <textarea
+        id={textareaId}
         className={cn(
           "w-full rounded-lg border border-border bg-surface-alt px-4 py-2.5 text-sm text-text",
           "placeholder:text-text-muted/50 focus:border-cyan/50 focus:outline-none focus:ring-1 focus:ring-cyan/25",

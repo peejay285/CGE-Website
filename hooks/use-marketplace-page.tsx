@@ -124,8 +124,12 @@ export function useMarketplacePage() {
   const [reviewTarget, setReviewTarget] =
     useState<MarketplaceListing | null>(null);
 
-  // Infinite scroll sentinel ref
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  // Infinite scroll sentinel node. Return a callback ref so React Compiler
+  // does not treat the entire marketplace view model as a ref object.
+  const sentinelNodeRef = useRef<HTMLDivElement | null>(null);
+  const sentinelRef = useCallback((node: HTMLDivElement | null) => {
+    sentinelNodeRef.current = node;
+  }, []);
 
   /* ── External hooks ────────────────────────────────────── */
 
@@ -159,10 +163,13 @@ export function useMarketplacePage() {
 
   // Infinite scroll observer — loads more when sentinel enters viewport
   const loadMoreFiltersRef = useRef({ debouncedSearch, category, locationState });
-  loadMoreFiltersRef.current = { debouncedSearch, category, locationState };
 
   useEffect(() => {
-    const sentinel = sentinelRef.current;
+    loadMoreFiltersRef.current = { debouncedSearch, category, locationState };
+  }, [debouncedSearch, category, locationState]);
+
+  useEffect(() => {
+    const sentinel = sentinelNodeRef.current;
     if (!sentinel) return;
 
     const observer = new IntersectionObserver(
@@ -187,48 +194,56 @@ export function useMarketplacePage() {
 
   // Fetch seller's phone from profile when user changes
   useEffect(() => {
-    if (!user) {
-      setSellerPhone(null);
-      return;
-    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      if (!user) {
+        setSellerPhone(null);
+        setIsPremium(false);
+        return;
+      }
 
-    const metaPhone = user.user_metadata?.phone;
-    if (metaPhone) {
-      setSellerPhone(metaPhone);
-      return;
-    }
+      const metaPhone =
+        typeof user.user_metadata?.phone === "string"
+          ? user.user_metadata.phone
+          : null;
 
-    const supabase = createClient();
-    supabase
-      .from("profiles")
-      .select("phone, location_state, premium_tier, premium_expires_at")
-      .eq("id", user.id)
-      .single()
-      .then(
-        ({
-          data,
-        }: {
-          data: {
-            phone: string | null;
-            location_state: string | null;
-            premium_tier: string | null;
-            premium_expires_at: string | null;
-          } | null;
-        }) => {
-          setSellerPhone(data?.phone || null);
-          // Default the marketplace state filter to the user's profile state,
-          // but only on first load — don't override an explicit user choice.
-          if (data?.location_state && !profileLocationDefaulted) {
-            setLocationState(data.location_state);
-            setProfileLocationDefaulted(true);
-          }
-          const premiumActive =
-            data?.premium_tier === "premium" &&
-            data?.premium_expires_at != null &&
-            new Date(data.premium_expires_at) > new Date();
-          setIsPremium(premiumActive);
-        },
-      );
+      const supabase = createClient();
+      supabase
+        .from("profiles")
+        .select("phone, location_state, premium_tier, premium_expires_at")
+        .eq("id", user.id)
+        .single()
+        .then(
+          ({
+            data,
+          }: {
+            data: {
+              phone: string | null;
+              location_state: string | null;
+              premium_tier: string | null;
+              premium_expires_at: string | null;
+            } | null;
+          }) => {
+            if (cancelled) return;
+            setSellerPhone(data?.phone || metaPhone || null);
+            // Default the marketplace state filter to the user's profile state,
+            // but only on first load — don't override an explicit user choice.
+            if (data?.location_state && !profileLocationDefaulted) {
+              setLocationState(data.location_state);
+              setProfileLocationDefaulted(true);
+            }
+            const premiumActive =
+              data?.premium_tier === "premium" &&
+              data?.premium_expires_at != null &&
+              new Date(data.premium_expires_at) > new Date();
+            setIsPremium(premiumActive);
+          },
+        );
+    }, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [user, profileLocationDefaulted]);
 
   // Listen for share clipboard copy events from detail modal
@@ -823,6 +838,7 @@ export function useMarketplacePage() {
     handleMessageSeller,
     handleProposeSwap,
     handleSubmitSwapProposal,
+    refreshProposalsFor,
     handleAcceptProposal,
     handleDeclineProposal,
     handleMarkOwnerShipped,

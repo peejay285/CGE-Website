@@ -157,8 +157,11 @@ export function SellerProfileCard({
   }, [seller, getSellerQuickStats]);
 
   useEffect(() => {
-    fetchStats();
-  }, [seller.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    const timer = setTimeout(() => {
+      void fetchStats();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchStats]);
 
   const trustLevel =
     (stats?.trust_level as keyof typeof TRUST_CONFIG) ?? "new";

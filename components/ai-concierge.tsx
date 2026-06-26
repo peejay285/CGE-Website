@@ -74,7 +74,7 @@ export function AIConcierge() {
       <button
         onClick={() => setOpen(!open)}
         className={cn(
-          "fixed bottom-6 right-6 z-50 flex items-center justify-center w-12 h-12 rounded-full shadow-lg transition-all cursor-pointer",
+          "fixed bottom-20 lg:bottom-6 right-6 z-50 flex items-center justify-center w-12 h-12 rounded-full shadow-lg transition-all cursor-pointer",
           open
             ? "bg-surface border border-border text-text-muted hover:text-text"
             : "bg-gradient-to-br from-cyan to-[#00C8D4] text-base hover:scale-110"
@@ -85,7 +85,7 @@ export function AIConcierge() {
 
       {/* Chat Window */}
       {open && (
-        <div className="fixed bottom-20 right-6 z-50 w-80 sm:w-96 rounded-xl border border-border bg-surface shadow-2xl animate-fadeIn overflow-hidden">
+        <div className="fixed bottom-[8.5rem] lg:bottom-20 right-6 z-50 w-80 sm:w-96 rounded-xl border border-border bg-surface shadow-2xl animate-fadeIn overflow-hidden">
           {/* Header */}
           <div className="px-4 py-3 bg-gradient-to-r from-cyan/10 to-transparent border-b border-border">
             <p className="text-sm font-semibold">CGE Assistant</p>
@@ -161,7 +161,7 @@ function getLocalResponse(input: string): string {
   const lower = input.toLowerCase();
 
   if (lower.match(/price|cost|how much|rate/))
-    return "💰 Pricing:\n• Main Lounge (PS4): FC 26 ₦3,000/hr, Other games ₦2,000/hr\n• VIP Lounge (PS5): Single ₦5,000/hr, Both consoles ₦10,000/hr\n• VR Zone: ₦2,000 per 15min session\n• Drinks: ₦500 each";
+    return "💰 Pricing:\n• Main Lounge (PS4): FC 26 ₦3,000/hr, Other games ₦2,000/hr\n• VIP Lounge (PS5): Private room ₦5,000/hr\n• VR Zone: ₦2,000 per 15min session, up to 2 players\n• Drinks: ₦500 each";
 
   if (lower.match(/book|reservation|session/))
     return "🎮 To book a session, head to the Lounge page! Select your zone (Main, VIP, or VR), pick a game, choose your time, and pay with Paystack or at the venue.";

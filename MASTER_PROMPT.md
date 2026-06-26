@@ -1,9 +1,101 @@
 # CGE LOUNGE APP — MASTER PROMPT
 
-> **Last updated:** 2026-03-02
-> **Status:** Active development — web app phase
+> **Last updated:** 2026-06-06
+> **Status:** Active development — full web platform build
 
-You are continuing work on the **CGE (Creative Gaming Entertainment) Lounge App** — a full-stack gaming lounge platform for a Nigerian gaming café. The app is a four-pillar gaming ecosystem: Lounge (bookings), Marketplace (swap market), Esports (tournaments), and Community (social feed).
+You are continuing work on the **CGE (Creative Gaming Entertainment) Lounge App** — a full-stack gaming lounge platform for a Nigerian gaming entertainment company. The product direction is now a full local web platform first, with mobile apps later as companion surfaces for notifications, convenience, and possible app-exclusive features. The app is a four-pillar gaming ecosystem: Lounge (bookings), Marketplace (swap-first market), Esports (tournaments, teams, payouts), and Community (social feed).
+
+---
+
+## CURRENT HANDOFF SNAPSHOT — 2026-06-06
+
+### Product Direction
+- Build the website as a complete usable platform, not just a funnel to the app.
+- Mobile UX matters heavily because the Nigerian gaming audience will often browse and register from phones.
+- The long-term goal is to make CGE one of the strongest esports and gaming platforms in Nigeria and Africa.
+- Core pillars:
+  - Lounge booking for physical stations.
+  - Esports tournament hosting, team play, brackets, paid registration, and prize payouts.
+  - Marketplace with swap-first positioning and optional paid CGE-assisted swaps.
+  - Community with event-linked discussions, moderation, anti-spam, and seeded quality content.
+
+### Confirmed Completed Work
+- Lounge capacity and booking RPC migration was created and successfully run in the correct Supabase project.
+  - Main lounge capacity: 6.
+  - VR room capacity: 2.
+  - VIP capacity: 1.
+  - Booking creation now uses a locked RPC so simultaneous bookings cannot overfill a time slot.
+- Esports upgrade migration was created and successfully run.
+  - Added tournament teams, team members, team tournament registrations, check-ins, bracket/match table, disputes, achievements, player follows, tournament series, and profile esports fields.
+- Tournament paid solo registration migration was created.
+  - Adds totals/payment fields to `tournament_registrations`.
+  - Adds slot-safe RPC `create_tournament_registration_with_payment`.
+- Tournament prize payout foundation migration was created and successfully run after adapting for the existing DB.
+  - Adds payout configuration on tournaments.
+  - Adds `tournament_prize_placements` and `tournament_payouts`.
+  - Adds RPCs to assign placements, prepare payout drafts, approve drafts, and mark payouts paid.
+  - Supports automatic 1st/2nd placement from `tournament_matches` when that table exists.
+- Payout profile and payout release UI/API foundation has been built.
+- Team tournament paid registration migration was created.
+  - Adds totals/payment fields to `tournament_team_registrations`.
+  - Adds slot-safe RPC `create_tournament_team_registration_with_payment`.
+  - Treats `tournament.entry_fee` as the team entry fee for now.
+- Team tournament checkout was wired into the app.
+  - Solo tournaments use solo paid registration/payment.
+  - Team tournaments require a captain with a ready team and use team paid registration/payment.
+  - Paystack initialization/webhook supports `tournament_team` payments.
+- Team readiness UI was added.
+  - Tournament detail pages and modals show whether the current team has enough members.
+  - Team member counts now hydrate from real `team_members` rows.
+
+### Latest Build Completed
+- Added a first-class team join request workflow.
+- New migration:
+  - `supabase/team-join-requests-migration.sql`
+  - Creates `team_join_requests`.
+  - Removes open direct team joining.
+  - Adds request, approve, decline, and cancel RPCs.
+  - Allows captains/co-captains to manage pending requests.
+- App wiring:
+  - `hooks/use-teams.ts` now supports pending join requests and captain approval/decline actions.
+  - `hooks/use-esports-page.tsx` exposes request handlers and updated toasts.
+  - `components/esports/team-detail-modal.tsx` now shows `Request to Join`, `Request Pending`, `Cancel Request`, and captain approve/decline controls.
+  - `app/esports/page.tsx` passes request state/actions into the team modal.
+
+### Migration Run Status
+- Already confirmed successful by user:
+  - `supabase/lounge-capacity-and-booking-rpc-migration.sql`
+  - `supabase/esports-upgrade-migration.sql`
+  - `supabase/tournament-prize-payouts-migration.sql`
+- Created but run status not confirmed in chat:
+  - `supabase/tournament-paid-registration-migration.sql`
+  - `supabase/tournament-team-paid-registration-migration.sql`
+  - `supabase/team-join-requests-migration.sql`
+- Before testing the latest team request flow in Supabase, run `supabase/team-join-requests-migration.sql` in the correct CGE Supabase project.
+
+### Latest Verification
+- `node node_modules\typescript\bin\tsc --noEmit --incremental false` passed.
+- `npm run build` passed.
+- Live route checks returned 200:
+  - `http://127.0.0.1:3000/esports`
+  - `http://127.0.0.1:3000/esports?tab=teams`
+
+### Recommended Next Build Steps
+1. Run `team-join-requests-migration.sql` in Supabase and manually test:
+   - Non-member requests to join a team.
+   - User sees pending request and can cancel it.
+   - Captain/co-captain sees request and can approve/decline.
+   - Approved user becomes a `team_members` row.
+2. Confirm whether `tournament-paid-registration-migration.sql` and `tournament-team-paid-registration-migration.sql` have been run in production Supabase.
+3. Continue esports build:
+   - Bracket generation UI and match management.
+   - Score reporting/confirmation/dispute UX.
+   - Tournament organizer verification badges and unverified organizer warnings.
+   - Payout admin review/release experience.
+4. Continue marketplace build:
+   - Swap trust layer, offer comparison, safety guidance wording, and paid CGE-assisted swap flow.
+5. Continue community build:
+   - Moderation queue, anti-spam, topic quality, seeded discussions, and event-linked tournament discussion threads.
 
 ---
 
