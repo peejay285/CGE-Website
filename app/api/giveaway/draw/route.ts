@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 
 /**
  * POST /api/giveaway/draw
@@ -48,6 +49,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Admin only" }, { status: 403 });
     }
 
+    // All reads/writes below use the service-role client: entries must be
+    // read across ALL users (user-context RLS would only return the
+    // admin's own entries), and giveaway_draws / vouchers are deliberately
+    // not client-writable.
+    const admin = createServiceRoleClient();
+
     const body = await req.json();
     const { month } = body;
 
@@ -59,7 +66,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if draw already happened for this month
-    const { data: existingDraw } = await supabase
+    const { data: existingDraw } = await admin
       .from("giveaway_draws")
       .select("id")
       .eq("month", month)
@@ -73,7 +80,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get all entries for this month
-    const { data: entries, error: entriesError } = await supabase
+    const { data: entries, error: entriesError } = await admin
       .from("giveaway_entries")
       .select("id, user_id")
       .eq("month", month);
@@ -113,9 +120,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Create the draw record
-    const { data: draw, error: drawError } = await supabase
+    const { data: draw, error: drawError } = await admin
       .from("giveaway_draws")
-      .insert({ month })
+      .insert({ month, drawn_by: user.id })
       .select("id")
       .single();
 
@@ -146,7 +153,7 @@ export async function POST(req: NextRequest) {
       };
     });
 
-    const { data: createdVouchers, error: voucherError } = await supabase
+    const { data: createdVouchers, error: voucherError } = await admin
       .from("vouchers")
       .insert(vouchers)
       .select("id, code, user_id, prize_label, zone_id, expires_at");
@@ -155,7 +162,7 @@ export async function POST(req: NextRequest) {
 
     // Fetch winner profiles for the response
     const winnerIds = winners.map((w) => w.user_id);
-    const { data: profiles } = await supabase
+    const { data: profiles } = await admin
       .from("profiles")
       .select("id, full_name, phone, gamertag")
       .in("id", winnerIds);

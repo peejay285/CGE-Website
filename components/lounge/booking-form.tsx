@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Select, Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SectionTitle } from "@/components/ui/section-title";
-import { cn, isSunday, formatPrice } from "@/lib/utils";
+import { cn, isSunday, formatPrice, slotToHour } from "@/lib/utils";
 import { ArrowLeft, ArrowRight, Clock } from "lucide-react";
 
 interface BookingFormData {
@@ -63,7 +63,10 @@ export function BookingForm({
         { value: "4", label: "4 hours" },
       ];
 
-  // Fetch booked slots when date changes
+  // Fetch booked slots when date or duration changes.
+  // Uses the aggregate `get_slot_availability` RPC (SECURITY DEFINER) —
+  // the old client-side count only saw the caller's own bookings under
+  // RLS, and ignored multi-hour bookings entirely.
   const fetchBookedSlots = useCallback(async () => {
     if (!date || !zone) {
       setBookedSlots(new Set());
@@ -74,32 +77,31 @@ export function BookingForm({
     try {
       const supabase = createClient();
 
-      // Get zone capacity
-      const { data: zoneData } = await supabase
-        .from("zones")
-        .select("capacity")
-        .eq("id", zone)
-        .single();
+      const { data: rows } = await supabase.rpc("get_slot_availability", {
+        p_zone_id: zone,
+        p_booking_date: date,
+      });
 
-      const capacity = zoneData?.capacity || 1;
-
-      // Count bookings per time slot for this zone + date
-      const { data: bookings } = await supabase
-        .from("bookings")
-        .select("time_slot")
-        .eq("zone_id", zone)
-        .eq("booking_date", date)
-        .neq("status", "cancelled");
-
-      if (bookings) {
-        const slotCounts: Record<string, number> = {};
-        for (const b of bookings) {
-          slotCounts[b.time_slot] = (slotCounts[b.time_slot] || 0) + 1;
+      if (rows) {
+        const byHour = new Map<number, { booked: number; capacity: number }>();
+        for (const r of rows as { slot_hour: number; booked_count: number; capacity: number }[]) {
+          byHour.set(r.slot_hour, { booked: Number(r.booked_count), capacity: r.capacity });
         }
 
+        // A slot is unavailable if ANY hour the session would span is full.
+        const span = isVr ? 1 : Math.max(duration, 1);
         const full = new Set<string>();
-        for (const [slot, count] of Object.entries(slotCounts)) {
-          if (count >= capacity) full.add(slot);
+        const slots = isSunday(date) ? SUNDAY_TIME_SLOTS : TIME_SLOTS;
+        for (const slot of slots) {
+          const start = slotToHour(slot);
+          if (start < 0) continue;
+          for (let h = start; h < start + span; h++) {
+            const info = byHour.get(h);
+            if (info && info.booked >= info.capacity) {
+              full.add(slot);
+              break;
+            }
+          }
         }
         setBookedSlots(full);
       }
@@ -109,7 +111,7 @@ export function BookingForm({
     } finally {
       setLoadingSlots(false);
     }
-  }, [date, zone]);
+  }, [date, zone, duration, isVr]);
 
   useEffect(() => {
     fetchBookedSlots();
@@ -252,6 +254,7 @@ export function BookingForm({
         )}
 
         {/* Actions */}
+
         <div className="flex items-center justify-between pt-4">
           <Button variant="ghost" onClick={onBack}>
             <ArrowLeft size={16} />

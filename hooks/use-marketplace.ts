@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { escapePostgrestSearch } from "@/lib/utils";
-import type { MarketplaceListing, SwapProposal } from "@/lib/types";
+import type { MarketplaceListing, SwapProposal, SwapAssistPayment } from "@/lib/types";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 interface ListingFilters {
@@ -553,7 +553,7 @@ export function useMarketplace(filters?: ListingFilters) {
             message: message || null,
           })
           .select(
-            "*, proposer:profiles!proposer_id(id, full_name, avatar_url, gamertag), offered_listing:marketplace_listings!offered_listing_id(id, title, images, condition, category)"
+            "*, proposer:profiles!proposer_id(id, full_name, avatar_url, gamertag), offered_listing:marketplace_listings!offered_listing_id(id, title, images, condition, category, price, buyout_price)"
           )
           .single();
 
@@ -586,7 +586,7 @@ export function useMarketplace(filters?: ListingFilters) {
         const { data, error: fetchError } = await supabase
           .from("swap_proposals")
           .select(
-            "*, proposer:profiles!proposer_id(id, full_name, avatar_url, gamertag), offered_listing:marketplace_listings!offered_listing_id(id, title, images, condition, category), target_listing:marketplace_listings!listing_id(id, title, images, condition, category, user_id)",
+            "*, proposer:profiles!proposer_id(id, full_name, avatar_url, gamertag), offered_listing:marketplace_listings!offered_listing_id(id, title, images, condition, category, price, buyout_price), target_listing:marketplace_listings!listing_id(id, title, images, condition, category, price, buyout_price, user_id), assist_payments:swap_assist_payments(*)",
           )
           .eq("proposer_id", user.id)
           .order("created_at", { ascending: false });
@@ -595,6 +595,46 @@ export function useMarketplace(filters?: ListingFilters) {
           ...item,
           proposer: item.proposer ?? undefined,
           offered_listing: item.offered_listing ?? undefined,
+          target_listing: item.target_listing ?? undefined,
+          assist_payments: item.assist_payments ?? [],
+        })) as SwapProposal[];
+      } catch {
+        return [];
+      }
+    },
+    [supabase],
+  );
+
+  // Incoming proposals across all of my listings (listing-owner view).
+  const getMyIncomingProposals = useCallback(
+    async (): Promise<SwapProposal[]> => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return [];
+
+        const { data: myListings } = await supabase
+          .from("marketplace_listings")
+          .select("id")
+          .eq("user_id", user.id);
+        const ids = (myListings ?? []).map((l: { id: string }) => l.id);
+        if (ids.length === 0) return [];
+
+        const { data, error: fetchError } = await supabase
+          .from("swap_proposals")
+          .select(
+            "*, proposer:profiles!proposer_id(id, full_name, avatar_url, gamertag), offered_listing:marketplace_listings!offered_listing_id(id, title, images, condition, category, price, buyout_price), target_listing:marketplace_listings!listing_id(id, title, images, condition, category, price, buyout_price, user_id), assist_payments:swap_assist_payments(*)",
+          )
+          .in("listing_id", ids)
+          .order("created_at", { ascending: false });
+        if (fetchError) throw fetchError;
+        return (data ?? []).map((item: Record<string, unknown>) => ({
+          ...item,
+          proposer: item.proposer ?? undefined,
+          offered_listing: item.offered_listing ?? undefined,
+          target_listing: item.target_listing ?? undefined,
+          assist_payments: item.assist_payments ?? [],
         })) as SwapProposal[];
       } catch {
         return [];
@@ -609,7 +649,7 @@ export function useMarketplace(filters?: ListingFilters) {
         const { data, error: fetchError } = await supabase
           .from("swap_proposals")
           .select(
-            "*, proposer:profiles!proposer_id(id, full_name, avatar_url, gamertag), offered_listing:marketplace_listings!offered_listing_id(id, title, images, condition, category)"
+            "*, proposer:profiles!proposer_id(id, full_name, avatar_url, gamertag), offered_listing:marketplace_listings!offered_listing_id(id, title, images, condition, category, price, buyout_price), assist_payments:swap_assist_payments(*)"
           )
           .eq("listing_id", listingId)
           .order("created_at", { ascending: false });
@@ -620,6 +660,7 @@ export function useMarketplace(filters?: ListingFilters) {
           ...item,
           proposer: item.proposer ?? undefined,
           offered_listing: item.offered_listing ?? undefined,
+          assist_payments: item.assist_payments ?? [],
         })) as SwapProposal[];
       } catch {
         return [];
@@ -635,13 +676,13 @@ export function useMarketplace(filters?: ListingFilters) {
     ): Promise<boolean> => {
       try {
         setActionLoading(true);
-        const patch: Record<string, unknown> = { status };
-        if (status === "accepted") patch.accepted_at = new Date().toISOString();
-        if (status === "declined") patch.declined_at = new Date().toISOString();
-        const { error: updateError } = await supabase
-          .from("swap_proposals")
-          .update(patch)
-          .eq("id", proposalId);
+        const { error: updateError } = await supabase.rpc(
+          "set_swap_proposal_decision",
+          {
+            p_proposal_id: proposalId,
+            p_status: status,
+          }
+        );
 
         if (updateError) throw updateError;
         return true;
@@ -671,14 +712,11 @@ export function useMarketplace(filters?: ListingFilters) {
     ): Promise<boolean> => {
       try {
         setActionLoading(true);
-        const patch: Record<string, unknown> = {
-          [`${side}_shipped_at`]: new Date().toISOString(),
-        };
-        if (tracking?.trim()) patch[`${side}_tracking`] = tracking.trim();
-        const { error } = await supabase
-          .from("swap_proposals")
-          .update(patch)
-          .eq("id", proposalId);
+        void side;
+        const { error } = await supabase.rpc("mark_swap_shipped", {
+          p_proposal_id: proposalId,
+          p_tracking: tracking?.trim() || null,
+        });
         if (error) throw error;
         return true;
       } catch {
@@ -694,10 +732,10 @@ export function useMarketplace(filters?: ListingFilters) {
     async (proposalId: string, side: "proposer" | "owner"): Promise<boolean> => {
       try {
         setActionLoading(true);
-        const { error } = await supabase
-          .from("swap_proposals")
-          .update({ [`${side}_received_at`]: new Date().toISOString() })
-          .eq("id", proposalId);
+        void side;
+        const { error } = await supabase.rpc("mark_swap_received", {
+          p_proposal_id: proposalId,
+        });
         if (error) throw error;
         return true;
       } catch {
@@ -713,18 +751,10 @@ export function useMarketplace(filters?: ListingFilters) {
     async (proposalId: string, reason?: string): Promise<boolean> => {
       try {
         setActionLoading(true);
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) throw new Error("User not authenticated");
-        const { error } = await supabase
-          .from("swap_proposals")
-          .update({
-            cancelled_at: new Date().toISOString(),
-            cancelled_by: user.id,
-            cancellation_reason: reason?.trim() ?? null,
-          })
-          .eq("id", proposalId);
+        const { error } = await supabase.rpc("cancel_swap_proposal", {
+          p_proposal_id: proposalId,
+          p_reason: reason?.trim() || null,
+        });
         if (error) throw error;
         return true;
       } catch {
@@ -740,18 +770,10 @@ export function useMarketplace(filters?: ListingFilters) {
     async (proposalId: string, reason: string): Promise<boolean> => {
       try {
         setActionLoading(true);
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) throw new Error("User not authenticated");
-        const { error } = await supabase
-          .from("swap_proposals")
-          .update({
-            disputed_at: new Date().toISOString(),
-            disputed_by: user.id,
-            dispute_reason: reason.trim(),
-          })
-          .eq("id", proposalId);
+        const { error } = await supabase.rpc("dispute_swap_proposal", {
+          p_proposal_id: proposalId,
+          p_reason: reason.trim(),
+        });
         if (error) throw error;
         return true;
       } catch {
@@ -761,6 +783,153 @@ export function useMarketplace(filters?: ListingFilters) {
       }
     },
     [supabase],
+  );
+
+  /* ────────────────────────────────────────
+   *  CGE-ASSISTED SWAP (facilitation)
+   *
+   * request → both parties settle their half (pay or premium credit)
+   * → active → complete. All writes go through security-definer RPCs.
+   * ──────────────────────────────────────── */
+
+  const requestSwapAssistance = useCallback(
+    async (proposalId: string): Promise<boolean> => {
+      try {
+        setActionLoading(true);
+        setActionError(null);
+        const { error: rpcError } = await supabase.rpc("request_swap_assistance", {
+          p_proposal_id: proposalId,
+        });
+        if (rpcError) throw rpcError;
+        return true;
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : "Failed to request assistance");
+        return false;
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [supabase],
+  );
+
+  const coverSwapAssistWithPremium = useCallback(
+    async (proposalId: string): Promise<boolean> => {
+      try {
+        setActionLoading(true);
+        setActionError(null);
+        const { error: rpcError } = await supabase.rpc("cover_swap_assist_with_premium", {
+          p_proposal_id: proposalId,
+        });
+        if (rpcError) throw rpcError;
+        return true;
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : "Failed to use premium credit");
+        return false;
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [supabase],
+  );
+
+  const completeSwapAssistance = useCallback(
+    async (proposalId: string): Promise<boolean> => {
+      try {
+        setActionLoading(true);
+        const { error: rpcError } = await supabase.rpc("complete_swap_assistance", {
+          p_proposal_id: proposalId,
+        });
+        if (rpcError) throw rpcError;
+        return true;
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : "Failed to complete assistance");
+        return false;
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [supabase],
+  );
+
+  const cancelSwapAssistance = useCallback(
+    async (proposalId: string): Promise<boolean> => {
+      try {
+        setActionLoading(true);
+        const { error: rpcError } = await supabase.rpc("cancel_swap_assistance", {
+          p_proposal_id: proposalId,
+        });
+        if (rpcError) throw rpcError;
+        return true;
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : "Failed to cancel assistance");
+        return false;
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [supabase],
+  );
+
+  const getSwapAssistPayments = useCallback(
+    async (proposalId: string): Promise<SwapAssistPayment[]> => {
+      try {
+        const { data, error: fetchError } = await supabase
+          .from("swap_assist_payments")
+          .select("*")
+          .eq("proposal_id", proposalId);
+        if (fetchError) throw fetchError;
+        return (data ?? []) as SwapAssistPayment[];
+      } catch {
+        return [];
+      }
+    },
+    [supabase],
+  );
+
+  const getMyAssistCredits = useCallback(async (): Promise<number> => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return 0;
+      const { data, error: rpcError } = await supabase.rpc(
+        "swap_assist_premium_credits_remaining",
+        { p_user_id: user.id },
+      );
+      if (rpcError) throw rpcError;
+      return typeof data === "number" ? data : 0;
+    } catch {
+      return 0;
+    }
+  }, [supabase]);
+
+  // Initialize Paystack checkout for the current user's assist share.
+  const initializeAssistPayment = useCallback(
+    async (paymentId: string): Promise<string | null> => {
+      try {
+        setActionLoading(true);
+        setActionError(null);
+        const response = await fetch("/api/paystack/initialize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "swap_assist",
+            metadata: { assist_payment_id: paymentId },
+          }),
+        });
+        const body = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(body?.error ?? "Failed to initialize payment");
+        }
+        return typeof body.authorization_url === "string" ? body.authorization_url : null;
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : "Failed to initialize payment");
+        return null;
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [],
   );
 
   /* ────────────────────────────────────────
@@ -853,11 +1022,19 @@ export function useMarketplace(filters?: ListingFilters) {
     createSwapProposal,
     getSwapProposals,
     getMyOutgoingProposals,
+    getMyIncomingProposals,
     updateProposalStatus,
     markShipped,
     markReceived,
     cancelSwap,
     disputeSwap,
+    requestSwapAssistance,
+    coverSwapAssistWithPremium,
+    completeSwapAssistance,
+    cancelSwapAssistance,
+    getSwapAssistPayments,
+    getMyAssistCredits,
+    initializeAssistPayment,
     subscribeToListings,
   };
 }

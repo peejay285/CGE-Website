@@ -44,7 +44,6 @@ export function MarketplaceChatPanel({
     getMessages,
     sendMessage,
     subscribeToMessages,
-    markAsRead,
     activeMessages,
   } = useMessages();
 
@@ -83,23 +82,29 @@ export function MarketplaceChatPanel({
   ]);
 
   useEffect(() => {
-    if (open && listing) {
-      initConversation();
-    }
+    const timer =
+      open && listing
+        ? setTimeout(() => {
+            void initConversation();
+          }, 0)
+        : null;
 
     return () => {
+      if (timer) clearTimeout(timer);
       if (subscriptionRef.current) {
         subscriptionRef.current();
         subscriptionRef.current = null;
       }
     };
-  }, [open, listing?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, listing, initConversation]);
 
   /* ── Sync with hook's activeMessages (real-time updates) ─── */
   useEffect(() => {
-    if (conversation && activeMessages.length > 0) {
+    if (!conversation || activeMessages.length === 0) return;
+    const timer = setTimeout(() => {
       setMessages(activeMessages);
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [activeMessages, conversation]);
 
   /* ── Auto-scroll on new messages ─────────────────── */

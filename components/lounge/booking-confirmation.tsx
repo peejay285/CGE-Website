@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { BRAND } from "@/lib/constants";
 import { formatBookingDate, formatPrice } from "@/lib/utils";
+import { bookingReceiptPath } from "@/lib/booking-receipt";
 import {
   CalendarPlus,
   CheckCircle,
@@ -30,6 +31,7 @@ interface ConfirmationData {
 interface BookingConfirmationProps {
   bookingData: ConfirmationData;
   bookingId: string | null;
+  receiptToken: string | null;
   onBookAnother: () => void;
   onGoHome: () => void;
 }
@@ -77,6 +79,7 @@ function getWhatsAppShareUrl(data: ConfirmationData): string {
 export function BookingConfirmation({
   bookingData,
   bookingId,
+  receiptToken,
   onBookAnother,
   onGoHome,
 }: BookingConfirmationProps) {
@@ -188,7 +191,7 @@ export function BookingConfirmation({
       {/* Receipt + QR call-to-action */}
       {bookingId && (
         <Link
-          href={`/booking/${bookingId}/receipt`}
+          href={bookingReceiptPath(bookingId, receiptToken)}
           className="block mb-4"
         >
           <Button variant="primary" fullWidth>

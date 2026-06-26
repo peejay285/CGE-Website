@@ -15,8 +15,7 @@ export const PRICING = {
     { game: "Other Games", price: 2000, unit: "hr" },
   ],
   vipLounge: [
-    { game: "Single Console (PS5)", price: 5000, unit: "hr" },
-    { game: "Both Consoles", price: 10000, unit: "hr" },
+    { game: "Private PS5 Room", price: 5000, unit: "hr" },
   ],
   vr: [{ game: "VR Experience", price: 2000, unit: "15 min session" }],
   drinks: [
@@ -52,9 +51,9 @@ export const ZONES = [
     id: "vip",
     name: "VIP Lounge",
     icon: "👑",
-    capacity: 2,
+    capacity: 1,
     console: "PS5",
-    desc: "Premium PS5 experience, 2 consoles",
+    desc: "Private PS5 space for one ticket at a time",
     image: "/zones/vip.jpg",
     gradient: "from-gold/30 via-gold/10 to-base",
   },
@@ -62,9 +61,9 @@ export const ZONES = [
     id: "vr",
     name: "VR Zone",
     icon: "🥽",
-    capacity: 1,
+    capacity: 2,
     console: "VR",
-    desc: "Immersive virtual reality",
+    desc: "Immersive VR sessions for up to 2 players",
     image: "/zones/vr.jpg",
     gradient: "from-magenta/30 via-magenta/10 to-base",
   },
@@ -163,6 +162,35 @@ export const SWAP_SUGGESTIONS = [
   "Any PS5 Game",
   "Any Xbox Game",
 ] as const;
+
+export const ASSISTED_SWAP_SERVICE = {
+  title: "CGE Assisted Swap",
+  label: "Optional paid service",
+  body:
+    "For higher-value trades, CGE can help coordinate a lounge meetup, identity check, inspection checklist, and handover record. Users still inspect and decide before exchanging items.",
+  note:
+    "CGE facilitates the process only; item value, ownership, and long-term condition remain the responsibility of the trading parties.",
+} as const;
+
+// Tiered facilitation fee, based on the higher-valued item in the swap.
+// The fee is split 50/50 between the two parties. Mirrored in SQL by the
+// assist_fee_for_value() function — keep both in sync if the bands change.
+export const ASSISTED_SWAP_FEE_TIERS = [
+  { maxValue: 20000, fee: 1000 },
+  { maxValue: 50000, fee: 2500 },
+  { maxValue: Infinity, fee: 5000 },
+] as const;
+
+// Premium members get this many assisted-swap shares free per calendar month.
+export const PREMIUM_ASSIST_MONTHLY_QUOTA = 3;
+
+/** The total facilitation fee for a swap whose higher-valued item is `value`. */
+export function assistFeeForValue(value: number): number {
+  for (const tier of ASSISTED_SWAP_FEE_TIERS) {
+    if (value <= tier.maxValue) return tier.fee;
+  }
+  return ASSISTED_SWAP_FEE_TIERS[ASSISTED_SWAP_FEE_TIERS.length - 1].fee;
+}
 
 // Preset avatars — DiceBear "bottts-neutral" (gaming bot heads, free SVGs).
 // avatar_url just holds the URL so any picture (preset or upload) is uniform.

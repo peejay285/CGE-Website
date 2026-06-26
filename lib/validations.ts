@@ -1,10 +1,13 @@
 import { z } from "zod";
 
-// Paystack initialize
+// Paystack initialize. Amount is no longer accepted from the client —
+// the server looks up the record by metadata.booking_id /
+// registration_id and uses its server-stored total. See
+// app/api/paystack/initialize/route.ts.
 export const paystackInitializeSchema = z.object({
-  amount: z.number().positive().int(),
-  type: z.enum(["booking", "tournament", "event", "premium"]),
+  type: z.enum(["booking", "tournament", "tournament_team", "event", "premium", "swap_assist"]),
   metadata: z.record(z.string(), z.unknown()),
+  client: z.enum(["web", "mobile"]).optional().default("web"),
 });
 
 // Booking creation

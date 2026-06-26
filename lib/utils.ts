@@ -97,3 +97,12 @@ export function timeAgo(date: string | Date): string {
   if (diffDays < 7) return `${diffDays} days ago`;
   return past.toLocaleDateString();
 }
+
+/** Parse a slot label like "10:00 AM" / "1:00 PM" into a 24h hour. */
+export function slotToHour(slot: string): number {
+  const match = slot.trim().match(/^(\d{1,2}):\d{2}\s*(AM|PM)$/i);
+  if (!match) return -1;
+  let hour = Number(match[1]) % 12;
+  if (match[2].toUpperCase() === "PM") hour += 12;
+  return hour;
+}

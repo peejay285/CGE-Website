@@ -38,6 +38,13 @@ export const TournamentCard = memo(function TournamentCard({
   const isFull = filledCount >= tournament.slots;
   const progressColor = isFull ? "var(--color-red)" : "var(--color-cyan)";
   const countdown = getCountdown(tournament.date, tournament.time);
+  const organizer = tournament.organizer;
+  const organizerName = organizer?.gamertag || organizer?.full_name;
+  const organizerVerified =
+    organizer?.is_id_verified ||
+    organizer?.trust_level === "verified" ||
+    organizer?.trust_level === "trusted" ||
+    organizer?.trust_level === "power";
 
   return (
     <article
@@ -65,6 +72,11 @@ export const TournamentCard = memo(function TournamentCard({
         <span className="text-4xl" aria-hidden="true">{emoji}</span>
         <div className="flex flex-col items-end gap-1.5">
           <Badge color={status.color}>{status.label}</Badge>
+          {organizer && (
+            <Badge color={organizerVerified ? "green" : "gold"}>
+              {organizerVerified ? "Verified" : "Unverified"}
+            </Badge>
+          )}
           {isHost && <Badge color="magenta">Host</Badge>}
           {isRegistered && !isPast && <Badge color="cyan">Registered</Badge>}
         </div>
@@ -75,6 +87,11 @@ export const TournamentCard = memo(function TournamentCard({
         {tournament.title}
       </h3>
       <p className="text-xs text-text-muted mb-3">{tournament.game}</p>
+      {organizerName && (
+        <p className="text-[11px] text-text-muted/80 mb-3 truncate">
+          Hosted by <span className="text-text/80">{organizerName}</span>
+        </p>
+      )}
 
       {/* Date & Time */}
       <div className="flex flex-col gap-1.5 mb-3">

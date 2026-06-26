@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { Suspense, useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
@@ -14,6 +14,7 @@ import { BookingForm } from "@/components/lounge/booking-form";
 import { DrinksAddon } from "@/components/lounge/drinks-addon";
 import { PaymentStep } from "@/components/lounge/payment-step";
 import { BookingConfirmation } from "@/components/lounge/booking-confirmation";
+import { bookingReceiptPath } from "@/lib/booking-receipt";
 
 /* ---------- Step labels ---------- */
 
@@ -21,7 +22,7 @@ const STEP_LABELS = ["Zone", "Details", "Extras", "Payment"];
 
 /* ---------- Page Component ---------- */
 
-export default function LoungePage() {
+function LoungePageInner() {
   const router = useRouter();
   const { user } = useAuth();
   const { createBooking, actionLoading, checkAvailability } = useBookings();
@@ -38,7 +39,11 @@ export default function LoungePage() {
   const [passCode, setPassCode] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
+  const [receiptToken, setReceiptToken] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Authoritative total from the created booking (includes any voucher
+  // discount applied server-side). Falls back to the client estimate.
+  const [confirmedTotal, setConfirmedTotal] = useState<number | null>(null);
 
   // Derived values — single source of truth via lib/pricing.ts
   const zoneName = useMemo(() => {
@@ -65,6 +70,7 @@ export default function LoungePage() {
     setPassCode("");
     setConfirmed(false);
     setBookingId(null);
+    setReceiptToken(null);
     setBookingStep(1);
   }
 
@@ -105,7 +111,7 @@ export default function LoungePage() {
       setIsSubmitting(true);
 
       // Check availability before creating booking
-      const availability = await checkAvailability(zone, date, time);
+      const availability = await checkAvailability(zone, date, time, duration);
       if (availability && !availability.available) {
         toast.error(
           `This time slot is full (${availability.booked_count}/${availability.total_capacity} booked). Please choose a different time.`
@@ -114,7 +120,9 @@ export default function LoungePage() {
         return;
       }
 
-      // Create the booking in Supabase (payment_status = 'pending')
+      // Create the booking in Supabase (payment_status = 'pending').
+      // Voucher codes are validated, claimed and applied server-side.
+      const trimmedCode = code.trim().toUpperCase();
       const booking = await createBooking({
         zone_id: zone,
         game_name: game,
@@ -126,11 +134,25 @@ export default function LoungePage() {
         drinks_total: drinksTotal,
         total,
         payment_method: method,
+        ...(trimmedCode.startsWith("CGE-") ? { voucher_code: trimmedCode } : {}),
       });
 
       if (!booking) {
         setIsSubmitting(false);
         toast.error("Failed to create booking. Please try again.");
+        return;
+      }
+
+      setConfirmedTotal(booking.total);
+      setReceiptToken(booking.receipt_token ?? null);
+
+      // Voucher covered the whole session — nothing to charge.
+      if (booking.total === 0 || booking.payment_status === "paid") {
+        setIsSubmitting(false);
+        setBookingId(booking.id);
+        setConfirmed(true);
+        setBookingStep(4);
+        toast.success("Voucher applied — your session is confirmed!");
         return;
       }
 
@@ -144,16 +166,16 @@ export default function LoungePage() {
         return;
       }
 
-      // Paystack: initialize a transaction, stamp the booking with the
-      // returned reference so the webhook can find it, then redirect to
-      // Paystack's hosted checkout. The webhook flips payment_status to
-      // 'paid' once Paystack confirms.
+      // Paystack: initialize a transaction. The server looks up the
+      // booking by id, recomputes amount from authoritative pricing,
+      // stamps the paystack_reference, and returns the hosted-checkout
+      // URL. We never send `amount` from the client — the server owns
+      // pricing.
       try {
         const res = await fetch("/api/paystack/initialize", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            amount: total,
             type: "booking",
             metadata: { booking_id: booking.id },
           }),
@@ -162,16 +184,9 @@ export default function LoungePage() {
           const body = await res.json().catch(() => ({}));
           throw new Error(body?.error ?? "Failed to start payment");
         }
-        const { authorization_url, reference } = (await res.json()) as {
+        const { authorization_url } = (await res.json()) as {
           authorization_url: string;
-          reference: string;
         };
-
-        const supabase = createClient();
-        await supabase
-          .from("bookings")
-          .update({ paystack_reference: reference })
-          .eq("id", booking.id);
 
         // Off to Paystack. The callback URL is /lounge?payment_ref=... so
         // we'll come back here and pick up the confirmation flow.
@@ -181,6 +196,14 @@ export default function LoungePage() {
         toast.error(
           err instanceof Error ? err.message : "Could not start Paystack",
         );
+        // The booking row exists (payment pending). Send the user to its
+        // receipt so they have a reference and can pay at the venue or
+        // retry — instead of leaving an orphaned booking behind.
+        toast("Your reservation is saved — you can also pay at the venue.", {
+          icon: "🏪",
+          duration: 6000,
+        });
+        router.push(bookingReceiptPath(booking.id, booking.receipt_token));
       }
     },
     [
@@ -196,6 +219,7 @@ export default function LoungePage() {
       total,
       createBooking,
       checkAvailability,
+      router,
     ]
   );
 
@@ -212,7 +236,7 @@ export default function LoungePage() {
     const tick = async () => {
       const { data: row } = await supabase
         .from("bookings")
-        .select("id, zone_id, game_name, booking_date, time_slot, duration, total, payment_status")
+        .select("id, zone_id, game_name, booking_date, time_slot, duration, total, payment_status, receipt_token")
         .eq("paystack_reference", ref)
         .maybeSingle();
       if (cancelled) return;
@@ -225,6 +249,7 @@ export default function LoungePage() {
           time_slot: string;
           duration: number;
           total: number;
+          receipt_token: string | null;
         };
         setZone(r.zone_id);
         setGame(r.game_name);
@@ -232,6 +257,8 @@ export default function LoungePage() {
         setTime(r.time_slot);
         setDuration(r.duration);
         setBookingId(r.id);
+        setReceiptToken(r.receipt_token ?? null);
+        setConfirmedTotal(r.total);
         setPayMethod("paystack");
         setConfirmed(true);
         setBookingStep(4);
@@ -242,17 +269,22 @@ export default function LoungePage() {
       if (attempts < maxAttempts) {
         setTimeout(tick, 2000);
       } else if (row) {
+        // Don't strand the user on the zone selector — send them to the
+        // receipt page, which shows a clear PAID/UNPAID state, the booking
+        // reference, and refreshes to PAID once the webhook lands.
         toast(
-          "Payment is processing. We'll mark this booking as paid as soon as Paystack confirms.",
-          { icon: "⏳" },
+          "Payment is processing — here's your booking receipt. It will show PAID once Paystack confirms.",
+          { icon: "⏳", duration: 6000 },
         );
+        const pending = row as { id: string; receipt_token: string | null };
+        router.push(bookingReceiptPath(pending.id, pending.receipt_token));
       }
     };
     tick();
     return () => {
       cancelled = true;
     };
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   function handleBookAnother() {
     setBookingStep(0);
@@ -266,6 +298,8 @@ export default function LoungePage() {
     setPassCode("");
     setConfirmed(false);
     setBookingId(null);
+    setReceiptToken(null);
+    setConfirmedTotal(null);
   }
 
   function handleGoHome() {
@@ -418,10 +452,11 @@ export default function LoungePage() {
                 date,
                 time,
                 duration,
-                total,
+                total: confirmedTotal ?? total,
                 payMethod,
               }}
               bookingId={bookingId}
+              receiptToken={receiptToken}
               onBookAnother={handleBookAnother}
               onGoHome={handleGoHome}
             />
@@ -434,5 +469,22 @@ export default function LoungePage() {
         )}
       </div>
     </div>
+  );
+}
+
+/* ---------- Suspense wrapper ----------
+   useSearchParams() must be called under a Suspense boundary or the whole
+   route is forced dynamic. The inner component is unchanged. */
+export default function LoungePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-base flex items-center justify-center">
+          <div className="w-10 h-10 border-2 border-cyan border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <LoungePageInner />
+    </Suspense>
   );
 }

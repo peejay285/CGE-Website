@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { aiConciergeSchema } from "@/lib/validations";
-import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
+import { rateLimit, aiConciergeLimiter } from "@/lib/rate-limit";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const MODAL_AI_ENDPOINT = process.env.MODAL_AI_ENDPOINT;
@@ -17,34 +17,23 @@ LOUNGE — BONNY ISLAND BRANCH (currently the only physical location):
 
 LOUNGE PRICING (Bonny Island branch):
 - Main Lounge (PS4, 6 players): FC 26 = ₦3,000/hr, Other Games = ₦2,000/hr
-- VIP Lounge (PS5, 2 consoles): Single Console = ₦5,000/hr, Both Consoles = ₦10,000/hr
-- VR Zone: ₦2,000 per 15-minute session
+- VIP Lounge (PS5 private room): ₦5,000/hr, 1 ticket per slot
+- VR Zone: ₦2,000 per 15-minute session, up to 2 players per slot
 - Drinks: Coca-Cola, Fanta, Water = ₦500 each
 - Booking is online via Paystack or pay-at-venue.
 
 NATIONWIDE PLATFORM FEATURES:
 - Esports: tournaments across Nigeria, solo or team, with cash prizes (FC 26, Tekken 8, COD, MK1, more). National leaderboard.
 - Marketplace: buy, sell, and swap gaming gear with safe-swap protection (escrow lifecycle, ratings, optional verified-profile premium tier).
-- Community: feed for Nigerian gamers — posts, polls, mentions, topic threads. Read free, post via the app.
+- Community: feed for Nigerian gamers — posts, polls, mentions, topic threads. Users can read and post on the web.
 - Events: game nights, VR demos, birthday packages (from ₦15,000) — currently hosted at the Bonny Island branch.
 
 Keep responses concise, friendly, and helpful. Use Nigerian English naturally. When someone asks about the lounge specifically, name the Bonny Island branch — but make clear that esports, marketplace and community are nationwide. If you don't know something specific, direct them to WhatsApp for personalized help.`;
 
 export async function POST(request: Request) {
   try {
-    // Rate limit: 20 AI requests per minute per IP
-    const rl = rateLimit(getRateLimitKey(request, "ai-concierge"), {
-      limit: 20,
-      windowSec: 60,
-    });
-    if (!rl.success) {
-      return NextResponse.json(
-        { error: "Too many requests. Please wait a moment." },
-        { status: 429 }
-      );
-    }
-
-    // Require authentication — AI requests cost money
+    // Require authentication first — AI requests cost money, and we want
+    // to rate-limit on the user id (more trustworthy than IP).
     const supabase = await createServerSupabaseClient();
     const {
       data: { user },
@@ -53,6 +42,17 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Sign in to use the AI assistant" },
         { status: 401 }
+      );
+    }
+
+    const rl = await rateLimit(aiConciergeLimiter, {
+      user: user.id,
+      request,
+    });
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a moment." },
+        { status: 429 }
       );
     }
 

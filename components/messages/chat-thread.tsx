@@ -102,6 +102,8 @@ export function ChatThread({
               <img
                 src={listingImage}
                 alt={listing.title}
+                loading="lazy"
+                decoding="async"
                 className="w-12 h-12 rounded-md object-cover shrink-0"
               />
             ) : (
@@ -177,6 +179,7 @@ export function ChatThread({
         <MessageInput
           onSend={onSendMessage}
           loading={sendLoading}
+
           placeholder={`Message ${otherName}...`}
         />
       </div>

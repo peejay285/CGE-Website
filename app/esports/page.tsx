@@ -19,6 +19,7 @@ import { HotListingsWidget } from "@/components/cross-pillar/hot-listings-widget
 import { PillarQuickNav } from "@/components/cross-pillar/pillar-quick-nav";
 import { ErrorBoundary, WidgetErrorFallback } from "@/components/ui/error-boundary";
 import { useEsportsPage, TABS, STATUS_FILTERS } from "@/hooks/use-esports-page";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 
 // Heavy modals — lazy loaded
 const TournamentDetailModal = dynamic(
@@ -46,7 +47,7 @@ export default function EsportsPage() {
   const ep = useEsportsPage();
 
   return (
-    <>
+    <PullToRefresh onRefresh={ep.refresh}>
       {/* Hero section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-cyan/5 via-magenta/5 to-transparent pointer-events-none" />
@@ -66,10 +67,10 @@ export default function EsportsPage() {
             <span className="text-gold">Rise.</span>
           </h1>
 
-          <p className="text-sm md:text-base text-text-muted max-w-xl mx-auto leading-relaxed mb-10">
-            Tournaments across Nigeria — solo or with your team. Climb the
-            national leaderboard and earn prizes from open weekly brackets to
-            major events.
+          <p className="text-sm md:text-lg text-text max-w-2xl mx-auto leading-relaxed mb-10">
+            Join <span className="font-semibold text-cyan">Nigeria-wide brackets</span> solo or with your squad.
+            Chase the national leaderboard, win <span className="font-semibold text-gold">real prizes</span>,
+            and rise from weekly open cups to headline events.
           </p>
 
           {/* Stats banner */}
@@ -92,7 +93,7 @@ export default function EsportsPage() {
 
           {/* Action buttons */}
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Button variant="magenta" onClick={() => ep.triggerAppGate("esports-create")}>
+            <Button variant="magenta" onClick={ep.handleOpenCreateTournament}>
               <Plus size={16} />
               Host a Tournament
             </Button>
@@ -293,7 +294,7 @@ export default function EsportsPage() {
                 subtitle="Create or join a team to compete in team tournaments." align="center" />
             </div>
             <div className="flex justify-center mb-8">
-              <Button variant="magenta" onClick={() => ep.triggerAppGate("esports-team")}>
+              <Button variant="magenta" onClick={ep.handleOpenCreateTeam}>
                 <UserPlus size={16} /> Create a Team
               </Button>
             </div>
@@ -392,9 +393,19 @@ export default function EsportsPage() {
         open={ep.selectedTournament !== null}
         onClose={() => ep.setSelectedTournament(null)}
         onRegister={ep.handleRegister}
+        onPayRegistration={ep.handlePayRegistration}
         onUnregister={ep.handleUnregister}
         registerLoading={ep.actionLoading}
         isRegistered={ep.selectedIsRegistered}
+        registration={ep.selectedRegistration}
+        currentTeam={ep.myTeam}
+        currentTeamMemberCount={ep.myTeam?.member_count}
+        currentUserId={ep.user?.id}
+        onCreateTeam={() => {
+          ep.setSelectedTournament(null);
+          ep.setActiveTab("Teams");
+          ep.handleOpenCreateTeam();
+        }}
         isPast={ep.selectedIsPast}
         isHost={ep.selectedIsHost}
         onManage={ep.handleManageFromDetail}
@@ -430,15 +441,31 @@ export default function EsportsPage() {
         onClose={() => ep.setSelectedTeam(null)}
         currentUserId={ep.user?.id}
         members={ep.teamMembers}
+        joinRequests={ep.joinRequests}
+        pendingJoinRequest={
+          ep.selectedTeam && ep.user
+            ? ep.joinRequests.find(
+                (request) =>
+                  request.team_id === ep.selectedTeam?.id &&
+                  request.user_id === ep.user?.id &&
+                  request.status === "pending"
+              ) ?? null
+            : null
+        }
         membersLoading={ep.teamsLoading}
         onLoadMembers={ep.getTeamMembers}
+        onLoadJoinRequests={ep.getTeamJoinRequests}
+        onLoadMyJoinRequest={ep.getMyJoinRequestForTeam}
         onJoin={ep.handleJoinTeam}
+        onApproveJoinRequest={ep.handleApproveJoinRequest}
+        onDeclineJoinRequest={ep.handleDeclineJoinRequest}
+        onCancelJoinRequest={ep.handleCancelJoinRequest}
         onLeave={ep.handleLeaveTeam}
         onRemoveMember={ep.handleRemoveMember}
         onUpdateRole={ep.updateMemberRole}
         onDelete={ep.handleDeleteTeam}
         loading={ep.teamsLoading}
       />
-    </>
+    </PullToRefresh>
   );
 }

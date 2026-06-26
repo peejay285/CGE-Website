@@ -43,7 +43,7 @@ function slotCountForDate(isoDate: string): number {
 export function ZoneAvailability({ className }: ZoneAvailabilityProps) {
   const [load, setLoad] = useState<LoadByZone>({});
   const [loading, setLoading] = useState(true);
-  const days = useMemo(buildNextSevenDays, []);
+  const days = useMemo(() => buildNextSevenDays(), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,7 +55,7 @@ export function ZoneAvailability({ className }: ZoneAvailabilityProps) {
       .select("zone_id, booking_date")
       .gte("booking_date", startISO)
       .lte("booking_date", endISO)
-      .neq("payment_status", "cancelled")
+      .neq("status", "cancelled")
       .then(
         ({
           data,

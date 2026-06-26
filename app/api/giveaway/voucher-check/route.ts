@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { rateLimit, voucherCheckLimiter } from "@/lib/rate-limit";
 
 /**
  * POST /api/giveaway/voucher-check
@@ -22,6 +23,28 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = await createServerSupabaseClient();
+
+    // Require auth up front (vouchers are user-owned anyway via RLS) and
+    // rate-limit to block brute-force code enumeration.
+    const {
+      data: { user: caller },
+    } = await supabase.auth.getUser();
+    if (!caller) {
+      return NextResponse.json(
+        { valid: false, error: "Sign in to use a voucher" },
+        { status: 401 }
+      );
+    }
+    const rl = await rateLimit(voucherCheckLimiter, {
+      user: caller.id,
+      request: req,
+    });
+    if (!rl.success) {
+      return NextResponse.json(
+        { valid: false, error: "Too many attempts. Please wait a moment." },
+        { status: 429 }
+      );
+    }
 
     // Look up the voucher
     const { data: voucher, error: voucherError } = await supabase

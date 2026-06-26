@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import {
   CheckCircle,
@@ -7,63 +7,93 @@ import {
   MapPin,
   MessageCircle,
   Calendar,
-  ArrowLeft,
+  ShieldCheck,
 } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 import { BRAND } from "@/lib/constants";
 import { formatBookingDate, formatPrice } from "@/lib/utils";
+import { absoluteUrl } from "@/lib/site-url";
+import { bookingReceiptPath } from "@/lib/booking-receipt";
 import { ReceiptQR } from "./receipt-qr";
 
 export const dynamic = "force-dynamic";
+export const metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ token?: string }>;
 }
 
-export default async function BookingReceiptPage({ params }: Props) {
+export default async function BookingReceiptPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const { token } = await searchParams;
   const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    redirect("/?auth=required");
-  }
 
-  const { data: booking, error } = await supabase
+  // Staff scans use an unguessable receipt token in the QR/SMS URL. Owners
+  // and admins can still view while signed in, but UUID-only public access
+  // is blocked.
+  const { data: booking, error } = await createServiceRoleClient()
     .from("bookings")
     .select(
-      "id, user_id, zone_id, game_name, booking_date, time_slot, duration, total, payment_status, payment_method, created_at",
+      "id, user_id, zone_id, game_name, booking_date, time_slot, duration, total, payment_status, payment_method, receipt_token, created_at",
     )
     .eq("id", id)
     .maybeSingle();
 
   if (error || !booking) notFound();
-  if (booking.user_id !== user.id) {
-    // Don't expose existence of other people's bookings; just 404.
-    notFound();
-  }
 
   const isPaid = booking.payment_status === "paid";
 
-  // Build the absolute admin verification URL the QR points to. The host comes
-  // from the incoming request so this works for ngrok dev, Vercel preview and
-  // production without a hardcoded base URL.
+  // Best-effort: only used to render an "Admin actions" link for staff. Page
+  // itself is public-by-UUID — anyone with the unguessable link can view.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  let viewerIsAdmin = false;
+  if (user) {
+    const { data: viewerProfile } = await supabase
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .maybeSingle();
+    viewerIsAdmin = !!viewerProfile?.is_admin;
+  }
+
+  const viewerIsOwner = user?.id === booking.user_id;
+  const hasValidToken =
+    typeof token === "string" &&
+    token.length > 0 &&
+    token === booking.receipt_token;
+
+  if (!viewerIsOwner && !viewerIsAdmin && !hasValidToken) {
+    notFound();
+  }
+
+  // QR points back at this same receipt page with the receipt token.
   const headerList = await headers();
-  const proto = headerList.get("x-forwarded-proto") ?? "https";
-  const host = headerList.get("host") ?? "localhost:3000";
-  const verifyUrl = `${proto}://${host}/admin/booking/${booking.id}`;
+  const verifyUrl = absoluteUrl(
+    bookingReceiptPath(booking.id, booking.receipt_token),
+    headerList,
+  );
 
   return (
     <div className="min-h-screen bg-base">
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <Link
-          href="/profile"
-          className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-text mb-4"
-        >
-          <ArrowLeft size={14} />
-          Back to profile
-        </Link>
+        {viewerIsAdmin && (
+          <Link
+            href={`/admin/booking/${booking.id}`}
+            className="inline-flex items-center gap-1 text-sm text-cyan hover:text-cyan/80 mb-4"
+          >
+            <ShieldCheck size={14} />
+            Admin actions
+          </Link>
+        )}
 
         {/* Status header */}
         <div
@@ -197,6 +227,7 @@ export default async function BookingReceiptPage({ params }: Props) {
               </li>
             )}
           </ul>
+
         </div>
       </div>
     </div>

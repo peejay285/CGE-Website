@@ -62,8 +62,8 @@ create policy "Zones are viewable by everyone" on zones for select using (true);
 -- Seed zones
 insert into zones (id, name, icon, capacity, console, description) values
   ('main', 'Main Lounge', '🎮', 6, 'PS4', '6-player gaming arena with PS4 consoles'),
-  ('vip', 'VIP Lounge', '👑', 2, 'PS5', 'Premium PS5 experience, 2 consoles'),
-  ('vr', 'VR Zone', '🥽', 1, 'VR', 'Immersive virtual reality')
+  ('vip', 'VIP Lounge', '👑', 1, 'PS5', 'Private PS5 space for one ticket at a time'),
+  ('vr', 'VR Zone', '🥽', 2, 'VR', 'Immersive virtual reality for up to 2 players')
 on conflict (id) do nothing;
 
 -- ─── GAMES ───────────────────────────────────
@@ -154,8 +154,11 @@ create table if not exists tournament_registrations (
   id uuid default gen_random_uuid() primary key,
   tournament_id integer references tournaments(id) not null,
   user_id uuid references auth.users not null,
+  total integer not null default 0,
+  payment_method text not null default 'paystack',
   payment_status text not null default 'pending',
   paystack_reference text,
+  paid_at timestamptz,
   registered_at timestamptz default now(),
   unique(tournament_id, user_id)
 );
@@ -406,6 +409,3 @@ CREATE INDEX IF NOT EXISTS idx_marketplace_status_cat ON marketplace_listings(st
 CREATE INDEX IF NOT EXISTS idx_community_posts_created ON community_posts(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_post_comments_post ON post_comments(post_id);
 CREATE INDEX IF NOT EXISTS idx_event_reg_user ON event_registrations(user_id);
-
--- Prevent double-booking same zone/date/time
-CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_booking_slot ON bookings(zone_id, booking_date, time_slot, status) WHERE status = 'confirmed';

@@ -1,11 +1,13 @@
 "use client";
 
-import { Calendar, Clock, Gamepad2, Users, Trophy, Swords, Medal, Loader2, Settings, Video, CheckCircle, GitBranch } from "lucide-react";
+import { useState } from "react";
+import { Calendar, Clock, Gamepad2, Users, Trophy, Swords, Medal, Loader2, Settings, Video, CheckCircle, GitBranch, ShieldCheck, UserPlus } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { UnverifiedOrganizerDialog } from "@/components/esports/unverified-organizer-dialog";
 import { formatPrice, sanitizeUrl } from "@/lib/utils";
 import {
   getGameEmoji,
@@ -17,15 +19,22 @@ import {
   formatTournamentTime,
 } from "@/lib/esports-utils";
 import type { TournamentWithCount } from "@/lib/esports-utils";
+import type { Team, TournamentRegistration, TournamentTeamRegistration } from "@/lib/types";
 
 interface TournamentDetailModalProps {
   tournament: TournamentWithCount | null;
   open: boolean;
   onClose: () => void;
   onRegister?: (tournamentId: number) => void;
+  onPayRegistration?: (tournamentId: number) => void;
   onUnregister?: (tournamentId: number) => void;
   registerLoading?: boolean;
   isRegistered?: boolean;
+  registration?: TournamentRegistration | TournamentTeamRegistration | null;
+  currentTeam?: Team | null;
+  currentTeamMemberCount?: number;
+  currentUserId?: string;
+  onCreateTeam?: () => void;
   isPast?: boolean;
   isHost?: boolean;
   onManage?: () => void;
@@ -36,20 +45,59 @@ export function TournamentDetailModal({
   open,
   onClose,
   onRegister,
+  onPayRegistration,
   onUnregister,
   registerLoading,
   isRegistered,
+  registration,
+  currentTeam,
+  currentTeamMemberCount,
+  currentUserId,
+  onCreateTeam,
   isPast,
   isHost,
   onManage,
 }: TournamentDetailModalProps) {
+  const [showUnverifiedGate, setShowUnverifiedGate] = useState(false);
+
   if (!tournament) return null;
 
   const emoji = getGameEmoji(tournament.game);
   const status = STATUS_CONFIG[tournament.status];
   const isFull = tournament.status === "full";
+  const isTeamEvent = Number(tournament.team_size ?? 1) > 1;
+  const requiredTeamSize = Math.max(2, Number(tournament.team_size ?? 2));
+  const resolvedTeamMemberCount =
+    currentTeamMemberCount ?? currentTeam?.member_count ?? 0;
+  const isTeamCaptain = Boolean(
+    currentTeam && currentUserId && currentTeam.captain_id === currentUserId
+  );
+  const teamMissingCount = Math.max(0, requiredTeamSize - resolvedTeamMemberCount);
   const filledCount = getFilledCount(tournament);
   const countdown = getCountdown(tournament.date, tournament.time);
+  const organizer = tournament.organizer;
+  const organizerName = organizer?.gamertag || organizer?.full_name || "Organizer";
+  const organizerVerified =
+    organizer?.is_id_verified ||
+    organizer?.trust_level === "verified" ||
+    organizer?.trust_level === "trusted" ||
+    organizer?.trust_level === "power";
+  const organizerEventCount = organizer?.tournament_count ?? 0;
+  const registrationTotal = registration?.total ?? tournament.entry_fee;
+  const paymentPending =
+    Boolean(isRegistered) &&
+    registrationTotal > 0 &&
+    registration?.payment_status !== "paid";
+  // Warn before registering for an unverified organizer's event (not for the host).
+  const shouldWarnUnverified = Boolean(organizer) && !organizerVerified && !isHost;
+
+  function handleRegisterClick() {
+    if (shouldWarnUnverified) {
+      setShowUnverifiedGate(true);
+      return;
+    }
+    onRegister?.(tournament!.id);
+  }
 
   const rules = tournament.rules
     ? tournament.rules.split("\n").filter(Boolean)
@@ -68,6 +116,33 @@ export function TournamentDetailModal({
         </div>
         <Badge color={status.color} size="md">{status.label}</Badge>
       </div>
+
+      {/* Organizer trust */}
+      {organizer && (
+        <div className="mb-6 rounded-lg border border-border bg-surface-alt p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-widest text-text-muted mb-1">
+                Organizer
+              </p>
+              <p className="text-sm font-semibold text-text truncate">{organizerName}</p>
+              {organizerEventCount > 0 && (
+                <p className="text-[11px] text-text-muted mt-0.5">
+                  {organizerEventCount} tournament{organizerEventCount === 1 ? "" : "s"} hosted
+                </p>
+              )}
+            </div>
+            <Badge color={organizerVerified ? "green" : "gold"}>
+              {organizerVerified ? "Verified Organizer" : "Unverified Organizer"}
+            </Badge>
+          </div>
+          <p className="mt-2 text-[11px] leading-relaxed text-text-muted">
+            {organizerVerified
+              ? "CGE has verified this organizer profile or trust level."
+              : "This organizer has not completed CGE verification yet. Review the rules, prize details, and communication before registering."}
+          </p>
+        </div>
+      )}
 
       {/* Details grid */}
       <div className="grid grid-cols-2 gap-3 mb-6">
@@ -141,6 +216,36 @@ export function TournamentDetailModal({
         </div>
       )}
 
+      {isTeamEvent && (
+        <div className="mb-6 rounded-lg border border-magenta/20 bg-magenta/5 p-3">
+          <div className="flex items-start gap-2.5">
+            <Users size={16} className="mt-0.5 shrink-0 text-magenta" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-widest text-magenta">
+                Team Entry
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-text-muted">
+                {!currentTeam
+                  ? `This is a ${requiredTeamSize}v${requiredTeamSize} event. Create or join a team first; the captain registers one team slot.`
+                  : !isTeamCaptain
+                    ? `${currentTeam.name} can enter this event when the team captain registers the roster.`
+                    : teamMissingCount > 0
+                      ? `${currentTeam.name} needs ${teamMissingCount} more member${teamMissingCount === 1 ? "" : "s"} before it can enter this ${requiredTeamSize}v${requiredTeamSize} event.`
+                      : `${currentTeam.name} is ready with ${resolvedTeamMemberCount} member${resolvedTeamMemberCount === 1 ? "" : "s"}. The captain can register this team.`}
+              </p>
+              {!currentTeam && onCreateTeam && (
+                <div className="mt-3">
+                  <Button size="sm" variant="magenta" onClick={onCreateTeam}>
+                    <UserPlus size={14} />
+                    Create Team
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Entry fee & Prize */}
       <div className="flex items-center gap-4 mb-6">
         <div className="flex-1 p-3 rounded-lg bg-surface-alt border border-border text-center">
@@ -153,12 +258,28 @@ export function TournamentDetailModal({
         </div>
       </div>
 
+      {tournament.entry_fee > 0 && (
+        <div className="mb-6 rounded-lg border border-cyan/20 bg-cyan/5 p-3">
+          <div className="flex items-start gap-2.5">
+            <ShieldCheck size={16} className="mt-0.5 shrink-0 text-cyan" />
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-cyan">
+                CGE Checkout Protected
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-text-muted">
+                Paid entries go through CGE checkout and are recorded against this tournament before confirmation.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Slots */}
       <div className="mb-6">
         <div className="flex items-center justify-between text-xs mb-2">
           <span className="text-text-muted flex items-center gap-1.5">
             <Users size={14} className="text-cyan/60" />
-            Registered Players
+            {isTeamEvent ? "Registered Teams" : "Registered Players"}
           </span>
           <span className="font-semibold text-text">
             {filledCount} / {tournament.slots} slots
@@ -241,17 +362,50 @@ export function TournamentDetailModal({
         </Button>
       ) : isRegistered ? (
         <div className="space-y-2">
-          <Button fullWidth size="lg" variant="primary" disabled>
-            <Trophy size={16} />
-            Registered ✓
-          </Button>
+          {paymentPending ? (
+            <Button
+              fullWidth
+              size="lg"
+              variant="primary"
+              disabled={registerLoading}
+              onClick={() => onPayRegistration?.(tournament.id)}
+            >
+              {registerLoading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Starting payment...
+                </>
+              ) : (
+                <>
+                  <Trophy size={16} />
+                  Complete Payment
+                </>
+              )}
+            </Button>
+          ) : (
+            <Button fullWidth size="lg" variant="primary" disabled>
+              <Trophy size={16} />
+              Registered ✓
+            </Button>
+          )}
+          {paymentPending && (
+            <p className="text-[11px] text-center text-gold">
+              {isTeamEvent
+                ? "Your team slot is reserved while payment is pending."
+                : "Your slot is reserved while payment is pending."}
+            </p>
+          )}
           <button
             type="button"
             onClick={() => onUnregister?.(tournament.id)}
             disabled={registerLoading}
             className="w-full text-center text-[11px] text-text-muted hover:text-magenta transition-colors cursor-pointer py-1"
           >
-            {registerLoading ? "Withdrawing..." : "Withdraw from tournament"}
+            {registerLoading
+              ? "Withdrawing..."
+              : isTeamEvent
+                ? "Withdraw team from tournament"
+                : "Withdraw from tournament"}
           </button>
         </div>
       ) : isFull ? (
@@ -270,17 +424,23 @@ export function TournamentDetailModal({
           size="lg"
           variant="primary"
           disabled={registerLoading}
-          onClick={() => onRegister?.(tournament.id)}
+          onClick={handleRegisterClick}
         >
           {registerLoading ? (
             <>
               <Loader2 size={16} className="animate-spin" />
-              Registering...
+              {isTeamEvent ? "Registering team..." : "Registering..."}
             </>
           ) : (
             <>
               <Trophy size={16} />
-              Register Now
+              {isTeamEvent
+                ? tournament.entry_fee > 0
+                  ? "Pay & Register Team"
+                  : "Register Team"
+                : tournament.entry_fee > 0
+                  ? "Pay & Register"
+                  : "Register Now"}
             </>
           )}
         </Button>
@@ -306,6 +466,20 @@ export function TournamentDetailModal({
           </div>
         </BottomSheet>
       </div>
+
+      <UnverifiedOrganizerDialog
+        open={showUnverifiedGate}
+        onClose={() => setShowUnverifiedGate(false)}
+        onConfirm={() => {
+          setShowUnverifiedGate(false);
+          onRegister?.(tournament.id);
+        }}
+        organizerName={organizerName}
+        isPaid={tournament.entry_fee > 0}
+        entryFeeLabel={tournament.entry_fee > 0 ? formatPrice(tournament.entry_fee) : undefined}
+        isTeamEvent={isTeamEvent}
+        loading={registerLoading}
+      />
     </>
   );
 }

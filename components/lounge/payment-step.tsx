@@ -63,26 +63,15 @@ export function PaymentStep({ bookingData, onConfirm, onBack }: PaymentStepProps
     if (checkTimer.current) clearTimeout(checkTimer.current);
 
     const trimmed = passCode.trim().toUpperCase();
-
-    // Reset if empty
-    if (!trimmed) {
-      setVoucherState("idle");
-      setVoucherMessage("");
-      setVoucherDiscount(0);
-      return;
-    }
-
-    // Only check codes that look like vouchers (CGE-XXXXXXXX)
-    if (!trimmed.startsWith("CGE-")) {
-      setVoucherState("idle");
-      setVoucherMessage("");
-      setVoucherDiscount(0);
-      return;
-    }
-
-    setVoucherState("checking");
-
     checkTimer.current = setTimeout(async () => {
+      if (!trimmed || !trimmed.startsWith("CGE-")) {
+        setVoucherState("idle");
+        setVoucherMessage("");
+        setVoucherDiscount(0);
+        return;
+      }
+
+      setVoucherState("checking");
       try {
         const res = await fetch("/api/giveaway/voucher-check", {
           method: "POST",
@@ -94,8 +83,15 @@ export function PaymentStep({ bookingData, onConfirm, onBack }: PaymentStepProps
         if (data.valid && data.voucher) {
           setVoucherState("valid");
           setVoucherMessage(data.voucher.prize_label);
-          // The voucher covers the full session cost for the matching zone
-          setVoucherDiscount(bookingData.sessionTotal);
+          // The voucher covers up to its duration in this zone — mirrors
+          // the server-side calculation in /api/bookings/create.
+          const unitPrice = bookingData.sessionTotal / bookingData.duration;
+          setVoucherDiscount(
+            Math.min(
+              bookingData.sessionTotal,
+              Math.round(unitPrice * data.voucher.duration)
+            )
+          );
         } else {
           setVoucherState("invalid");
           setVoucherMessage(data.error || "Invalid code");
@@ -106,12 +102,12 @@ export function PaymentStep({ bookingData, onConfirm, onBack }: PaymentStepProps
         setVoucherMessage("Could not validate code");
         setVoucherDiscount(0);
       }
-    }, 600);
+    }, trimmed.startsWith("CGE-") ? 600 : 0);
 
     return () => {
       if (checkTimer.current) clearTimeout(checkTimer.current);
     };
-  }, [passCode, bookingData.zone, bookingData.sessionTotal]);
+  }, [passCode, bookingData.zone, bookingData.sessionTotal, bookingData.duration]);
 
   const finalTotal = Math.max(0, bookingData.total - voucherDiscount);
 
@@ -226,7 +222,12 @@ export function PaymentStep({ bookingData, onConfirm, onBack }: PaymentStepProps
         {voucherState === "valid" && (
           <div className="flex items-center gap-2 mt-2 text-green">
             <CheckCircle size={14} />
-            <span className="text-xs font-semibold">{voucherMessage} — Session is free!</span>
+            <span className="text-xs font-semibold">
+              {voucherMessage}
+              {finalTotal === 0
+                ? " — Session is free!"
+                : ` — ${formatPrice(voucherDiscount)} covered`}
+            </span>
           </div>
         )}
         {voucherState === "invalid" && (

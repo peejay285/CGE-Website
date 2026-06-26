@@ -20,6 +20,7 @@ import {
   Trophy,
   Users,
   Flame,
+  Shield,
 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
@@ -33,6 +34,7 @@ import { SellerProfileCard } from "./seller-profile-card";
 import { SellerReviewsSection } from "./seller-reviews-section";
 import { RelatedListings } from "./related-listings";
 import { SafetyDisclaimerBanner } from "./safety-disclaimer-banner";
+import { ASSISTED_SWAP_SERVICE } from "@/lib/constants";
 import type { MarketplaceListing, SwapProposal } from "@/lib/types";
 
 // ── Props ────────────────────────────────────────────────────────────────────
@@ -56,6 +58,7 @@ interface ListingDetailModalProps {
   onMarkOwnerReceived?: (proposalId: string) => void;
   onCancelSwap?: (proposalId: string, reason: string) => void;
   onDisputeSwap?: (proposalId: string, reason: string) => void;
+  onAssistChanged?: () => void;
   // Trust system
   onViewSellerProfile?: (sellerId: string) => void;
   onLeaveReview?: (listing: MarketplaceListing) => void;
@@ -289,6 +292,8 @@ function ImageGallery({
           <img
             src={images[imageIndex]}
             alt={title}
+            loading="lazy"
+            decoding="async"
             className="max-w-full max-h-[90vh] object-contain"
             onClick={(e) => e.stopPropagation()}
           />
@@ -346,33 +351,19 @@ export function ListingDetailModal({
   onMarkOwnerReceived,
   onCancelSwap,
   onDisputeSwap,
+  onAssistChanged,
   onViewSellerProfile,
   onLeaveReview,
   allListings,
   onRelatedClick,
 }: ListingDetailModalProps) {
-  if (!listing) return null;
-
-  const isOwner = currentUserId && listing.user_id === currentUserId;
-  const isSold = listing.status === "sold";
-  const isSwap = listing.listing_type === "swap";
-  const isSwapOrSell = listing.listing_type === "sell_or_swap";
-  const acceptsSwap = isSwap || isSwapOrSell;
-  const sellerHasPhone = !!listing.seller?.phone;
-  const hasSaved = listing.user_has_saved;
-  const hasSwapForTags =
-    listing.swap_for_tags && listing.swap_for_tags.length > 0;
-  const hasBuyoutPrice =
-    isSwap &&
-    listing.buyout_price !== null &&
-    listing.buyout_price !== undefined &&
-    listing.buyout_price > 0;
-
   const handleShare = useCallback(async () => {
+    if (!listing) return;
     const shareUrl = `${window.location.origin}/marketplace?listing=${listing.id}`;
-    const shareText = isSwap
-      ? `Check out this swap on CGE Marketplace: ${listing.title}`
-      : `${listing.title} — ${formatPrice(listing.price)} on CGE Marketplace`;
+    const shareText =
+      listing.listing_type === "swap"
+        ? `Check out this swap on CGE Marketplace: ${listing.title}`
+        : `${listing.title} — ${formatPrice(listing.price)} on CGE Marketplace`;
 
     if (navigator.share) {
       try {
@@ -397,7 +388,24 @@ export function ListingDetailModal({
         // Ignore
       }
     }
-  }, [listing, isSwap]);
+  }, [listing]);
+
+  if (!listing) return null;
+
+  const isOwner = currentUserId && listing.user_id === currentUserId;
+  const isSold = listing.status === "sold";
+  const isSwap = listing.listing_type === "swap";
+  const isSwapOrSell = listing.listing_type === "sell_or_swap";
+  const acceptsSwap = isSwap || isSwapOrSell;
+  const sellerHasPhone = !!listing.seller?.phone;
+  const hasSaved = listing.user_has_saved;
+  const hasSwapForTags =
+    listing.swap_for_tags && listing.swap_for_tags.length > 0;
+  const hasBuyoutPrice =
+    isSwap &&
+    listing.buyout_price !== null &&
+    listing.buyout_price !== undefined &&
+    listing.buyout_price > 0;
 
   const content = (
     <div className="flex flex-col gap-5 pb-24 sm:pb-4">
@@ -540,6 +548,24 @@ export function ListingDetailModal({
           ) : (
             <p className="text-sm text-text">{listing.swap_for}</p>
           )}
+        </div>
+      )}
+
+      {acceptsSwap && !isSold && (
+        <div className="rounded-xl border border-cyan/20 bg-cyan/5 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <p className="text-xs font-semibold text-cyan uppercase tracking-wider flex items-center gap-1.5">
+              <Shield size={12} />
+              {ASSISTED_SWAP_SERVICE.title}
+            </p>
+            <Badge color="cyan" size="sm">{ASSISTED_SWAP_SERVICE.label}</Badge>
+          </div>
+          <p className="text-xs leading-relaxed text-text-muted">
+            {ASSISTED_SWAP_SERVICE.body}
+          </p>
+          <p className="mt-2 text-[11px] leading-relaxed text-text-muted/80">
+            {ASSISTED_SWAP_SERVICE.note}
+          </p>
         </div>
       )}
 
@@ -716,6 +742,9 @@ export function ListingDetailModal({
               <SwapProposalsPanel
                 proposals={proposals}
                 loading={proposalsLoading}
+                targetListing={listing}
+                currentUserId={currentUserId ?? undefined}
+                onAssistChanged={onAssistChanged}
                 onAccept={(id) => onAcceptProposal?.(id)}
                 onDecline={(id) => onDeclineProposal?.(id)}
                 onMarkOwnerShipped={onMarkOwnerShipped}
@@ -869,6 +898,7 @@ export function ListingDetailModal({
           <div className="px-4 py-3">
             {content}
           </div>
+
           {stickyActions}
         </BottomSheet>
       </div>

@@ -17,7 +17,10 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useMarketplace } from "@/hooks/use-marketplace";
 import { SwapStateTracker } from "@/components/marketplace/swap-state-tracker";
-import { timeAgo } from "@/lib/utils";
+import { SwapValueComparison } from "@/components/marketplace/swap-value-comparison";
+import { SwapAssistPanel } from "@/components/marketplace/swap-assist-panel";
+import { SwapProposalsPanel } from "@/components/marketplace/swap-proposals-panel";
+import { cn, timeAgo } from "@/lib/utils";
 import type { SwapProposal, SwapProposalStatus } from "@/lib/types";
 
 const statusColor = (status: SwapProposalStatus) => {
@@ -42,6 +45,8 @@ export default function MySwapProposalsPage() {
   const { user } = useAuth();
   const {
     getMyOutgoingProposals,
+    getMyIncomingProposals,
+    updateProposalStatus,
     markShipped,
     markReceived,
     cancelSwap,
@@ -50,19 +55,38 @@ export default function MySwapProposalsPage() {
   } = useMarketplace();
 
   const [proposals, setProposals] = useState<SwapProposal[]>([]);
+  const [received, setReceived] = useState<SwapProposal[]>([]);
+  const [activeTab, setActiveTab] = useState<"sent" | "received">("sent");
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const data = await getMyOutgoingProposals();
-    setProposals(data);
+    const [outgoing, incoming] = await Promise.all([
+      getMyOutgoingProposals(),
+      getMyIncomingProposals(),
+    ]);
+    setProposals(outgoing);
+    setReceived(incoming);
     setLoading(false);
-  }, [user, getMyOutgoingProposals]);
+  }, [user, getMyOutgoingProposals, getMyIncomingProposals]);
 
   useEffect(() => {
-    refresh();
+    void Promise.resolve().then(refresh);
   }, [refresh]);
+
+  // Feedback when returning from a CGE-assist Paystack checkout.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("payment_type") !== "swap_assist") return;
+
+    toast.success("Assistance payment submitted. Your swap will update shortly.");
+    const url = new URL(window.location.href);
+    url.searchParams.delete("payment_ref");
+    url.searchParams.delete("payment_type");
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  }, []);
 
   if (!user) {
     return (
@@ -97,85 +121,190 @@ export default function MySwapProposalsPage() {
 
         <div className="flex items-center gap-2">
           <ArrowLeftRight size={18} className="text-magenta" />
-          <h1 className="text-lg font-bold font-heading text-text">
-            My Swap Proposals
-          </h1>
-          <span className="inline-flex items-center justify-center min-w-[20px] h-5 rounded-full bg-magenta/20 text-magenta text-[10px] font-bold px-1.5">
-            {proposals.length}
-          </span>
+          <h1 className="text-lg font-bold font-heading text-text">My Swaps</h1>
         </div>
 
         <p className="text-xs text-text-muted">
-          Proposals you&apos;ve sent. Mark your item as shipped once it&apos;s on
-          its way, and confirm receipt when the other side&apos;s item arrives.
+          Track the swaps you&apos;ve proposed and the proposals you&apos;ve received.
+          Mark items as shipped and confirm receipt as your swaps progress.
         </p>
 
-        {loading ? (
+        {/* Sent / Received tabs */}
+        <div className="flex gap-2" role="tablist" aria-label="Swap proposals">
+          {([
+            { key: "sent", label: "Sent", count: proposals.length },
+            { key: "received", label: "Received", count: received.length },
+          ] as const).map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={cn(
+                "flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer active:scale-95",
+                activeTab === tab.key
+                  ? "bg-magenta/10 text-magenta border border-magenta/25"
+                  : "bg-surface-alt text-text-muted border border-border hover:border-magenta/20",
+              )}
+            >
+              {tab.label}
+              <span
+                className={cn(
+                  "inline-flex items-center justify-center min-w-[18px] h-4 rounded-full text-[10px] font-bold px-1",
+                  activeTab === tab.key ? "bg-magenta/20 text-magenta" : "bg-border text-text-muted",
+                )}
+              >
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {loading && (
           <div className="flex items-center justify-center py-12 text-magenta">
             <Loader2 size={20} className="animate-spin" />
           </div>
-        ) : proposals.length === 0 ? (
-          <div className="text-center py-12">
-            <ArrowLeftRight
-              size={28}
-              className="text-text-muted/40 mx-auto mb-3"
+        )}
+
+        {/* ── Sent ── */}
+        {!loading && activeTab === "sent" && (
+          proposals.length === 0 ? (
+            <div className="text-center py-12">
+              <ArrowLeftRight size={28} className="text-text-muted/40 mx-auto mb-3" />
+              <p className="text-sm text-text-muted">
+                You haven&apos;t sent any swap proposals yet.
+              </p>
+              <Link
+                href="/marketplace"
+                className="inline-block mt-3 text-sm text-cyan hover:underline"
+              >
+                Browse the marketplace →
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {proposals.map((p) => (
+                <OutgoingProposalCard
+                  key={p.id}
+                  proposal={p}
+                  currentUserId={user.id}
+                  onChanged={refresh}
+                  actionLoading={actionLoading}
+                  onMarkShipped={async (id, tracking) => {
+                    const ok = await markShipped(id, "proposer", tracking);
+                    if (ok) {
+                      toast.success("Marked as shipped.");
+                      refresh();
+                    } else {
+                      toast.error("Couldn't mark as shipped.");
+                    }
+                  }}
+                  onMarkReceived={async (id) => {
+                    const ok = await markReceived(id, "proposer");
+                    if (ok) {
+                      toast.success("Receipt confirmed.");
+                      refresh();
+                    } else {
+                      toast.error("Couldn't confirm receipt.");
+                    }
+                  }}
+                  onCancel={async (id, reason) => {
+                    const ok = await cancelSwap(id, reason);
+                    if (ok) {
+                      toast.success("Swap cancelled.");
+                      refresh();
+                    } else {
+                      toast.error("Couldn't cancel.");
+                    }
+                  }}
+                  onDispute={async (id, reason) => {
+                    const ok = await disputeSwap(id, reason);
+                    if (ok) {
+                      toast.success("Reported. Our team will follow up.");
+                      refresh();
+                    } else {
+                      toast.error("Couldn't open the dispute.");
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          )
+        )}
+
+        {/* ── Received ── */}
+        {!loading && activeTab === "received" && (
+          received.length === 0 ? (
+            <div className="text-center py-12">
+              <ArrowLeftRight size={28} className="text-text-muted/40 mx-auto mb-3" />
+              <p className="text-sm text-text-muted">
+                No one has proposed a swap for your listings yet.
+              </p>
+            </div>
+          ) : (
+            <SwapProposalsPanel
+              proposals={received}
+              loading={false}
+              currentUserId={user.id}
+              onAssistChanged={refresh}
+              actionLoading={actionLoading}
+              onAccept={async (id) => {
+                const ok = await updateProposalStatus(id, "accepted");
+                if (ok) {
+                  toast.success("Proposal accepted.");
+                  refresh();
+                } else {
+                  toast.error("Couldn't accept.");
+                }
+              }}
+              onDecline={async (id) => {
+                const ok = await updateProposalStatus(id, "declined");
+                if (ok) {
+                  toast.success("Proposal declined.");
+                  refresh();
+                } else {
+                  toast.error("Couldn't decline.");
+                }
+              }}
+              onMarkOwnerShipped={async (id, tracking) => {
+                const ok = await markShipped(id, "owner", tracking);
+                if (ok) {
+                  toast.success("Marked as shipped.");
+                  refresh();
+                } else {
+                  toast.error("Couldn't mark as shipped.");
+                }
+              }}
+              onMarkOwnerReceived={async (id) => {
+                const ok = await markReceived(id, "owner");
+                if (ok) {
+                  toast.success("Receipt confirmed.");
+                  refresh();
+                } else {
+                  toast.error("Couldn't confirm receipt.");
+                }
+              }}
+              onCancel={async (id, reason) => {
+                const ok = await cancelSwap(id, reason);
+                if (ok) {
+                  toast.success("Swap cancelled.");
+                  refresh();
+                } else {
+                  toast.error("Couldn't cancel.");
+                }
+              }}
+              onDispute={async (id, reason) => {
+                const ok = await disputeSwap(id, reason);
+                if (ok) {
+                  toast.success("Reported. Our team will follow up.");
+                  refresh();
+                } else {
+                  toast.error("Couldn't open the dispute.");
+                }
+              }}
             />
-            <p className="text-sm text-text-muted">
-              You haven&apos;t sent any swap proposals yet.
-            </p>
-            <Link
-              href="/marketplace"
-              className="inline-block mt-3 text-sm text-cyan hover:underline"
-            >
-              Browse the marketplace →
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {proposals.map((p) => (
-              <OutgoingProposalCard
-                key={p.id}
-                proposal={p}
-                actionLoading={actionLoading}
-                onMarkShipped={async (id, tracking) => {
-                  const ok = await markShipped(id, "proposer", tracking);
-                  if (ok) {
-                    toast.success("Marked as shipped.");
-                    refresh();
-                  } else {
-                    toast.error("Couldn't mark as shipped.");
-                  }
-                }}
-                onMarkReceived={async (id) => {
-                  const ok = await markReceived(id, "proposer");
-                  if (ok) {
-                    toast.success("Receipt confirmed.");
-                    refresh();
-                  } else {
-                    toast.error("Couldn't confirm receipt.");
-                  }
-                }}
-                onCancel={async (id, reason) => {
-                  const ok = await cancelSwap(id, reason);
-                  if (ok) {
-                    toast.success("Swap cancelled.");
-                    refresh();
-                  } else {
-                    toast.error("Couldn't cancel.");
-                  }
-                }}
-                onDispute={async (id, reason) => {
-                  const ok = await disputeSwap(id, reason);
-                  if (ok) {
-                    toast.success("Reported. Our team will follow up.");
-                    refresh();
-                  } else {
-                    toast.error("Couldn't open the dispute.");
-                  }
-                }}
-              />
-            ))}
-          </div>
+          )
         )}
       </div>
     </div>
@@ -184,21 +313,17 @@ export default function MySwapProposalsPage() {
 
 function OutgoingProposalCard({
   proposal,
+  currentUserId,
+  onChanged,
   actionLoading,
   onMarkShipped,
   onMarkReceived,
   onCancel,
   onDispute,
 }: {
-  proposal: SwapProposal & {
-    target_listing?: {
-      id: string;
-      title: string;
-      images: string[];
-      condition: string;
-      category: string;
-    };
-  };
+  proposal: SwapProposal;
+  currentUserId: string;
+  onChanged: () => void;
   actionLoading: boolean;
   onMarkShipped: (id: string, tracking?: string) => void;
   onMarkReceived: (id: string) => void;
@@ -221,20 +346,29 @@ function OutgoingProposalCard({
 
   return (
     <div className="rounded-lg border border-border bg-surface p-3 space-y-3">
-      {/* Two-listing swap header */}
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-        <ListingThumb
-          image={offered?.images?.[0]}
-          title={offered?.title ?? "Your item"}
-          label="You offered"
+      {/* Two-listing swap header with value comparison */}
+      {offered && target ? (
+        <SwapValueComparison
+          yourItem={offered}
+          theirItem={target}
+          yourLabel="You give"
+          theirLabel="You get"
         />
-        <ArrowLeftRight size={14} className="text-magenta" />
-        <ListingThumb
-          image={target?.images?.[0]}
-          title={target?.title ?? "Their item"}
-          label="You want"
-        />
-      </div>
+      ) : (
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <ListingThumb
+            image={offered?.images?.[0]}
+            title={offered?.title ?? "Your item"}
+            label="You give"
+          />
+          <ArrowLeftRight size={14} className="text-magenta" />
+          <ListingThumb
+            image={target?.images?.[0]}
+            title={target?.title ?? "Their item"}
+            label="You get"
+          />
+        </div>
+      )}
 
       {proposal.message && (
         <p className="text-xs italic text-text-muted">
@@ -243,6 +377,12 @@ function OutgoingProposalCard({
       )}
 
       <SwapStateTracker proposal={proposal} />
+
+      <SwapAssistPanel
+        proposal={proposal}
+        currentUserId={currentUserId}
+        onChanged={onChanged}
+      />
 
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-text-muted">

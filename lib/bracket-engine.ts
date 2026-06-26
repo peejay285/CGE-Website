@@ -74,11 +74,11 @@ function seedParticipants(
 ): (BracketParticipant | null)[] {
   const order = seedOrder(bracketSize);
   const sorted = [...participants].sort((a, b) => a.seed - b.seed);
+  const bySeed = new Map(sorted.map((participant) => [participant.seed, participant]));
   const result: (BracketParticipant | null)[] = new Array(bracketSize).fill(null);
 
   for (let i = 0; i < bracketSize; i++) {
-    const pos = order[i] - 1;
-    result[pos] = i < sorted.length ? sorted[i] : null;
+    result[i] = bySeed.get(order[i]) ?? null;
   }
 
   return result;
@@ -107,8 +107,6 @@ export function generateSingleElimination(participants: BracketParticipant[]): G
   const seeded = seedParticipants(participants, bracketSize);
   const matches: GeneratedMatch[] = [];
 
-  let matchIndex = 0;
-
   // Generate first round
   const firstRoundMatches = bracketSize / 2;
   for (let i = 0; i < firstRoundMatches; i++) {
@@ -133,7 +131,6 @@ export function generateSingleElimination(participants: BracketParticipant[]): G
       loser_next_match_slot: null,
       winner_id: isBye ? (p1?.id ?? p2?.id ?? null) : null,
     });
-    matchIndex++;
   }
 
   // Generate subsequent rounds
@@ -157,7 +154,6 @@ export function generateSingleElimination(participants: BracketParticipant[]): G
         loser_next_match_slot: null,
         winner_id: null,
       });
-      matchIndex++;
     }
   }
 
@@ -224,7 +220,6 @@ export function generateDoubleElimination(participants: BracketParticipant[]): G
   const losersMatches: GeneratedMatch[] = [];
 
   // Losers bracket starts with losers from round 1, then progressively
-  let losersMatchNum = 0;
   for (let round = 1; round <= losersRounds; round++) {
     // Losers bracket has varying match counts per round
     const matchCount = Math.max(
@@ -250,7 +245,6 @@ export function generateDoubleElimination(participants: BracketParticipant[]): G
         loser_next_match_slot: null,
         winner_id: null,
       });
-      losersMatchNum++;
     }
   }
 

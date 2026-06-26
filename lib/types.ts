@@ -34,6 +34,11 @@ export interface Profile {
   id_verified_at?: string | null;
   premium_tier?: "free" | "premium";
   premium_expires_at?: string | null;
+  payout_recipient_code?: string | null;
+  payout_account_name?: string | null;
+  payout_bank_name?: string | null;
+  payout_account_last4?: string | null;
+  payout_profile_verified_at?: string | null;
 }
 
 export interface IdVerificationSubmission {
@@ -80,6 +85,7 @@ export interface Booking {
   payment_method: "paystack" | "venue";
   payment_status: "pending" | "paid" | "failed" | "refunded";
   paystack_reference: string | null;
+  receipt_token: string | null;
   pass_code: string | null;
   status: "confirmed" | "cancelled" | "completed";
   created_at: string;
@@ -101,6 +107,20 @@ export interface Tournament {
   rules: string | null;
   created_by: string | null;
   created_at: string;
+  prize_pool_total?: number;
+  payout_status?: string;
+  payout_distribution?: Array<{
+    place: number;
+    label?: string;
+    percent: number;
+  }> | null;
+  platform_fee_percent?: number;
+  payout_locked_at?: string | null;
+  payout_released_at?: string | null;
+  organizer?: Pick<
+    Profile,
+    "id" | "full_name" | "avatar_url" | "gamertag" | "is_id_verified" | "trust_level" | "tournament_count"
+  > | null;
   // New fields
   stream_url?: string | null;
   series_id?: number | null;
@@ -116,27 +136,128 @@ export interface TournamentRegistration {
   id: string;
   tournament_id: number;
   user_id: string;
+  total?: number;
+  payment_method?: string;
   payment_status: string;
   paystack_reference: string | null;
+  paid_at?: string | null;
   registered_at: string;
   checked_in?: boolean;
   checked_in_at?: string | null;
+}
+
+export interface TournamentTeamRegistration {
+  id: string;
+  tournament_id: number;
+  team_id: number;
+  registered_by: string;
+  total?: number;
+  payment_method?: string;
+  payment_status: string;
+  paystack_reference: string | null;
+  paid_at?: string | null;
+  registered_at: string;
+  checked_in?: boolean;
+  checked_in_at?: string | null;
+  team?: Team;
 }
 
 export interface TournamentRegistrant {
   id: string;
   tournament_id: number;
   user_id: string;
+  total?: number;
+  payment_method?: string;
   payment_status: string;
+  paystack_reference?: string | null;
+  paid_at?: string | null;
   registered_at: string;
   checked_in?: boolean;
   checked_in_at?: string | null;
-  profile?: Pick<Profile, "id" | "full_name" | "avatar_url" | "gamertag">;
+  bracket_participant_id?: string;
+  profile?: Pick<
+    Profile,
+    | "id"
+    | "full_name"
+    | "avatar_url"
+    | "gamertag"
+    | "payout_account_name"
+    | "payout_bank_name"
+    | "payout_account_last4"
+    | "payout_profile_verified_at"
+  >;
+}
+
+export interface TournamentPrizePlacement {
+  id: string;
+  tournament_id: number;
+  placement: number;
+  user_id: string;
+  source: "manual" | "bracket_final" | string;
+  assigned_by: string | null;
+  assigned_at: string;
+  profile?: Pick<
+    Profile,
+    | "id"
+    | "full_name"
+    | "avatar_url"
+    | "gamertag"
+    | "payout_account_name"
+    | "payout_bank_name"
+    | "payout_account_last4"
+    | "payout_profile_verified_at"
+  >;
+}
+
+export type TournamentPayoutStatus =
+  | "pending_review"
+  | "approved"
+  | "processing"
+  | "paid"
+  | "failed"
+  | "cancelled";
+
+export interface TournamentPayout {
+  id: string;
+  tournament_id: number;
+  user_id: string;
+  placement: number;
+  percentage: number;
+  gross_amount: number;
+  platform_fee_amount: number;
+  net_amount: number;
+  status: TournamentPayoutStatus;
+  paystack_transfer_reference: string | null;
+  paystack_transfer_code: string | null;
+  processed_at: string | null;
+  generated_by: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  profile?: Pick<
+    Profile,
+    | "id"
+    | "full_name"
+    | "avatar_url"
+    | "gamertag"
+    | "payout_account_name"
+    | "payout_bank_name"
+    | "payout_account_last4"
+    | "payout_profile_verified_at"
+  >;
 }
 
 // ── Bracket & Match Types ────────────────────────────
 
-export type MatchStatus = "pending" | "in_progress" | "completed" | "bye" | "disputed";
+export type MatchStatus =
+  | "pending"
+  | "in_progress"
+  | "awaiting_confirmation"
+  | "completed"
+  | "bye"
+  | "disputed";
 
 export interface TournamentMatch {
   id: number;
@@ -180,6 +301,20 @@ export interface MatchDispute {
   resolution?: string | null;
   created_at: string;
   resolved_at?: string | null;
+  // Hydrated match context (joined from tournament_matches for display)
+  match?: Pick<
+    TournamentMatch,
+    | "id"
+    | "tournament_id"
+    | "round"
+    | "match_number"
+    | "participant1_id"
+    | "participant2_id"
+    | "participant1_name"
+    | "participant2_name"
+    | "status"
+    | "winner_id"
+  > | null;
 }
 
 // ── Team Types ───────────────────────────────────────
@@ -203,6 +338,19 @@ export interface TeamMember {
   user_id: string;
   role: "captain" | "co-captain" | "member";
   joined_at: string;
+  profile?: Pick<Profile, "id" | "full_name" | "avatar_url" | "gamertag">;
+}
+
+export interface TeamJoinRequest {
+  id: string;
+  team_id: number;
+  user_id: string;
+  message: string | null;
+  status: "pending" | "approved" | "declined" | "cancelled";
+  decided_by: string | null;
+  decided_at: string | null;
+  created_at: string;
+  updated_at: string;
   profile?: Pick<Profile, "id" | "full_name" | "avatar_url" | "gamertag">;
 }
 
@@ -330,9 +478,45 @@ export interface SwapProposal {
   disputed_by: string | null;
   dispute_reason: string | null;
   expires_at: string | null;
+  // CGE-assisted swap (facilitation) — see swap-assist-facilitation-migration
+  assist_status?: SwapAssistStatus;
+  assist_fee_total?: number | null;
+  assist_requested_by?: string | null;
+  assist_requested_at?: string | null;
+  assist_activated_at?: string | null;
+  assist_completed_at?: string | null;
+  assist_completed_by?: string | null;
   // Joined
   proposer?: Pick<Profile, "id" | "full_name" | "avatar_url" | "gamertag">;
-  offered_listing?: Pick<MarketplaceListing, "id" | "title" | "images" | "condition" | "category">;
+  assist_payments?: SwapAssistPayment[];
+  offered_listing?: Pick<
+    MarketplaceListing,
+    "id" | "title" | "images" | "condition" | "category" | "price" | "buyout_price"
+  >;
+  target_listing?: Pick<
+    MarketplaceListing,
+    "id" | "title" | "images" | "condition" | "category" | "price" | "buyout_price" | "user_id"
+  >;
+}
+
+export type SwapAssistStatus =
+  | "none"
+  | "awaiting_payment"
+  | "active"
+  | "completed"
+  | "cancelled";
+
+export interface SwapAssistPayment {
+  id: string;
+  proposal_id: string;
+  payer_id: string;
+  role: "proposer" | "owner";
+  total: number;
+  payment_status: "pending" | "paid" | "free";
+  method: "paystack" | "premium" | null;
+  paystack_reference: string | null;
+  paid_at: string | null;
+  created_at: string;
 }
 
 // ── Community Topic Types ────────────────────────────
@@ -402,6 +586,7 @@ export interface CommunityPost {
   content: string;
   image_url: string | null;
   is_pinned: boolean;
+  is_seeded?: boolean;
   created_at: string;
   author?: Profile;
   likes_count: number;

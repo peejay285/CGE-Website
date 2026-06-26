@@ -18,14 +18,18 @@ ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS description text;
 ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS max_team_size integer DEFAULT 1;
 
 -- Allow creators to manage tournaments
+DROP POLICY IF EXISTS "Creators can update own tournaments" ON tournaments;
 CREATE POLICY "Creators can update own tournaments"
   ON tournaments FOR UPDATE USING (auth.uid() = created_by);
+DROP POLICY IF EXISTS "Creators can delete own tournaments" ON tournaments;
 CREATE POLICY "Creators can delete own tournaments"
   ON tournaments FOR DELETE USING (auth.uid() = created_by);
+DROP POLICY IF EXISTS "Authenticated users can create tournaments" ON tournaments;
 CREATE POLICY "Authenticated users can create tournaments"
   ON tournaments FOR INSERT WITH CHECK (auth.uid() = created_by);
 
 -- Allow registrations to be viewable by tournament hosts
+DROP POLICY IF EXISTS "Tournament host can view registrations" ON tournament_registrations;
 CREATE POLICY "Tournament host can view registrations"
   ON tournament_registrations FOR SELECT
   USING (
@@ -37,6 +41,7 @@ CREATE POLICY "Tournament host can view registrations"
   );
 
 -- Allow users to unregister
+DROP POLICY IF EXISTS "Users can delete own registrations" ON tournament_registrations;
 CREATE POLICY "Users can delete own registrations"
   ON tournament_registrations FOR DELETE
   USING (auth.uid() = user_id);
@@ -64,12 +69,24 @@ CREATE TABLE IF NOT EXISTS tournament_series (
 );
 
 ALTER TABLE tournament_series ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Series are viewable by everyone" ON tournament_series;
 CREATE POLICY "Series are viewable by everyone" ON tournament_series FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Creators can manage series" ON tournament_series;
 CREATE POLICY "Creators can manage series" ON tournament_series FOR ALL USING (auth.uid() = created_by);
 
 -- Link tournaments to series
-ALTER TABLE tournaments ADD CONSTRAINT fk_tournaments_series
-  FOREIGN KEY (series_id) REFERENCES tournament_series(id) ON DELETE SET NULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'fk_tournaments_series'
+      AND conrelid = 'public.tournaments'::regclass
+  ) THEN
+    ALTER TABLE tournaments ADD CONSTRAINT fk_tournaments_series
+      FOREIGN KEY (series_id) REFERENCES tournament_series(id) ON DELETE SET NULL;
+  END IF;
+END $$;
 
 -- ─── TEAMS ──────────────────────────────────────
 CREATE TABLE IF NOT EXISTS teams (
@@ -84,9 +101,13 @@ CREATE TABLE IF NOT EXISTS teams (
 );
 
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Teams are viewable by everyone" ON teams;
 CREATE POLICY "Teams are viewable by everyone" ON teams FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Authenticated users can create teams" ON teams;
 CREATE POLICY "Authenticated users can create teams" ON teams FOR INSERT WITH CHECK (auth.uid() = captain_id);
+DROP POLICY IF EXISTS "Captains can update own teams" ON teams;
 CREATE POLICY "Captains can update own teams" ON teams FOR UPDATE USING (auth.uid() = captain_id);
+DROP POLICY IF EXISTS "Captains can delete own teams" ON teams;
 CREATE POLICY "Captains can delete own teams" ON teams FOR DELETE USING (auth.uid() = captain_id);
 
 CREATE TABLE IF NOT EXISTS team_members (
@@ -99,12 +120,16 @@ CREATE TABLE IF NOT EXISTS team_members (
 );
 
 ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Team members are viewable by everyone" ON team_members;
 CREATE POLICY "Team members are viewable by everyone" ON team_members FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Captains can manage members" ON team_members;
 CREATE POLICY "Captains can manage members" ON team_members FOR ALL
   USING (
     EXISTS (SELECT 1 FROM teams t WHERE t.id = team_members.team_id AND t.captain_id = auth.uid())
   );
+DROP POLICY IF EXISTS "Users can leave teams" ON team_members;
 CREATE POLICY "Users can leave teams" ON team_members FOR DELETE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can join teams" ON team_members;
 CREATE POLICY "Users can join teams" ON team_members FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Team tournament registrations
@@ -120,7 +145,9 @@ CREATE TABLE IF NOT EXISTS tournament_team_registrations (
 );
 
 ALTER TABLE tournament_team_registrations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Team registrations viewable by everyone" ON tournament_team_registrations;
 CREATE POLICY "Team registrations viewable by everyone" ON tournament_team_registrations FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Captains can register teams" ON tournament_team_registrations;
 CREATE POLICY "Captains can register teams" ON tournament_team_registrations FOR INSERT
   WITH CHECK (
     EXISTS (SELECT 1 FROM teams t WHERE t.id = tournament_team_registrations.team_id AND t.captain_id = auth.uid())
@@ -179,13 +206,16 @@ CREATE TABLE IF NOT EXISTS tournament_matches (
 );
 
 ALTER TABLE tournament_matches ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Matches are viewable by everyone" ON tournament_matches;
 CREATE POLICY "Matches are viewable by everyone" ON tournament_matches FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Tournament host can manage matches" ON tournament_matches;
 CREATE POLICY "Tournament host can manage matches" ON tournament_matches FOR ALL
   USING (
     EXISTS (SELECT 1 FROM tournaments t WHERE t.id = tournament_matches.tournament_id AND t.created_by = auth.uid())
   );
 
 -- Participants can report scores on their own matches
+DROP POLICY IF EXISTS "Participants can update match scores" ON tournament_matches;
 CREATE POLICY "Participants can update match scores" ON tournament_matches FOR UPDATE
   USING (
     auth.uid()::text = participant1_id OR auth.uid()::text = participant2_id
@@ -210,7 +240,9 @@ CREATE TABLE IF NOT EXISTS match_disputes (
 );
 
 ALTER TABLE match_disputes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Disputes viewable by participants and host" ON match_disputes;
 CREATE POLICY "Disputes viewable by participants and host" ON match_disputes FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Participants can create disputes" ON match_disputes;
 CREATE POLICY "Participants can create disputes" ON match_disputes FOR INSERT WITH CHECK (auth.uid() = reported_by);
 
 -- ─── ACHIEVEMENTS & BADGES ──────────────────────
@@ -226,6 +258,7 @@ CREATE TABLE IF NOT EXISTS achievements (
 );
 
 ALTER TABLE achievements ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Achievements are viewable by everyone" ON achievements;
 CREATE POLICY "Achievements are viewable by everyone" ON achievements FOR SELECT USING (true);
 
 CREATE TABLE IF NOT EXISTS player_achievements (
@@ -238,6 +271,7 @@ CREATE TABLE IF NOT EXISTS player_achievements (
 );
 
 ALTER TABLE player_achievements ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Achievements are viewable by everyone" ON player_achievements;
 CREATE POLICY "Achievements are viewable by everyone" ON player_achievements FOR SELECT USING (true);
 
 -- ─── PLAYER FOLLOWERS ───────────────────────────
@@ -249,8 +283,11 @@ CREATE TABLE IF NOT EXISTS player_follows (
 );
 
 ALTER TABLE player_follows ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Follows are viewable by everyone" ON player_follows;
 CREATE POLICY "Follows are viewable by everyone" ON player_follows FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users can follow" ON player_follows;
 CREATE POLICY "Users can follow" ON player_follows FOR INSERT WITH CHECK (auth.uid() = follower_id);
+DROP POLICY IF EXISTS "Users can unfollow" ON player_follows;
 CREATE POLICY "Users can unfollow" ON player_follows FOR DELETE USING (auth.uid() = follower_id);
 
 -- ─── SEED ACHIEVEMENTS ──────────────────────────

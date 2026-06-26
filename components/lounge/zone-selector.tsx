@@ -37,7 +37,7 @@ const ZONE_DETAILS: Record<
     includes: [
       "PS5 console access",
       "Premium controllers",
-      "Private area, 2 consoles",
+      "Private room, 1 ticket",
     ],
   },
   vr: {
@@ -45,7 +45,7 @@ const ZONE_DETAILS: Record<
     includes: [
       "VR headset provided",
       "15 min per session",
-      "Multiple games available",
+      "Up to 2 players",
     ],
   },
 };

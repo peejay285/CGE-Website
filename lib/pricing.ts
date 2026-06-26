@@ -14,8 +14,7 @@ import { PRICING } from "@/lib/constants";
  *
  * Zone-specific rules:
  *  • main  – FC 26 has its own rate; everything else falls to "Other Games"
- *  • vip   – Pricing is per-console, not per-game. Every game defaults to
- *            "Single Console (PS5)" unless "Both Consoles" is explicitly passed.
+ *  • vip   – Private PS5 room, priced per hour regardless of game.
  *  • vr    – Flat rate regardless of game.
  */
 export function getUnitPrice(zone: string, game: string): number {
@@ -30,10 +29,7 @@ export function getUnitPrice(zone: string, game: string): number {
     }
 
     case "vip": {
-      // VIP is priced by console count, not by game title.
-      // "Both Consoles" must be explicitly selected; otherwise default to single.
-      const label = game === "Both Consoles" ? "Both Consoles" : "Single Console (PS5)";
-      const match = PRICING.vipLounge.find((p) => p.game === label);
+      const match = PRICING.vipLounge.find((p) => p.game === "Private PS5 Room");
       return match?.price ?? 5000;
     }
 

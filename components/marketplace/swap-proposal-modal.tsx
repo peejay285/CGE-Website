@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { MarketplaceListing } from "@/lib/types";
 import { SafetyDisclaimerBanner } from "./safety-disclaimer-banner";
+import { SwapValueComparison } from "./swap-value-comparison";
 
 interface SwapProposalModalProps {
   open: boolean;
@@ -45,6 +46,10 @@ export function SwapProposalModal({
 
   if (!targetListing) return null;
 
+  const selectedListing = selectedListingId
+    ? myListings.find((l) => l.id === selectedListingId) ?? null
+    : null;
+
   const hasImage = targetListing.images && targetListing.images.length > 0;
 
   return (
@@ -60,6 +65,8 @@ export function SwapProposalModal({
               <img
                 src={targetListing.images[0]}
                 alt={targetListing.title}
+                loading="lazy"
+                decoding="async"
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -118,6 +125,8 @@ export function SwapProposalModal({
                       <img
                         src={listing.images[0]}
                         alt={listing.title}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -163,6 +172,17 @@ export function SwapProposalModal({
         )}
       </div>
 
+      {/* Value comparison once an item is picked */}
+      {selectedListing && (
+        <SwapValueComparison
+          yourItem={selectedListing}
+          theirItem={targetListing}
+          yourLabel="You give"
+          theirLabel="You get"
+          className="mb-5"
+        />
+      )}
+
       {/* Optional message */}
       {myListings.length > 0 && !loadingListings && (
         <div className="mb-5">
@@ -197,6 +217,7 @@ export function SwapProposalModal({
             </>
           ) : (
             <>
+
               <ArrowLeftRight size={14} />
               Send Swap Proposal
             </>

@@ -14,7 +14,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { timeAgo, getInitials } from "@/lib/utils";
 import { SwapStateTracker } from "./swap-state-tracker";
-import type { SwapProposal, SwapProposalStatus } from "@/lib/types";
+import { SwapValueComparison } from "./swap-value-comparison";
+import { SwapAssistPanel } from "./swap-assist-panel";
+import type { MarketplaceListing, SwapProposal, SwapProposalStatus } from "@/lib/types";
+
+type ComparableListing = Pick<
+  MarketplaceListing,
+  "title" | "images" | "condition" | "price" | "buyout_price"
+>;
 
 const categoryEmojis: Record<string, string> = {
   Controllers: "🎮",
@@ -52,6 +59,12 @@ const statusColor = (status: SwapProposalStatus) => {
 interface SwapProposalsPanelProps {
   proposals: SwapProposal[];
   loading?: boolean;
+  /** The owner's listing these proposals target, for value comparison. */
+  targetListing?: ComparableListing | null;
+  /** The viewing owner's user id, for the assist panel. */
+  currentUserId?: string;
+  /** Refresh proposals after a CGE-assist action. */
+  onAssistChanged?: () => void;
   onAccept: (proposalId: string) => void;
   onDecline: (proposalId: string) => void;
   /** Owner side. Marks the owner's outgoing shipment as sent. */
@@ -66,6 +79,9 @@ interface SwapProposalsPanelProps {
 export function SwapProposalsPanel({
   proposals,
   loading,
+  targetListing,
+  currentUserId,
+  onAssistChanged,
   onAccept,
   onDecline,
   onMarkOwnerShipped,
@@ -109,6 +125,9 @@ export function SwapProposalsPanel({
             <ProposalCard
               key={proposal.id}
               proposal={proposal}
+              targetListing={targetListing}
+              currentUserId={currentUserId}
+              onAssistChanged={onAssistChanged}
               actionLoading={actionLoading}
               onAccept={onAccept}
               onDecline={onDecline}
@@ -126,6 +145,9 @@ export function SwapProposalsPanel({
 
 function ProposalCard({
   proposal,
+  targetListing,
+  currentUserId,
+  onAssistChanged,
   actionLoading,
   onAccept,
   onDecline,
@@ -135,6 +157,9 @@ function ProposalCard({
   onDispute,
 }: {
   proposal: SwapProposal;
+  targetListing?: ComparableListing | null;
+  currentUserId?: string;
+  onAssistChanged?: () => void;
   actionLoading?: boolean;
   onAccept: (id: string) => void;
   onDecline: (id: string) => void;
@@ -150,6 +175,9 @@ function ProposalCard({
   const [reasonInput, setReasonInput] = useState("");
 
   const offered = proposal.offered_listing;
+  // Prefer the proposal's own joined target (mixed "Received" lists), else the
+  // single listing passed by the detail modal.
+  const compareTarget = proposal.target_listing ?? targetListing;
   const proposer = proposal.proposer;
   const emoji = offered
     ? categoryEmojis[offered.category] || "📦"
@@ -171,6 +199,8 @@ function ProposalCard({
             <img
               src={offered!.images[0]}
               alt={offered!.title}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover"
             />
           ) : (
@@ -202,6 +232,8 @@ function ProposalCard({
             <img
               src={proposer.avatar_url}
               alt={proposer.full_name}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover"
             />
           ) : (
@@ -228,7 +260,22 @@ function ProposalCard({
         </p>
       )}
 
+      {compareTarget && offered && (
+        <SwapValueComparison
+          yourItem={compareTarget}
+          theirItem={offered}
+          yourLabel="You give"
+          theirLabel="You get"
+        />
+      )}
+
       <SwapStateTracker proposal={proposal} />
+
+      <SwapAssistPanel
+        proposal={proposal}
+        currentUserId={currentUserId}
+        onChanged={onAssistChanged}
+      />
 
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-text-muted">
@@ -403,6 +450,7 @@ function ProposalCard({
                   }}
                 >
                   Back
+
                 </Button>
               </div>
             </div>

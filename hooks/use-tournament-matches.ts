@@ -3,8 +3,28 @@
 import { useCallback, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { TournamentMatch, MatchDispute } from "@/lib/types";
-import type { BracketParticipant, GeneratedMatch, BracketType } from "@/lib/bracket-engine";
-import { generateBracket } from "@/lib/bracket-engine";
+import type { BracketParticipant, BracketType } from "@/lib/bracket-engine";
+
+type BracketResponse = { matches: TournamentMatch[] };
+type MatchActionResponse = { match: TournamentMatch; dispute?: MatchDispute };
+
+async function postJson<T>(url: string, body: Record<string, unknown>): Promise<T> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const payload = (await response.json().catch(() => ({}))) as {
+    error?: string;
+    details?: unknown;
+  };
+
+  if (!response.ok) {
+    throw new Error(payload.error || "Request failed");
+  }
+
+  return payload as T;
+}
 
 export function useTournamentMatches() {
   const [matches, setMatches] = useState<TournamentMatch[]>([]);
@@ -58,67 +78,18 @@ export function useTournamentMatches() {
           throw new Error("Need at least 2 participants to generate a bracket");
         }
 
-        // Generate matches client-side
-        const generatedMatches = generateBracket(bracketType, participants);
+        // The server owns bracket generation: it re-loads eligible paid/free
+        // participants, checks host/admin access, inserts the bracket with the
+        // service role, and links progression slots atomically from one trust
+        // boundary. Keep the parameters for the UI pre-check/signature.
+        void bracketType;
+        const { matches: nextMatches } = await postJson<BracketResponse>(
+          `/api/tournaments/${tournamentId}/bracket`,
+          { action: "generate" }
+        );
 
-        // Map generated matches to DB rows
-        const dbRows = generatedMatches.map((m: GeneratedMatch) => ({
-          tournament_id: tournamentId,
-          round: m.round,
-          match_number: m.match_number,
-          bracket_position: m.bracket_position,
-          participant1_id: m.participant1_id === "bye" ? null : m.participant1_id,
-          participant2_id: m.participant2_id === "bye" ? null : m.participant2_id,
-          participant1_name: m.participant1_name === "BYE" ? null : m.participant1_name,
-          participant2_name: m.participant2_name === "BYE" ? null : m.participant2_name,
-          participant1_seed: m.participant1_seed,
-          participant2_seed: m.participant2_seed,
-          status: m.status,
-          winner_id: m.winner_id,
-        }));
-
-        // Insert all matches
-        const { data, error: insertError } = await supabase
-          .from("tournament_matches")
-          .insert(dbRows)
-          .select();
-
-        if (insertError) throw insertError;
-
-        const insertedMatches = (data ?? []) as TournamentMatch[];
-
-        // Now link next_match_id references using the real DB IDs
-        const matchIdMap: Record<number, number> = {};
-        insertedMatches.forEach((m, idx) => {
-          matchIdMap[idx] = m.id;
-        });
-
-        // Link next_match_id references using the real DB IDs
-        for (let idx = 0; idx < generatedMatches.length; idx++) {
-          const gen = generatedMatches[idx];
-          const dbMatch = insertedMatches[idx];
-          if (!dbMatch) continue;
-
-          const updateData: Record<string, unknown> = {};
-          if (gen.next_match_id_ref !== null && matchIdMap[gen.next_match_id_ref] !== undefined) {
-            updateData.next_match_id = matchIdMap[gen.next_match_id_ref];
-            updateData.next_match_slot = gen.next_match_slot;
-          }
-          if (gen.loser_next_match_id_ref !== null && matchIdMap[gen.loser_next_match_id_ref] !== undefined) {
-            updateData.loser_next_match_id = matchIdMap[gen.loser_next_match_id_ref];
-            updateData.loser_next_match_slot = gen.loser_next_match_slot;
-          }
-
-          if (Object.keys(updateData).length > 0) {
-            await supabase
-              .from("tournament_matches")
-              .update(updateData)
-              .eq("id", dbMatch.id);
-          }
-        }
-
-        // Re-fetch the fully linked matches
-        return await getMatches(tournamentId);
+        setMatches(nextMatches);
+        return nextMatches;
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to generate bracket";
         setError(message);
@@ -127,133 +98,39 @@ export function useTournamentMatches() {
         setLoading(false);
       }
     },
-    [supabase, getMatches]
+    []
   );
 
   // ── Report match result ────────────────────────────
+  // By default a participant's report enters "awaiting_confirmation" and does
+  // NOT advance the bracket — the opponent must confirm (or dispute) first.
+  // Pass { autoConfirm: true } for a host/admin report, which is trusted and
+  // finalises + advances immediately.
   const reportMatch = useCallback(
     async (
       matchId: number,
       winnerId: string,
       score1: number,
-      score2: number
+      score2: number,
+      options?: { autoConfirm?: boolean }
     ): Promise<boolean> => {
       try {
         setLoading(true);
         setError(null);
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("User not authenticated");
-
-        // Get the match first
-        const { data: matchData, error: matchError } = await supabase
-          .from("tournament_matches")
-          .select("*")
-          .eq("id", matchId)
-          .single();
-
-        if (matchError) throw matchError;
-        const match = matchData as TournamentMatch;
-
-        const loserId =
-          match.participant1_id === winnerId
-            ? match.participant2_id
-            : match.participant1_id;
-
-        // Update the match
-        const { error: updateError } = await supabase
-          .from("tournament_matches")
-          .update({
+        void options;
+        const { match } = await postJson<MatchActionResponse>(
+          `/api/tournament-matches/${matchId}`,
+          {
+            action: "report",
             winner_id: winnerId,
-            loser_id: loserId,
-            participant1_score: match.participant1_id === winnerId ? Math.max(score1, score2) : Math.min(score1, score2),
-            participant2_score: match.participant2_id === winnerId ? Math.max(score1, score2) : Math.min(score1, score2),
-            status: "completed",
-            reported_by: user.id,
-            reported_at: new Date().toISOString(),
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", matchId);
+            participant1_score: score1,
+            participant2_score: score2,
+          }
+        );
 
-        if (updateError) throw updateError;
-
-        // Advance winner to next match
-        if (match.next_match_id) {
-          const winnerName =
-            match.participant1_id === winnerId
-              ? match.participant1_name
-              : match.participant2_name;
-          const winnerSeed =
-            match.participant1_id === winnerId
-              ? match.participant1_seed
-              : match.participant2_seed;
-
-          const slotField =
-            match.next_match_slot === 1
-              ? {
-                  participant1_id: winnerId,
-                  participant1_name: winnerName,
-                  participant1_seed: winnerSeed,
-                }
-              : {
-                  participant2_id: winnerId,
-                  participant2_name: winnerName,
-                  participant2_seed: winnerSeed,
-                };
-
-          await supabase
-            .from("tournament_matches")
-            .update(slotField)
-            .eq("id", match.next_match_id);
-        }
-
-        // Advance loser to losers bracket (double elimination)
-        if (match.loser_next_match_id && loserId) {
-          const loserName =
-            match.participant1_id === loserId
-              ? match.participant1_name
-              : match.participant2_name;
-          const loserSeed =
-            match.participant1_id === loserId
-              ? match.participant1_seed
-              : match.participant2_seed;
-
-          const slotField =
-            match.loser_next_match_slot === 1
-              ? {
-                  participant1_id: loserId,
-                  participant1_name: loserName,
-                  participant1_seed: loserSeed,
-                }
-              : {
-                  participant2_id: loserId,
-                  participant2_name: loserName,
-                  participant2_seed: loserSeed,
-                };
-
-          await supabase
-            .from("tournament_matches")
-            .update(slotField)
-            .eq("id", match.loser_next_match_id);
-        }
-
-        // Update local state
         setMatches((prev) =>
-          prev.map((m) =>
-            m.id === matchId
-              ? {
-                  ...m,
-                  winner_id: winnerId,
-                  loser_id: loserId,
-                  participant1_score: match.participant1_id === winnerId ? Math.max(score1, score2) : Math.min(score1, score2),
-                  participant2_score: match.participant2_id === winnerId ? Math.max(score1, score2) : Math.min(score1, score2),
-                  status: "completed" as const,
-                  reported_by: user.id,
-                  reported_at: new Date().toISOString(),
-                  completed_at: new Date().toISOString(),
-                }
-              : m
-          )
+          prev.map((current) => (current.id === match.id ? match : current))
         );
 
         return true;
@@ -265,7 +142,37 @@ export function useTournamentMatches() {
         setLoading(false);
       }
     },
-    [supabase]
+    []
+  );
+
+  // ── Confirm a reported result ──────────────────────
+  // Finalises an "awaiting_confirmation" match (opponent confirms, or a host
+  // force-confirms) and advances the bracket.
+  const confirmMatch = useCallback(
+    async (matchId: number): Promise<boolean> => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const { match } = await postJson<MatchActionResponse>(
+          `/api/tournament-matches/${matchId}`,
+          { action: "confirm" }
+        );
+
+        setMatches((prev) =>
+          prev.map((current) => (current.id === match.id ? match : current))
+        );
+
+        return true;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to confirm result";
+        setError(message);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
   );
 
   // ── Start a match (set to in_progress) ─────────────
@@ -275,22 +182,13 @@ export function useTournamentMatches() {
         setLoading(true);
         setError(null);
 
-        const { error: updateError } = await supabase
-          .from("tournament_matches")
-          .update({
-            status: "in_progress",
-            started_at: new Date().toISOString(),
-          })
-          .eq("id", matchId);
-
-        if (updateError) throw updateError;
+        const { match } = await postJson<MatchActionResponse>(
+          `/api/tournament-matches/${matchId}`,
+          { action: "start" }
+        );
 
         setMatches((prev) =>
-          prev.map((m) =>
-            m.id === matchId
-              ? { ...m, status: "in_progress" as const, started_at: new Date().toISOString() }
-              : m
-          )
+          prev.map((current) => (current.id === match.id ? match : current))
         );
 
         return true;
@@ -302,7 +200,7 @@ export function useTournamentMatches() {
         setLoading(false);
       }
     },
-    [supabase]
+    []
   );
 
   // ── File a dispute ─────────────────────────────────
@@ -312,33 +210,15 @@ export function useTournamentMatches() {
         setLoading(true);
         setError(null);
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("User not authenticated");
-
-        // Update match status
-        await supabase
-          .from("tournament_matches")
-          .update({ status: "disputed" })
-          .eq("id", matchId);
-
-        // Create dispute record
-        const { error: insertError } = await supabase
-          .from("match_disputes")
-          .insert({
-            match_id: matchId,
-            reported_by: user.id,
-            reason,
-            evidence_urls: [],
-            status: "open",
-          });
-
-        if (insertError) throw insertError;
+        const { match, dispute } = await postJson<MatchActionResponse>(
+          `/api/tournament-matches/${matchId}`,
+          { action: "dispute", reason }
+        );
 
         setMatches((prev) =>
-          prev.map((m) =>
-            m.id === matchId ? { ...m, status: "disputed" as const } : m
-          )
+          prev.map((current) => (current.id === match.id ? match : current))
         );
+        if (dispute) setDisputes((prev) => [dispute, ...prev]);
 
         return true;
       } catch (err) {
@@ -349,7 +229,7 @@ export function useTournamentMatches() {
         setLoading(false);
       }
     },
-    [supabase]
+    []
   );
 
   // ── Resolve a dispute ──────────────────────────────
@@ -364,62 +244,24 @@ export function useTournamentMatches() {
         setLoading(true);
         setError(null);
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("User not authenticated");
+        if (newStatus === "open") throw new Error("Choose a final dispute decision");
 
-        await supabase
-          .from("match_disputes")
-          .update({
-            status: newStatus,
-            resolved_by: user.id,
+        const { match, dispute } = await postJson<MatchActionResponse>(
+          `/api/tournament-matches/${matchId}`,
+          {
+            action: "resolve_dispute",
+            dispute_id: disputeId,
+            decision: newStatus,
             resolution,
-            resolved_at: new Date().toISOString(),
-          })
-          .eq("id", disputeId);
+          }
+        );
 
-        // If resolved, revert match to pending for re-play
-        if (newStatus === "resolved") {
-          await supabase
-            .from("tournament_matches")
-            .update({
-              status: "pending",
-              winner_id: null,
-              loser_id: null,
-              participant1_score: null,
-              participant2_score: null,
-              reported_by: null,
-              reported_at: null,
-              completed_at: null,
-            })
-            .eq("id", matchId);
-
-          setMatches((prev) =>
-            prev.map((m) =>
-              m.id === matchId
-                ? {
-                    ...m,
-                    status: "pending" as const,
-                    winner_id: null,
-                    loser_id: null,
-                    participant1_score: null,
-                    participant2_score: null,
-                  }
-                : m
-            )
-          );
-        }
-
-        // If dismissed, revert match to completed
-        if (newStatus === "dismissed") {
-          await supabase
-            .from("tournament_matches")
-            .update({ status: "completed" })
-            .eq("id", matchId);
-
-          setMatches((prev) =>
-            prev.map((m) =>
-              m.id === matchId ? { ...m, status: "completed" as const } : m
-            )
+        setMatches((prev) =>
+          prev.map((current) => (current.id === match.id ? match : current))
+        );
+        if (dispute) {
+          setDisputes((prev) =>
+            prev.map((current) => (current.id === dispute.id ? dispute : current))
           );
         }
 
@@ -432,27 +274,30 @@ export function useTournamentMatches() {
         setLoading(false);
       }
     },
-    [supabase]
+    []
   );
 
   // ── Get disputes for a tournament ──────────────────
+  // Self-contained: joins tournament_matches (inner) so it can filter by
+  // tournament without relying on `matches` state being loaded first, and
+  // hydrates match context for display in the resolution UI.
   const getDisputes = useCallback(
     async (tournamentId: number): Promise<MatchDispute[]> => {
       try {
         setLoading(true);
         setError(null);
 
-        // Get all match IDs for this tournament
-        const matchIds = matches
-          .filter((m) => m.tournament_id === tournamentId)
-          .map((m) => m.id);
-
-        if (matchIds.length === 0) return [];
-
         const { data, error: fetchError } = await supabase
           .from("match_disputes")
-          .select("*")
-          .in("match_id", matchIds)
+          .select(
+            `*, match:tournament_matches!inner (
+              id, tournament_id, round, match_number,
+              participant1_id, participant2_id,
+              participant1_name, participant2_name,
+              status, winner_id
+            )`
+          )
+          .eq("match.tournament_id", tournamentId)
           .order("created_at", { ascending: false });
 
         if (fetchError) throw fetchError;
@@ -468,7 +313,7 @@ export function useTournamentMatches() {
         setLoading(false);
       }
     },
-    [supabase, matches]
+    [supabase]
   );
 
   // ── Delete all matches (reset bracket) ─────────────
@@ -478,12 +323,9 @@ export function useTournamentMatches() {
         setLoading(true);
         setError(null);
 
-        const { error: deleteError } = await supabase
-          .from("tournament_matches")
-          .delete()
-          .eq("tournament_id", tournamentId);
-
-        if (deleteError) throw deleteError;
+        await postJson<BracketResponse>(`/api/tournaments/${tournamentId}/bracket`, {
+          action: "reset",
+        });
 
         setMatches([]);
         return true;
@@ -495,7 +337,7 @@ export function useTournamentMatches() {
         setLoading(false);
       }
     },
-    [supabase]
+    []
   );
 
   return {
@@ -506,6 +348,7 @@ export function useTournamentMatches() {
     getMatches,
     generateAndSaveBracket,
     reportMatch,
+    confirmMatch,
     startMatch,
     disputeMatch,
     resolveDispute,
