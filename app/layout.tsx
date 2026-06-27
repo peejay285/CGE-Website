@@ -5,9 +5,13 @@ import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 import { isEnvValid } from "@/lib/env";
 import { StructuredData } from "@/components/structured-data";
-import { getCanonicalSiteUrl, shouldDisableIndexing } from "@/lib/site-config";
+import {
+  getCanonicalSiteUrl,
+  isProductionDeployment,
+  shouldDisableIndexing,
+} from "@/lib/site-config";
 
-if (!isEnvValid && process.env.NODE_ENV === "production" && process.env.VERCEL) {
+if (!isEnvValid && isProductionDeployment()) {
   throw new Error("Invalid production environment configuration");
 }
 

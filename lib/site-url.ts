@@ -9,7 +9,7 @@ import { getConfiguredSiteUrl, isProductionDeployment } from "@/lib/site-config"
  *      be reachable from outside the dev machine (QR codes, SMS links,
  *      Paystack callbacks) should resolve through this.
  *   2. The request's x-forwarded-proto + host headers — works server-side
- *      when the request is itself coming through ngrok / Vercel.
+ *      when the request is itself coming through ngrok / a hosting provider.
  *   3. http://localhost:3000 — last-resort dev fallback.
  *
  * Strips any trailing slash from the base so "/foo" + base joins cleanly.

@@ -55,6 +55,13 @@ const productionEnvSchema = envSchema.extend({
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().min(5),
 });
 
+function isProductionDeployment() {
+  return (
+    process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PUBLIC_SITE_PHASE === "production"
+  );
+}
+
 function validateEnv() {
   const required = envSchema.safeParse(process.env);
   if (!required.success) {
@@ -74,7 +81,7 @@ function validateEnv() {
     return false;
   }
 
-  if (process.env.NODE_ENV === "production" && process.env.VERCEL) {
+  if (isProductionDeployment()) {
     const production = productionEnvSchema.safeParse(process.env);
     if (!production.success) {
       console.error(

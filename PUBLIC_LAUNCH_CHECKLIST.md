@@ -1,102 +1,123 @@
 # CGE Website Public Launch Checklist
 
-Last checked locally: 2026-06-11
+Last checked locally: 2026-06-27
 
 ## Current Launch Decision
 
-Public launch is currently blocked by deployment/config/ops items outside the codebase.
+The website codebase is beta-ready locally, but public launch is still blocked by hosting, domain, live payment, anti-abuse, and provider-dashboard configuration.
 
-What is satisfied:
-
-- Local build/lint/test/high-audit gates pass.
-- Supabase security readiness SQL now passes in the target DB.
-- Code-level exposure points from the audit have been hardened.
-- `npm run launch:env` has been added to verify launch envs without printing secret values.
-
-What is not yet satisfied:
-
-- Production domain DNS/SSL is not resolving from this environment for `https://cge.ng` or `https://www.cge.ng`.
-- Vercel production environment variables cannot be verified from this workspace because Vercel CLI is not installed/configured here.
-- This repository has no Git remote configured locally.
-- The working tree is not clean, so the release branch is not yet an intentional deploy artifact.
-- Local launch env check fails for public launch settings.
-- Public smoke tests cannot be run until a deployed production/preview URL is available.
+Important hosting decision: use Firebase App Hosting, not classic Firebase Hosting. This app has Next.js server-rendered pages, middleware, and API routes such as Paystack webhooks, booking creation, tournament payout release, AI concierge, and admin operations. Static Firebase Hosting alone is not the right fit.
 
 ## Current Local Gate Status
 
-- [x] `npm run lint -- --quiet` passes.
-- [x] `npm run test` passes: 5 files, 30 tests.
+- [x] Git remote is configured: `https://github.com/peejay285/CGE-Website.git`.
+- [x] Current branch: `master`.
+- [x] `npm run lint` passes with warnings only.
+- [x] `npm run test` passes: 7 files, 40 tests.
 - [x] `npm run build` passes on Next 16.2.9.
 - [x] `npm audit --audit-level=high` passes.
-- [x] `npm run launch:env` exists and runs.
-- [x] Supabase `_verify-security-readiness.sql` passes in the target DB.
-- [ ] `npm audit --audit-level=moderate` has a known nested Next/PostCSS advisory. Do not run `npm audit fix --force`; npm proposes downgrading Next to 9.3.3.
+- [x] Supabase security readiness SQL previously passed in the target DB.
+- [x] Production strictness is provider-neutral now: `NEXT_PUBLIC_SITE_PHASE=production` controls public-launch behavior, not Vercel-only environment variables.
+- [ ] `npm run launch:env` fails until production hosting/domain environment is configured.
+
+## Current `npm run launch:env` Result
+
+Passing locally:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `PAYSTACK_SECRET_KEY`
+- `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`
+- `TERMII_API_KEY`
+- `TERMII_SENDER_ID`
+
+Missing or not public-launch ready:
+
+- `NEXT_PUBLIC_SITE_URL`: missing
+- `UPSTASH_REDIS_REST_URL`: missing
+- `UPSTASH_REDIS_REST_TOKEN`: missing
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY`: missing
+- `NEXT_PUBLIC_BETA_MODE`: expected `false`
+- `NEXT_PUBLIC_SITE_PHASE`: expected `production`
+- `NEXT_PUBLIC_ALLOW_INDEXING`: expected `true`
+- Paystack keys: local keys are test keys; public launch needs `sk_live_...` and `pk_live_...`
+- `MODAL_AI_ENDPOINT`: optional, not set locally
+- `MODAL_AUTH_TOKEN`: optional, not set locally
+
+## Recommended Firebase/App Hosting Path
+
+- [ ] Create or choose the Firebase project.
+- [ ] Upgrade the Firebase project to Blaze/pay-as-you-go if App Hosting requests it.
+- [ ] In Firebase console, go to Hosting & Serverless → App Hosting.
+- [ ] Create an App Hosting backend connected to `peejay285/CGE-Website.git`.
+- [ ] Set the live branch intentionally, likely `master` unless you decide to rename/migrate to `main`.
+- [ ] Keep automatic rollouts on only after the release branch is clean and intentional.
+- [ ] Deploy first to Firebase’s generated `hosted.app` URL.
+- [ ] Run smoke tests on the generated URL before buying/connecting the final domain.
+- [ ] After smoke tests pass, connect the custom domain in App Hosting and update provider callbacks.
+
+## Required App Hosting Environment
+
+Set these in Firebase App Hosting environment settings or through `apphosting.yaml` + Cloud Secret Manager. Do not commit real secret values.
+
+Required public values:
+
+- `NEXT_PUBLIC_SITE_URL`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+- `NEXT_PUBLIC_BETA_MODE=false`
+- `NEXT_PUBLIC_SITE_PHASE=production`
+- `NEXT_PUBLIC_ALLOW_INDEXING=true`
+
+Required secrets/server-only values:
+
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `PAYSTACK_SECRET_KEY`
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+
+Optional feature values:
+
+- `MODAL_AI_ENDPOINT`
+- `MODAL_AUTH_TOKEN`
+- `TERMII_API_KEY`
+- `TERMII_SENDER_ID`
 
 ## Public Launch Blockers
 
-- [ ] Release branch is clean and intentional.
-  - Current workspace has many modified and untracked files. Review, commit, or exclude everything before deploying.
-  - Current branch: `master`.
-  - Current local Git remote check: no remote is configured.
-  - Current status: blocked until intended files are committed and deploy source is confirmed.
+- [ ] Release branch is clean, committed, and pushed.
+- [ ] Firebase App Hosting backend exists and deploys from GitHub.
+- [ ] Production/live App Hosting environment variables are configured.
+- [ ] Live Paystack keys are configured.
+- [ ] Upstash Redis is configured so production rate limits are distributed instead of in-memory.
+- [ ] Cloudflare Turnstile site key is configured for the production domain.
+- [ ] Supabase CAPTCHA/Turnstile secret is configured in Supabase dashboard.
+- [ ] Production domain is purchased and connected to Firebase App Hosting.
+- [ ] DNS and SSL are verified by Firebase.
+- [ ] Public smoke tests pass end to end.
 
-- [ ] Production Vercel environment variables are verified.
-  - Required:
-    - `NEXT_PUBLIC_SITE_URL`
-    - `NEXT_PUBLIC_SUPABASE_URL`
-    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-    - `SUPABASE_SERVICE_ROLE_KEY`
-    - `PAYSTACK_SECRET_KEY`
-    - `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`
-    - `UPSTASH_REDIS_REST_URL`
-    - `UPSTASH_REDIS_REST_TOKEN`
-    - `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
-  - Public launch indexing:
-    - `NEXT_PUBLIC_BETA_MODE=false`
-    - `NEXT_PUBLIC_SITE_PHASE=production`
-    - `NEXT_PUBLIC_ALLOW_INDEXING=true`
-  - Optional feature envs if enabled:
-    - `MODAL_AI_ENDPOINT`
-    - `MODAL_AUTH_TOKEN`
-    - `TERMII_API_KEY`
-    - `TERMII_SENDER_ID`
-  - Current `npm run launch:env` result:
-    - `NEXT_PUBLIC_SITE_URL`: missing.
-    - `UPSTASH_REDIS_REST_URL`: missing.
-    - `UPSTASH_REDIS_REST_TOKEN`: missing.
-    - `NEXT_PUBLIC_TURNSTILE_SITE_KEY`: missing.
-    - `NEXT_PUBLIC_BETA_MODE`: missing; public launch expects `false`.
-    - `NEXT_PUBLIC_SITE_PHASE`: missing; public launch expects `production`.
-    - `NEXT_PUBLIC_ALLOW_INDEXING`: missing; public launch expects `true`.
-    - Paystack keys: test keys detected locally; public launch needs live keys.
-    - Supabase keys: set locally.
-    - Termii keys: set locally.
-    - Modal keys: not set locally.
-  - Vercel production envs still need dashboard/CLI confirmation.
+## Provider Callback Checklist
 
-- [ ] Production provider callbacks are verified.
-  - Supabase Auth redirect URLs include:
-    - `https://<production-domain>/auth/callback`
-  - Paystack callback URL domain is production.
-  - Paystack webhook URL is:
-    - `https://<production-domain>/api/paystack/webhook`
-  - Cloudflare Turnstile site key domain matches production.
-  - Supabase CAPTCHA/Turnstile secret is configured in Supabase dashboard.
-  - Current status: blocked until the production domain resolves and provider dashboards are configured.
+When the Firebase generated URL or final domain is known, update:
 
-- [x] Production Supabase security readiness is verified.
-  - `_verify-security-readiness.sql` returns all `PASS`.
-
-- [ ] Production Supabase operations are verified.
-  - Admin user(s) have `profiles.is_admin = true`.
-  - Storage buckets exist with expected privacy and MIME limits.
-  - Production backups are enabled.
-  - RLS is enabled on user-owned tables.
-  - Current status: security SQL passed; admin account and backup settings still need dashboard confirmation.
+- Supabase Auth redirect URL:
+  - `https://<domain>/auth/callback`
+- Paystack callback URL:
+  - `https://<domain>/payment/mobile-return`
+- Paystack webhook URL:
+  - `https://<domain>/api/paystack/webhook`
+- Cloudflare Turnstile allowed domains:
+  - `<domain>`
+  - `www.<domain>` if used
+- Mobile app production API base URL:
+  - `https://<domain>`
 
 ## Required Public Smoke Test
 
-Run these on the deployed public domain before opening to everyone:
+Run these on the deployed Firebase URL first, then repeat critical payment/auth checks after the custom domain is connected:
 
 - [ ] Signup with Turnstile enabled.
 - [ ] Login/logout/session persistence.
@@ -122,26 +143,21 @@ Run these on the deployed public domain before opening to everyone:
 
 ## Operations Checklist
 
-- [ ] Vercel deployment protection is disabled only when ready for public launch.
-- [ ] Domain DNS is pointed at the production deployment.
-  - Current check: `https://cge.ng` failed DNS resolution from this environment.
-  - Current check: `https://www.cge.ng` failed DNS resolution from this environment.
-- [ ] SSL is active on the production domain.
-  - Current status: cannot be satisfied until DNS resolves.
-- [ ] Vercel function logs are monitored during launch.
+- [ ] Firebase App Hosting logs are monitored during launch.
 - [ ] Paystack dashboard is monitored for failed webhooks.
 - [ ] Supabase logs are monitored for RLS/API errors.
 - [ ] Admin account recovery path is known.
 - [ ] Support/contact path is visible and working.
-- [ ] Rollback plan is agreed: previous stable Vercel deployment can be promoted.
-- [ ] Moderate PostCSS advisory is documented and tracked for a safe upstream fix.
+- [ ] Rollback plan is agreed: promote the previous stable App Hosting rollout.
+- [ ] Moderate dependency advisories remain tracked (`@babel/core`, `js-yaml`, Next nested PostCSS); do not run `npm audit fix --force` if it proposes unsafe framework downgrades.
 
 ## Current Verdict
 
-The codebase is beta-ready and close to public-ready. Public launch should wait until:
+Proceed in this order:
 
-1. The release branch is clean.
-2. Production env vars are verified in Vercel.
-3. Provider callbacks are verified on the production domain.
-4. The required public smoke test passes end to end.
-5. DNS and SSL are working on the public domain.
+1. Commit and push the website readiness changes.
+2. Create Firebase App Hosting backend and deploy to the generated `hosted.app` URL.
+3. Configure beta/staging env first and smoke test.
+4. Buy/connect the domain.
+5. Switch to production env flags/live Paystack/live callbacks.
+6. Repeat public smoke tests before opening beta testers broadly.

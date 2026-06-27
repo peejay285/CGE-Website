@@ -27,7 +27,10 @@ export function getCanonicalSiteUrl() {
 }
 
 export function isProductionDeployment() {
-  return process.env.NODE_ENV === "production" && !!process.env.VERCEL;
+  return (
+    process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PUBLIC_SITE_PHASE === "production"
+  );
 }
 
 export function isBetaMode() {

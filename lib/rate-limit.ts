@@ -2,7 +2,7 @@
  * Distributed rate limiter, with a graceful in-memory fallback for local dev.
  *
  * Production: backed by Upstash Redis (works in serverless — survives
- * redeploys, shares state across Vercel/Lambda instances). Configure with:
+ * redeploys, shares state across hosted instances). Configure with:
  *   UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
  *   UPSTASH_REDIS_REST_TOKEN=...
  *
@@ -24,6 +24,13 @@ let redis: Redis | null = null;
 
 let warnedMissingUpstash = false;
 
+function isProductionDeployment() {
+  return (
+    process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PUBLIC_SITE_PHASE === "production"
+  );
+}
+
 function getRedis(): Redis | null {
   if (redis) return redis;
 
@@ -34,7 +41,7 @@ function getRedis(): Redis | null {
     // In production the in-memory fallback is effectively NO rate limiting
     // (each serverless instance has its own counter). Fail loudly at the
     // first rate-limited request rather than silently degrading.
-    if (process.env.NODE_ENV === "production" && process.env.VERCEL) {
+    if (isProductionDeployment()) {
       throw new Error(
         "UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN are required in production — rate limiting cannot run in-memory on serverless."
       );
