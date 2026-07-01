@@ -1,0 +1,55 @@
+# Firebase App Hosting configuration for the CGE website.
+#
+# Keep private secrets out of this file. Store server-only values like
+# SUPABASE_SERVICE_ROLE_KEY, PAYSTACK_SECRET_KEY, TERMII_API_KEY, and
+# GIVEAWAY_ADMIN_SECRET in Firebase App Hosting environment settings or
+# Google Cloud Secret Manager.
+
+env:
+  - variable: NEXT_PUBLIC_BETA_MODE
+    value: "true"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_SITE_PHASE
+    value: beta
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_ALLOW_INDEXING
+    value: "false"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_SITE_URL
+    value: https://cge-website--cge-suite.europe-west4.hosted.app
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_SUPABASE_URL
+    value: https://uornrrryktpigignayre.supabase.co
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_SUPABASE_ANON_KEY
+    value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcm5ycnJ5a3RwaWdpZ25heXJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NTkxOTUsImV4cCI6MjA4NzAzNTE5NX0.2ARe8AN2Ek8ZChwStN0CCYLKmFglX46fO-3hS7PUryI"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+    value: pk_test_bcbe1b99e6140b4fbdf655fa7211a98764825af4
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: TERMII_SENDER_ID
+    value: CGE
+    availability:
+      - BUILD
+      - RUNTIME
