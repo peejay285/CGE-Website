@@ -44,6 +44,7 @@ export function useAuth() {
         password,
         options: {
           captchaToken,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/`,
           data: {
             full_name: fullName,
             phone,
