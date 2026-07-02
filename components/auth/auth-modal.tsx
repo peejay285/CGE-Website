@@ -63,12 +63,25 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
     setLoading(true);
 
     try {
+      // Supabase captcha protection (when enabled) covers sign-in, sign-up
+      // and password reset — all three must send a token.
+      if (TURNSTILE_SITE_KEY && !captchaToken) {
+        toast.error("Please complete the captcha before continuing");
+        return;
+      }
+
       if (mode === "Reset Password") {
         if (!email.trim()) {
           toast.error("Please enter your email");
           return;
         }
-        const { error } = await resetPassword(email.toLowerCase().trim());
+        const { error } = await resetPassword(
+          email.toLowerCase().trim(),
+          captchaToken ?? undefined,
+        );
+        // Turnstile tokens are single-use — reset after every attempt.
+        turnstileRef.current?.reset();
+        setCaptchaToken(null);
         if (error) {
           toast.error(error.message);
         } else {
@@ -79,8 +92,15 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
       }
 
       if (mode === "Sign In") {
-        const { error } = await signIn(email.toLowerCase().trim(), password);
+        const { error } = await signIn(
+          email.toLowerCase().trim(),
+          password,
+          captchaToken ?? undefined,
+        );
         if (error) {
+          // Token is single-use — reset so the user can retry.
+          turnstileRef.current?.reset();
+          setCaptchaToken(null);
           if (error.message.includes("Invalid login")) {
             toast.error("Invalid email or password");
           } else {
@@ -106,10 +126,6 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
         }
         if (!locationState) {
           toast.error("Please select your state");
-          return;
-        }
-        if (TURNSTILE_SITE_KEY && !captchaToken) {
-          toast.error("Please complete the captcha before continuing");
           return;
         }
         const { error } = await signUp(
@@ -287,7 +303,23 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               required
               disabled={loading}
             />
-            <Button type="submit" fullWidth disabled={loading}>
+            {TURNSTILE_SITE_KEY && (
+              <div className="flex justify-center">
+                <Turnstile
+                  ref={turnstileRef}
+                  siteKey={TURNSTILE_SITE_KEY}
+                  options={{ theme: "dark", size: "flexible" }}
+                  onSuccess={(token) => setCaptchaToken(token)}
+                  onError={() => setCaptchaToken(null)}
+                  onExpire={() => setCaptchaToken(null)}
+                />
+              </div>
+            )}
+            <Button
+              type="submit"
+              fullWidth
+              disabled={loading || (!!TURNSTILE_SITE_KEY && !captchaToken)}
+            >
               {loading ? "Sending..." : "Send Reset Link"}
             </Button>
             <button
@@ -475,7 +507,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               </div>
             )}
 
-            {mode === "Sign Up" && TURNSTILE_SITE_KEY && (
+            {TURNSTILE_SITE_KEY && (
               <div className="flex justify-center">
                 <Turnstile
                   ref={turnstileRef}
@@ -494,7 +526,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               disabled={
                 loading ||
                 (mode === "Sign Up" && password !== confirmPassword) ||
-                (mode === "Sign Up" && !!TURNSTILE_SITE_KEY && !captchaToken)
+                (!!TURNSTILE_SITE_KEY && !captchaToken)
               }
             >
               {loading ? "Please wait..." : mode === "Sign In" ? "Sign In" : "Create Account"}

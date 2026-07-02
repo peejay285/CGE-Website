@@ -53,3 +53,9 @@ env:
     availability:
       - BUILD
       - RUNTIME
+
+  - variable: NEXT_PUBLIC_TURNSTILE_SITE_KEY
+    value: 0x4AAAAAADur6evQi7hzbCIN
+    availability:
+      - BUILD
+      - RUNTIME

@@ -61,10 +61,11 @@ export function useAuth() {
   );
 
   const signIn = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string, captchaToken?: string) => {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
+        options: { captchaToken },
       });
       return { data, error };
     },
@@ -90,9 +91,10 @@ export function useAuth() {
   );
 
   const resetPassword = useCallback(
-    async (email: string) => {
+    async (email: string, captchaToken?: string) => {
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/callback?next=/`,
+        captchaToken,
       });
       return { data, error };
     },
