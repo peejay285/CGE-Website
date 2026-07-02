@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { ZONES, PRICING, BRAND } from "@/lib/constants";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -281,11 +282,12 @@ function ZoneHeader({
         gradient,
       )}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={src}
         alt={alt}
-        className="absolute inset-0 w-full h-full object-cover opacity-90"
+        fill
+        sizes="(max-width: 640px) 100vw, 33vw"
+        className="object-cover opacity-90"
         onError={(e) => {
           (e.currentTarget as HTMLImageElement).style.display = "none";
         }}

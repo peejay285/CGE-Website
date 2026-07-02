@@ -227,6 +227,7 @@ export interface TournamentPayout {
   platform_fee_amount: number;
   net_amount: number;
   status: TournamentPayoutStatus;
+  host_is_payee?: boolean;
   paystack_transfer_reference: string | null;
   paystack_transfer_code: string | null;
   processed_at: string | null;

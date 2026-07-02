@@ -1029,10 +1029,23 @@ export function ManageTournamentModal({
                             {payout.percentage}% share - Gross {formatPrice(payout.gross_amount)}
                           </p>
                         </div>
-                        <Badge color={payoutBadgeColor(payout.status)} size="sm">
-                          {payout.status.replace(/_/g, " ")}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <Badge color={payoutBadgeColor(payout.status)} size="sm">
+                            {payout.status.replace(/_/g, " ")}
+                          </Badge>
+                          {payout.host_is_payee && (
+                            <Badge color="red" size="sm">
+                              <ShieldAlert size={10} /> Host is payee
+                            </Badge>
+                          )}
+                        </div>
                       </div>
+                      {payout.host_is_payee && (
+                        <p className="mt-2 text-[11px] text-red">
+                          This prize goes to the tournament host. Verify the bracket
+                          result before approving or releasing.
+                        </p>
+                      )}
                       <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
                         <div className="rounded-md bg-surface border border-border p-2">
                           <span className="text-text-muted">Platform fee</span>

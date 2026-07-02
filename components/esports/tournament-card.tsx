@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { Calendar, Clock, Users } from "lucide-react";
+import { AlertTriangle, Calendar, Clock, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { cn, formatPrice } from "@/lib/utils";
@@ -45,6 +45,14 @@ export const TournamentCard = memo(function TournamentCard({
     organizer?.trust_level === "verified" ||
     organizer?.trust_level === "trusted" ||
     organizer?.trust_level === "power";
+  const isPaidEntry = tournament.entry_fee > 0;
+  // Same condition the detail modal uses to gate registration warnings.
+  const unverifiedPaidWarning = Boolean(organizer) && !organizerVerified && isPaidEntry;
+  const teamSize = Number(tournament.team_size ?? 1);
+  const isTeamEvent = teamSize > 1;
+  const entryLabel = `${isTeamEvent ? `Team (${teamSize})` : "Solo"} · ${
+    isPaidEntry ? `${formatPrice(tournament.entry_fee)} entry` : "Free"
+  }`;
 
   return (
     <article
@@ -86,7 +94,26 @@ export const TournamentCard = memo(function TournamentCard({
       <h3 className="text-base font-bold font-heading tracking-tight text-text mb-1 group-hover:text-cyan transition-colors">
         {tournament.title}
       </h3>
-      <p className="text-xs text-text-muted mb-3">{tournament.game}</p>
+      <p className="text-xs text-text-muted mb-1.5">{tournament.game}</p>
+
+      {/* Entry format at a glance: "Solo · ₦2,000 entry" / "Team (5) · Free" */}
+      <p
+        className={cn(
+          "text-xs font-semibold mb-2",
+          isPaidEntry ? "text-magenta" : "text-green"
+        )}
+      >
+        {entryLabel}
+      </p>
+
+      {/* Paid entry from an unverified organizer — flag it before the click */}
+      {unverifiedPaidWarning && (
+        <p className="flex items-center gap-1.5 text-[10px] font-semibold text-gold bg-gold/10 border border-gold/25 rounded-md px-2 py-1 mb-2 w-fit">
+          <AlertTriangle size={11} aria-hidden="true" />
+          Paid entry · unverified organizer
+        </p>
+      )}
+
       {organizerName && (
         <p className="text-[11px] text-text-muted/80 mb-3 truncate">
           Hosted by <span className="text-text/80">{organizerName}</span>
@@ -136,8 +163,13 @@ export const TournamentCard = memo(function TournamentCard({
       <div className="pt-3 border-t border-border flex items-center justify-between">
         <div>
           <p className="text-[10px] uppercase tracking-widest text-text-muted mb-0.5">Entry</p>
-          <span className="text-sm font-bold font-heading text-magenta">
-            {formatPrice(tournament.entry_fee)}
+          <span
+            className={cn(
+              "text-sm font-bold font-heading",
+              isPaidEntry ? "text-magenta" : "text-green"
+            )}
+          >
+            {isPaidEntry ? formatPrice(tournament.entry_fee) : "Free"}
           </span>
         </div>
         <div className="text-right">

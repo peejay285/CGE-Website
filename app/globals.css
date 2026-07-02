@@ -14,11 +14,12 @@
   --color-green: #00FF88;
   --color-red: #FF4444;
 
-  /* Fonts */
-  --font-sans: "Sora", sans-serif;
-  --font-heading: "Orbitron", sans-serif;
-  --font-ui: "Rajdhani", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  /* Fonts — only Sora + Orbitron are loaded; UI text falls back to Sora
+     and mono falls back to the system monospace stack. */
+  --font-sans: var(--font-sora), "Sora", sans-serif;
+  --font-heading: var(--font-orbitron), "Orbitron", sans-serif;
+  --font-ui: var(--font-sora), "Sora", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 }
 
 /* Global Reset & Base */
@@ -177,11 +178,18 @@ body {
   background-clip: text;
 }
 
-/* Glass Effect */
+/* Glass Effect — solid semi-opaque below lg (backdrop-filter is expensive on
+   mobile GPUs); real glassmorphism only at lg+ */
 .glass {
-  background: rgba(17, 17, 19, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(17, 17, 19, 0.95);
+}
+
+@media (min-width: 1024px) {
+  .glass {
+    background: rgba(17, 17, 19, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
 }
 
 /* Dot Grid Background */
@@ -339,6 +347,24 @@ html {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Touch devices: kill decorative infinite/hover animations — they burn
+   battery and GPU on phones and there's no hover state to reward anyway */
+@media (hover: none) {
+  .animate-glow,
+  .animate-shimmer,
+  .animate-float,
+  .animate-gradientShift,
+  .animate-borderGlow,
+  .animate-subtleFloat {
+    animation: none !important;
+  }
+
+  .game-tile:hover {
+    transform: none;
+    box-shadow: none;
   }
 }
 

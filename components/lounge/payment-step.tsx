@@ -329,7 +329,7 @@ export function PaymentStep({ bookingData, onConfirm, onBack }: PaymentStepProps
 
       {/* Actions */}
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={onBack}>
+        <Button variant="ghost" className="min-h-11" onClick={onBack}>
           <ArrowLeft size={16} />
           Back
         </Button>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Smartphone } from "lucide-react";
 import { CGELogo } from "./cge-logo";
 import { Badge } from "@/components/ui/badge";
 import { BRAND } from "@/lib/constants";
@@ -144,6 +145,13 @@ export function Footer() {
           <p className="text-xs text-text-muted">
             &copy; {new Date().getFullYear()} {BRAND.name}. All rights reserved.
           </p>
+          <span
+            id="download"
+            className="inline-flex items-center gap-1.5 text-xs text-text-muted"
+          >
+            <Smartphone size={12} className="text-cyan" />
+            Mobile app coming soon
+          </span>
           <p className="text-xs text-text-muted">
             {BRAND.address}
           </p>

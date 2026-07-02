@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Sora, Orbitron, Rajdhani, JetBrains_Mono } from "next/font/google";
+import { Sora, Orbitron } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
@@ -25,18 +25,6 @@ const orbitron = Orbitron({
   variable: "--font-orbitron",
   subsets: ["latin"],
   weight: ["400", "600", "700", "900"],
-});
-
-const rajdhani = Rajdhani({
-  variable: "--font-rajdhani",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains",
-  subsets: ["latin"],
-  weight: ["400", "600"],
 });
 
 export const metadata: Metadata = {
@@ -96,7 +84,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${sora.variable} ${orbitron.variable} ${rajdhani.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+        className={`${sora.variable} ${orbitron.variable} font-sans antialiased`}
       >
         <StructuredData />
         <a

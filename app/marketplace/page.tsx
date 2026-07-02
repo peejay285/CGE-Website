@@ -187,6 +187,7 @@ export default function MarketplacePage() {
                   listing={listing}
                   onClick={() => mp.handleOpenListing(listing)}
                   onSave={() => mp.handleToggleSave(listing.id)}
+                  onSwap={() => mp.handleProposeSwap(listing)}
                 />
               </div>
             ))}

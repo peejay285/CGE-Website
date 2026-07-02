@@ -84,6 +84,17 @@ export function SwapProposalModal({
         </div>
       </div>
 
+      {/* Value comparison — shown as soon as an item is picked, before submit */}
+      {selectedListing && (
+        <SwapValueComparison
+          yourItem={selectedListing}
+          theirItem={targetListing}
+          yourLabel="You give"
+          theirLabel="You get"
+          className="mb-5"
+        />
+      )}
+
       {/* Own listings selection */}
       <div className="mb-4">
         <p className="text-xs font-medium uppercase tracking-wider text-text-muted mb-3">
@@ -171,17 +182,6 @@ export function SwapProposalModal({
           </div>
         )}
       </div>
-
-      {/* Value comparison once an item is picked */}
-      {selectedListing && (
-        <SwapValueComparison
-          yourItem={selectedListing}
-          theirItem={targetListing}
-          yourLabel="You give"
-          theirLabel="You get"
-          className="mb-5"
-        />
-      )}
 
       {/* Optional message */}
       {myListings.length > 0 && !loadingListings && (

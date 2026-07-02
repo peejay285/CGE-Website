@@ -59,7 +59,7 @@ export function DrinksAddon({ drinks, onChange, onNext, onBack }: DrinksAddonPro
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between rounded-xl border border-border bg-surface-alt px-4 py-3 mb-4 cursor-pointer hover:border-cyan/30 transition-colors"
+        className="w-full min-h-11 flex items-center justify-between rounded-xl border border-border bg-surface-alt px-4 py-3 mb-4 cursor-pointer hover:border-cyan/30 transition-colors"
       >
         <span className="text-sm font-semibold text-text">
           Add refreshments?
@@ -131,16 +131,16 @@ export function DrinksAddon({ drinks, onChange, onNext, onBack }: DrinksAddonPro
 
       {/* Actions */}
       <div className="flex items-center justify-between pt-6">
-        <Button variant="ghost" onClick={onBack}>
+        <Button variant="ghost" className="min-h-11" onClick={onBack}>
           <ArrowLeft size={16} />
           Back
         </Button>
 
         <div className="flex items-center gap-3">
-          <Button variant="secondary" onClick={onNext}>
+          <Button variant="secondary" className="min-h-11" onClick={onNext}>
             Skip
           </Button>
-          <Button variant="primary" onClick={onNext}>
+          <Button variant="primary" className="min-h-11" onClick={onNext}>
             Continue
             <ArrowRight size={16} />
           </Button>
@@ -175,7 +175,7 @@ function ItemRow({
           type="button"
           onClick={onDecrement}
           disabled={qty === 0}
-          className="w-8 h-8 rounded-lg border border-border bg-surface-alt flex items-center justify-center text-text-muted hover:text-text hover:border-cyan/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+          className="w-11 h-11 sm:w-8 sm:h-8 rounded-lg border border-border bg-surface-alt flex items-center justify-center text-text-muted hover:text-text hover:border-cyan/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
         >
           <Minus size={14} />
         </button>
@@ -187,7 +187,7 @@ function ItemRow({
         <button
           type="button"
           onClick={onIncrement}
-          className="w-8 h-8 rounded-lg border border-cyan/30 bg-cyan/10 flex items-center justify-center text-cyan hover:bg-cyan/20 transition-colors cursor-pointer"
+          className="w-11 h-11 sm:w-8 sm:h-8 rounded-lg border border-cyan/30 bg-cyan/10 flex items-center justify-center text-cyan hover:bg-cyan/20 transition-colors cursor-pointer"
         >
           <Plus size={14} />
         </button>

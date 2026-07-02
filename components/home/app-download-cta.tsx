@@ -11,9 +11,9 @@ export function AppDownloadCta() {
     <div className="relative rounded-2xl border border-border bg-surface overflow-hidden">
       {/* Background effects */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-0 w-[400px] h-[400px] bg-cyan/5 rounded-full blur-[150px]" />
-        <div className="absolute bottom-0 right-0 w-[350px] h-[350px] bg-magenta/5 rounded-full blur-[150px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-green/3 rounded-full blur-[120px]" />
+        <div className="absolute top-0 left-0 w-[400px] h-[400px] bg-cyan/5 rounded-full blur-[75px]" />
+        <div className="absolute bottom-0 right-0 w-[350px] h-[350px] bg-magenta/5 rounded-full blur-[75px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-green/3 rounded-full blur-[60px]" />
       </div>
 
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 px-6 sm:px-12 py-14 sm:py-16">

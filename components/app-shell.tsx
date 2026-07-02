@@ -5,7 +5,6 @@ import { Navbar } from "@/components/layout/navbar";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { Footer } from "@/components/layout/footer";
 import { AuthModal } from "@/components/auth/auth-modal";
-import { WhatsAppFAB } from "@/components/whatsapp-fab";
 import { AIConcierge } from "@/components/ai-concierge";
 import { GiveawayBanner } from "@/components/giveaway-banner";
 import { AppGateModal } from "@/components/ui/app-gate";
@@ -15,6 +14,9 @@ import { useMessages } from "@/hooks/use-messages";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  // Assume the tour is open until it reports otherwise — keeps the giveaway
+  // banner from flashing underneath it on first paint.
+  const [tourOpen, setTourOpen] = useState(true);
   const { user, signOut } = useAuth();
   const { unreadTotal, getUnreadCount, subscribeToUnread } = useMessages();
 
@@ -51,12 +53,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         onAuthClick={() => setAuthModalOpen(true)}
         unreadCount={unreadTotal}
       />
-      <WhatsAppFAB />
       <AIConcierge />
-      <GiveawayBanner />
+      {/* Suppress the giveaway banner while the onboarding tour is on screen */}
+      {!tourOpen && <GiveawayBanner />}
       <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       <AppGateModal />
-      <OnboardingTour isSignedIn={!!user} />
+      <OnboardingTour isSignedIn={!!user} onOpenChange={setTourOpen} />
     </>
   );
 }

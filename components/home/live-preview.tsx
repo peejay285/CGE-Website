@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   Trophy,
   ShoppingBag,
@@ -164,11 +165,12 @@ function ListingCard({ l }: { l: RawListing }) {
     >
       <div className="aspect-video bg-base relative">
         {img ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={img}
             alt={l.title}
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            className="object-cover"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-3xl">

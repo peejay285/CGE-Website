@@ -39,6 +39,7 @@ export function BookingForm({
   const [duration, setDuration] = useState(1);
   const [bookedSlots, setBookedSlots] = useState<Set<string>>(new Set());
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [slotsError, setSlotsError] = useState(false);
 
   const isVr = zone === "vr";
   const games = GAME_OPTIONS[zone] || [];
@@ -74,13 +75,15 @@ export function BookingForm({
     }
 
     setLoadingSlots(true);
+    setSlotsError(false);
     try {
       const supabase = createClient();
 
-      const { data: rows } = await supabase.rpc("get_slot_availability", {
+      const { data: rows, error } = await supabase.rpc("get_slot_availability", {
         p_zone_id: zone,
         p_booking_date: date,
       });
+      if (error) throw error;
 
       if (rows) {
         const byHour = new Map<number, { booked: number; capacity: number }>();
@@ -106,8 +109,10 @@ export function BookingForm({
         setBookedSlots(full);
       }
     } catch {
-      // Silently fail — slots just won't show availability
+      // Surface the failure — don't let users pick a slot that may
+      // actually be full.
       setBookedSlots(new Set());
+      setSlotsError(true);
     } finally {
       setLoadingSlots(false);
     }
@@ -134,7 +139,8 @@ export function BookingForm({
   // Price estimate
   const estimate = game ? getUnitPrice(game) * duration : 0;
 
-  const canContinue = game && date && time && duration > 0;
+  const canContinue =
+    game && date && time && duration > 0 && !loadingSlots && !slotsError;
 
   function handleSubmit() {
     if (!canContinue) return;
@@ -194,32 +200,73 @@ export function BookingForm({
               </span>
             )}
           </label>
-          <div className="flex flex-wrap gap-2">
-            {activeSlots.map((slot) => {
-              const isFull = bookedSlots.has(slot);
-
-              return (
-                <button
+          {slotsError ? (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-red/30 bg-red/5 px-4 py-3">
+              <p className="text-xs text-text-muted">
+                Couldn&apos;t check availability. Please retry before picking a
+                time.
+              </p>
+              <button
+                type="button"
+                onClick={fetchBookedSlots}
+                className="min-h-11 px-3.5 rounded-lg text-xs font-semibold tracking-wide border border-cyan/40 text-cyan hover:bg-cyan/5 transition-colors cursor-pointer whitespace-nowrap"
+              >
+                Retry
+              </button>
+            </div>
+          ) : loadingSlots ? (
+            /* Skeleton slots — availability is still resolving, so nothing
+               is tappable yet */
+            <div className="flex flex-wrap gap-2" aria-busy="true">
+              {activeSlots.map((slot) => (
+                <div
                   key={slot}
-                  type="button"
-                  onClick={() => !isFull && setTime(slot)}
-                  disabled={isFull}
-                  className={cn(
-                    "px-3.5 py-2 rounded-lg text-xs font-semibold tracking-wide border transition-all duration-200",
-                    isFull
-                      ? "bg-surface-alt/50 text-text-muted/30 border-border/50 line-through cursor-not-allowed"
-                      : time === slot
-                        ? "bg-cyan/15 text-cyan border-cyan shadow-[0_0_12px_rgba(0,240,255,0.15)] cursor-pointer"
-                        : "bg-surface-alt text-text-muted border-border hover:border-cyan/30 hover:text-text cursor-pointer"
-                  )}
-                  title={isFull ? "This slot is fully booked" : undefined}
-                >
-                  {slot}
-                </button>
-              );
-            })}
-          </div>
-          {bookedSlots.size > 0 && (
+                  className="min-h-11 w-[76px] rounded-lg bg-surface-alt border border-border animate-pulse"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {activeSlots.map((slot) => {
+                const isFull = bookedSlots.has(slot);
+                const isDisabled = isFull || !date;
+
+                return (
+                  <button
+                    key={slot}
+                    type="button"
+                    onClick={() => !isDisabled && setTime(slot)}
+                    disabled={isDisabled}
+                    className={cn(
+                      "min-h-11 px-3.5 py-2 rounded-lg text-xs font-semibold tracking-wide border transition-all duration-200",
+                      isFull
+                        ? "bg-surface-alt/50 text-text-muted/30 border-border/50 line-through cursor-not-allowed"
+                        : !date
+                          ? "bg-surface-alt/50 text-text-muted/40 border-border/50 cursor-not-allowed"
+                          : time === slot
+                            ? "bg-cyan/15 text-cyan border-cyan shadow-[0_0_12px_rgba(0,240,255,0.15)] cursor-pointer"
+                            : "bg-surface-alt text-text-muted border-border hover:border-cyan/30 hover:text-text cursor-pointer"
+                    )}
+                    title={
+                      isFull
+                        ? "This slot is fully booked"
+                        : !date
+                          ? "Pick a date first"
+                          : undefined
+                    }
+                  >
+                    {slot}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {!date && !loadingSlots && !slotsError && (
+            <p className="text-[11px] text-text-muted/60 mt-0.5">
+              Pick a date to see available times
+            </p>
+          )}
+          {date && !loadingSlots && !slotsError && bookedSlots.size > 0 && (
             <p className="text-[11px] text-text-muted/60 mt-0.5">
               Slots with strikethrough are fully booked
             </p>
@@ -256,12 +303,13 @@ export function BookingForm({
         {/* Actions */}
 
         <div className="flex items-center justify-between pt-4">
-          <Button variant="ghost" onClick={onBack}>
+          <Button variant="ghost" className="min-h-11" onClick={onBack}>
             <ArrowLeft size={16} />
             Back
           </Button>
           <Button
             variant="primary"
+            className="min-h-11"
             onClick={handleSubmit}
             disabled={!canContinue}
           >

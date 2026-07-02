@@ -159,7 +159,7 @@ export function BookingConfirmation({
             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(BRAND.address)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-cyan/30 bg-cyan/10 px-3 py-2 text-xs font-semibold text-cyan hover:bg-cyan/15 transition-colors"
+            className="inline-flex items-center justify-center gap-1.5 min-h-11 rounded-lg border border-cyan/30 bg-cyan/10 px-3 py-2 text-xs font-semibold text-cyan hover:bg-cyan/15 transition-colors"
           >
             <MapPin size={12} />
             Open in Maps
@@ -168,7 +168,7 @@ export function BookingConfirmation({
             href={BRAND.whatsapp}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-green/30 bg-green/10 px-3 py-2 text-xs font-semibold text-green hover:bg-green/15 transition-colors"
+            className="inline-flex items-center justify-center gap-1.5 min-h-11 rounded-lg border border-green/30 bg-green/10 px-3 py-2 text-xs font-semibold text-green hover:bg-green/15 transition-colors"
           >
             <MessageCircle size={12} />
             Message us
@@ -194,7 +194,7 @@ export function BookingConfirmation({
           href={bookingReceiptPath(bookingId, receiptToken)}
           className="block mb-4"
         >
-          <Button variant="primary" fullWidth>
+          <Button variant="primary" fullWidth className="min-h-11">
             <QrCode size={16} />
             View Receipt & QR Code
           </Button>
@@ -205,6 +205,7 @@ export function BookingConfirmation({
       <div className="grid grid-cols-2 gap-3">
         <Button
           variant="secondary"
+          className="min-h-11"
           onClick={() =>
             window.open(getCalendarUrl(bookingData), "_blank", "noopener")
           }
@@ -214,6 +215,7 @@ export function BookingConfirmation({
         </Button>
         <Button
           variant="secondary"
+          className="min-h-11"
           onClick={() =>
             window.open(
               getWhatsAppShareUrl(bookingData),
@@ -225,11 +227,11 @@ export function BookingConfirmation({
           <Share2 size={16} />
           Share
         </Button>
-        <Button variant="primary" onClick={onBookAnother}>
+        <Button variant="primary" className="min-h-11" onClick={onBookAnother}>
           <RotateCcw size={16} />
           Book Another
         </Button>
-        <Button variant="secondary" onClick={onGoHome}>
+        <Button variant="secondary" className="min-h-11" onClick={onGoHome}>
           <Home size={16} />
           Go Home
         </Button>

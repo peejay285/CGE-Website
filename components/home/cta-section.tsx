@@ -6,8 +6,8 @@ export function CtaSection() {
     <div className="relative rounded-2xl border border-border bg-surface overflow-hidden">
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[300px] h-[300px] bg-cyan/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-[250px] h-[250px] bg-magenta/5 rounded-full blur-[120px]" />
+        <div className="absolute top-0 left-1/4 w-[300px] h-[300px] bg-cyan/5 rounded-full blur-[60px]" />
+        <div className="absolute bottom-0 right-1/4 w-[250px] h-[250px] bg-magenta/5 rounded-full blur-[60px]" />
       </div>
 
       <div className="relative z-10 px-6 py-14 sm:px-12 sm:py-16 text-center">

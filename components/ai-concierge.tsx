@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BRAND } from "@/lib/constants";
 
 interface Message {
   from: "user" | "bot";
@@ -70,9 +71,10 @@ export function AIConcierge() {
 
   return (
     <>
-      {/* Toggle Button */}
+      {/* Toggle Button — single floating help entry point (concierge + WhatsApp) */}
       <button
         onClick={() => setOpen(!open)}
+        aria-label={open ? "Close help" : "Help"}
         className={cn(
           "fixed bottom-20 lg:bottom-6 right-6 z-50 flex items-center justify-center w-12 h-12 rounded-full shadow-lg transition-all cursor-pointer",
           open
@@ -87,9 +89,21 @@ export function AIConcierge() {
       {open && (
         <div className="fixed bottom-[8.5rem] lg:bottom-20 right-6 z-50 w-80 sm:w-96 rounded-xl border border-border bg-surface shadow-2xl animate-fadeIn overflow-hidden">
           {/* Header */}
-          <div className="px-4 py-3 bg-gradient-to-r from-cyan/10 to-transparent border-b border-border">
-            <p className="text-sm font-semibold">CGE Assistant</p>
-            <p className="text-[10px] text-text-muted">Powered by AI</p>
+          <div className="px-4 py-3 bg-gradient-to-r from-cyan/10 to-transparent border-b border-border flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">CGE Assistant</p>
+              <p className="text-[10px] text-text-muted">Powered by AI</p>
+            </div>
+            <a
+              href={BRAND.whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 rounded-lg bg-[#25D366]/15 border border-[#25D366]/30 text-[#25D366] text-[11px] font-semibold hover:bg-[#25D366]/25 transition-colors"
+              aria-label="Chat on WhatsApp"
+            >
+              <MessageCircle size={13} />
+              Chat on WhatsApp
+            </a>
           </div>
 
           {/* Messages */}

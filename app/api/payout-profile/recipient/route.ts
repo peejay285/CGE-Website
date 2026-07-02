@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { createTransferRecipient } from "@/lib/paystack";
 import { payoutProfileLimiter, rateLimit } from "@/lib/rate-limit";
+import { sendSMS } from "@/lib/sms";
 
 const payoutRecipientSchema = z.object({
   account_name: z.string().min(2).max(120),
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
     const serviceClient = createServiceRoleClient();
     const { data: currentProfile } = await serviceClient
       .from("profiles")
-      .select("payout_account_last4, payout_bank_name, payout_profile_verified_at")
+      .select("payout_account_last4, payout_bank_name, payout_profile_verified_at, phone")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -116,11 +117,57 @@ export async function POST(request: Request) {
       );
     }
 
+    const newBankName = details?.bank_name || bank_name || null;
+
+    // Audit trail: a silent payout-account swap is the classic
+    // prize-theft move, so record who changed what, from where.
+    // Service-role write only — the table has no insert RLS policy.
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+    const userAgent = request.headers.get("user-agent") || null;
+    const { error: auditError } = await serviceClient
+      .from("payout_recipient_changes")
+      .insert({
+        user_id: user.id,
+        old_account_last4: currentProfile?.payout_account_last4 ?? null,
+        old_bank_name: currentProfile?.payout_bank_name ?? null,
+        new_account_last4: accountLast4,
+        new_bank_name: newBankName,
+        ip,
+        user_agent: userAgent,
+      });
+    if (auditError) {
+      console.error("[payout-profile/recipient] audit insert failed", {
+        userId: user.id,
+        error: auditError.message,
+      });
+    }
+
+    // Notify the user their payout account changed. The app has no
+    // email provider wired up (no Resend/SendGrid/nodemailer), so the
+    // notice goes out over SMS via Termii — the same channel used for
+    // booking confirmations. Fire-and-forget: never block the response.
+    // TODO: also send an email once an email provider is added.
+    if (currentProfile?.phone) {
+      sendSMS({
+        to: currentProfile.phone as string,
+        body: `CGE security notice: your payout bank account was changed to ${
+          newBankName || "a new bank"
+        } ending ${accountLast4}. If this wasn't you, contact us on WhatsApp 08160658509 immediately.`,
+      }).catch((e) =>
+        console.error("[payout-profile/recipient] change SMS threw", {
+          message: e instanceof Error ? e.message : String(e),
+        })
+      );
+    }
+
     return NextResponse.json({
       recipient_code: recipient.data.recipient_code,
       account_name: details?.account_name || account_name,
-      bank_name: details?.bank_name || bank_name || null,
+      bank_name: newBankName,
       account_last4: accountLast4,
+      security_notice:
+        "Your payout account was updated. If you did not make this change, contact CGE support immediately.",
     });
   } catch (error) {
     console.error("[payout-profile/recipient] unhandled", {

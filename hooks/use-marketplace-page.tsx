@@ -246,15 +246,6 @@ export function useMarketplacePage() {
     };
   }, [user, profileLocationDefaulted]);
 
-  // Listen for share clipboard copy events from detail modal
-  useEffect(() => {
-    function handleShared() {
-      toast.success("Link copied to clipboard!");
-    }
-    window.addEventListener("listing-shared", handleShared);
-    return () => window.removeEventListener("listing-shared", handleShared);
-  }, []);
-
   // Debounce search input — avoids hammering the API on every keystroke
   useEffect(() => {
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
@@ -404,6 +395,32 @@ export function useMarketplacePage() {
     },
     [user, recordView, getSwapProposals]
   );
+
+  /* ── Deep link: /marketplace?listing=<id> opens the detail modal ── */
+
+  const deepLinkHandledRef = useRef(false);
+
+  useEffect(() => {
+    if (deepLinkHandledRef.current || loading) return;
+    const params = new URLSearchParams(window.location.search);
+    const listingId = params.get("listing");
+    if (!listingId) {
+      deepLinkHandledRef.current = true;
+      return;
+    }
+    const match = listings.find((l) => l.id === listingId);
+    if (!match) return; // may still arrive on a later page of results
+    deepLinkHandledRef.current = true;
+    handleOpenListing(match);
+    // Clean the param so refresh / back doesn't reopen the modal.
+    params.delete("listing");
+    const query = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${query ? `?${query}` : ""}`
+    );
+  }, [loading, listings, handleOpenListing]);
 
   /* ── Create listing ───────────────────────────────────── */
 

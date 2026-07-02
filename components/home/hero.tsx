@@ -8,10 +8,9 @@ export function Hero() {
       {/* Background effects */}
       <div className="absolute inset-0 bg-base">
         <div className="absolute inset-0 bg-gradient-to-br from-cyan/5 via-transparent to-magenta/5 animate-gradientShift" />
-        <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-cyan/8 rounded-full blur-[150px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-magenta/8 rounded-full blur-[150px]" />
+        <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-cyan/8 rounded-full blur-[75px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-magenta/8 rounded-full blur-[75px]" />
       </div>
-      <div className="absolute inset-0 dot-grid opacity-30" />
 
       {/* Hero content */}
       <div className="relative z-10 flex flex-col items-center justify-center px-4 md:px-6 text-center pt-12 pb-6 sm:pt-20 sm:pb-8">
@@ -55,25 +54,18 @@ export function Hero() {
           {/* Primary CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
             <Link
-              href="/esports"
-              className="inline-flex items-center justify-center gap-2 font-semibold font-sans uppercase tracking-wider rounded-lg transition-all duration-300 cursor-pointer hover:-translate-y-0.5 active:translate-y-0 bg-gradient-to-br from-cyan to-[#00C8D4] text-base hover:from-[#33F3FF] hover:to-cyan hover:shadow-[0_4px_20px_rgba(0,240,255,0.3)] px-8 py-3.5 text-[15px]"
-            >
-              <Trophy size={18} />
-              Join Tournaments
-            </Link>
-            <Link
-              href="/marketplace"
-              className="inline-flex items-center justify-center gap-2 font-semibold font-sans uppercase tracking-wider rounded-lg transition-all duration-300 cursor-pointer hover:-translate-y-0.5 active:translate-y-0 bg-transparent text-magenta border border-magenta/40 hover:bg-magenta/5 hover:shadow-[0_4px_20px_rgba(255,45,120,0.1)] px-8 py-3.5 text-[15px]"
-            >
-              <ShoppingBag size={18} />
-              Swap Gear
-            </Link>
-            <Link
               href="/lounge"
-              className="inline-flex items-center justify-center gap-2 font-semibold font-sans uppercase tracking-wider rounded-lg transition-all duration-300 cursor-pointer hover:-translate-y-0.5 active:translate-y-0 bg-transparent text-cyan border border-cyan/40 hover:bg-cyan/5 hover:shadow-[0_4px_20px_rgba(0,240,255,0.1)] px-8 py-3.5 text-[15px]"
+              className="inline-flex items-center justify-center gap-2 font-semibold font-sans uppercase tracking-wider rounded-lg transition-all duration-300 cursor-pointer hover:-translate-y-0.5 active:translate-y-0 bg-gradient-to-br from-cyan to-[#00C8D4] text-base hover:from-[#33F3FF] hover:to-cyan hover:shadow-[0_4px_20px_rgba(0,240,255,0.3)] px-8 py-3.5 text-[15px]"
             >
               Book a Session
               <ArrowRight size={16} />
+            </Link>
+            <Link
+              href="/esports"
+              className="inline-flex items-center justify-center gap-2 font-semibold font-sans uppercase tracking-wider rounded-lg transition-all duration-300 cursor-pointer hover:-translate-y-0.5 active:translate-y-0 bg-transparent text-magenta border border-magenta/40 hover:bg-magenta/5 hover:shadow-[0_4px_20px_rgba(255,45,120,0.1)] px-8 py-3.5 text-[15px]"
+            >
+              <Trophy size={18} />
+              Join Tournaments
             </Link>
           </div>
 

@@ -4,11 +4,12 @@ import { Suspense, useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
-import { ZONES } from "@/lib/constants";
+import { ZONES, BRAND } from "@/lib/constants";
 import { getUnitPrice, getBookingTotals } from "@/lib/pricing";
 import { useAuth } from "@/hooks/use-auth";
 import { useBookings } from "@/hooks/use-bookings";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { Button } from "@/components/ui/button";
 import { ZoneSelector } from "@/components/lounge/zone-selector";
 import { BookingForm } from "@/components/lounge/booking-form";
 import { DrinksAddon } from "@/components/lounge/drinks-addon";
@@ -24,7 +25,7 @@ const STEP_LABELS = ["Zone", "Details", "Extras", "Payment"];
 
 function LoungePageInner() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { createBooking, actionLoading, checkAvailability } = useBookings();
 
   // Booking wizard state
@@ -44,6 +45,18 @@ function LoungePageInner() {
   // Authoritative total from the created booking (includes any voucher
   // discount applied server-side). Falls back to the client estimate.
   const [confirmedTotal, setConfirmedTotal] = useState<number | null>(null);
+  // Guest picked a zone and hit continue — advance automatically once
+  // they finish signing in (their selections are preserved).
+  const [pendingAuthAdvance, setPendingAuthAdvance] = useState(false);
+  // Paystack redirect-back confirmation: "polling" while we wait for the
+  // webhook, "timeout" once the fast window has passed (we keep checking
+  // quietly in the background).
+  const [paymentPoll, setPaymentPoll] = useState<{
+    status: "polling" | "timeout";
+    reference: string;
+    bookingId: string | null;
+    receiptToken: string | null;
+  } | null>(null);
 
   // Derived values — single source of truth via lib/pricing.ts
   const zoneName = useMemo(() => {
@@ -71,8 +84,26 @@ function LoungePageInner() {
     setConfirmed(false);
     setBookingId(null);
     setReceiptToken(null);
+    // Ask guests to sign in before advancing — the zone they picked is
+    // preserved, and we continue automatically once they're signed in.
+    if (!user && !authLoading) {
+      setPendingAuthAdvance(true);
+      window.dispatchEvent(new CustomEvent("open-auth-modal"));
+      toast("Sign in to book — takes a minute", { icon: "🔒" });
+      return;
+    }
     setBookingStep(1);
   }
+
+  // Guest signed in mid-flow — pick up where they left off.
+  useEffect(() => {
+    if (user && pendingAuthAdvance) {
+      setPendingAuthAdvance(false);
+      if (zone) {
+        setBookingStep((step) => (step === 0 ? 1 : step));
+      }
+    }
+  }, [user, pendingAuthAdvance, zone]);
 
   function handleBookingFormNext(data: {
     game: string;
@@ -224,15 +255,27 @@ function LoungePageInner() {
   );
 
   // After a Paystack redirect-back: ?payment_ref=... — fetch the booking,
-  // poll briefly for the webhook, and pop the confirmation step.
+  // poll for the webhook (with backoff, ~60s), and pop the confirmation
+  // step. If it's still unconfirmed after the window we show a reassuring
+  // "still confirming" panel and keep checking quietly in the background.
   const searchParams = useSearchParams();
   useEffect(() => {
     const ref = searchParams.get("payment_ref");
     if (!ref) return;
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
     const supabase = createClient();
+    // Backoff schedule: fast at first, slower later (~60s total), then a
+    // steady background check every 15s so the page still flips to
+    // confirmed whenever the webhook lands.
+    const delays = [2000, 2000, 3000, 4000, 5000, 6000, 8000, 10000, 10000, 10000];
     let attempts = 0;
-    const maxAttempts = 6; // ~12 seconds
+    setPaymentPoll({
+      status: "polling",
+      reference: ref,
+      bookingId: null,
+      receiptToken: null,
+    });
     const tick = async () => {
       const { data: row } = await supabase
         .from("bookings")
@@ -261,30 +304,39 @@ function LoungePageInner() {
         setConfirmedTotal(r.total);
         setPayMethod("paystack");
         setConfirmed(true);
+        setPaymentPoll(null);
         setBookingStep(4);
         toast.success("Payment confirmed!");
         return;
       }
-      attempts++;
-      if (attempts < maxAttempts) {
-        setTimeout(tick, 2000);
-      } else if (row) {
-        // Don't strand the user on the zone selector — send them to the
-        // receipt page, which shows a clear PAID/UNPAID state, the booking
-        // reference, and refreshes to PAID once the webhook lands.
-        toast(
-          "Payment is processing — here's your booking receipt. It will show PAID once Paystack confirms.",
-          { icon: "⏳", duration: 6000 },
-        );
-        const pending = row as { id: string; receipt_token: string | null };
-        router.push(bookingReceiptPath(pending.id, pending.receipt_token));
+      if (attempts < delays.length) {
+        timer = setTimeout(tick, delays[attempts]);
+        attempts++;
+        return;
       }
+      // Fast window exhausted — reassure the user instead of dumping them
+      // back, and keep confirming automatically in the background.
+      const pending = row as { id: string; receipt_token: string | null } | null;
+      setPaymentPoll((prev) =>
+        prev &&
+        prev.status === "timeout" &&
+        prev.bookingId === (pending?.id ?? null)
+          ? prev
+          : {
+              status: "timeout",
+              reference: ref,
+              bookingId: pending?.id ?? null,
+              receiptToken: pending?.receipt_token ?? null,
+            },
+      );
+      timer = setTimeout(tick, 15000);
     };
     tick();
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
-  }, [searchParams, router]);
+  }, [searchParams]);
 
   function handleBookAnother() {
     setBookingStep(0);
@@ -307,6 +359,73 @@ function LoungePageInner() {
   }
 
   /* ---------- Render ---------- */
+
+  // Paystack redirect-back: show an explicit confirmation state instead of
+  // the wizard while we wait for the webhook.
+  if (paymentPoll) {
+    const displayRef = paymentPoll.bookingId ?? paymentPoll.reference;
+    return (
+      <div className="min-h-screen bg-base px-4 py-8 sm:px-6 lg:px-8">
+        <div className="max-w-lg mx-auto text-center pt-16">
+          <div className="mb-6 flex justify-center">
+            <div className="w-10 h-10 border-2 border-cyan border-t-transparent rounded-full animate-spin" />
+          </div>
+          {paymentPoll.status === "polling" ? (
+            <>
+              <h2 className="text-xl font-bold font-heading tracking-tight text-text mb-2">
+                Confirming your payment&hellip;
+              </h2>
+              <p className="text-sm text-text-muted">
+                Hang tight — this usually takes a few seconds.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-xl font-bold font-heading tracking-tight text-text mb-2">
+                Payment is taking a moment
+              </h2>
+              <p className="text-sm text-text-muted mb-2 leading-relaxed">
+                Paystack received your payment? It can take a minute to
+                confirm. Your booking reference is{" "}
+                <span className="font-mono text-cyan break-all">{displayRef}</span>
+                {" "}— we&apos;ll confirm automatically, or contact us if it
+                doesn&apos;t update.
+              </p>
+              <p className="text-xs text-text-muted mb-8">
+                You can safely keep this page open — it updates on its own.
+              </p>
+              <div className="flex flex-col items-center gap-3">
+                {paymentPoll.bookingId && (
+                  <Button
+                    variant="primary"
+                    className="min-h-11"
+                    onClick={() =>
+                      router.push(
+                        bookingReceiptPath(
+                          paymentPoll.bookingId as string,
+                          paymentPoll.receiptToken,
+                        ),
+                      )
+                    }
+                  >
+                    View Booking Receipt
+                  </Button>
+                )}
+                <a
+                  href={BRAND.whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center min-h-11 px-4 rounded-lg border border-green/30 bg-green/10 text-xs font-semibold text-green hover:bg-green/15 transition-colors"
+                >
+                  Contact Us on WhatsApp
+                </a>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-base px-4 py-8 sm:px-6 lg:px-8">
@@ -350,7 +469,36 @@ function LoungePageInner() {
 
         {/* Step 0: Zone Selector */}
         {bookingStep === 0 && (
-          <ZoneSelector selected={zone} onSelect={handleZoneSelect} />
+          <>
+            {/* Non-blocking sign-in notice for guests — auth is required
+                before advancing past this step */}
+            {!authLoading && !user && (
+              <div className="max-w-2xl mx-auto mb-6">
+                <div className="flex items-center gap-3 rounded-xl border border-cyan/20 bg-cyan/5 px-5 py-3.5">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-text">
+                      Sign in to book — takes a minute
+                    </p>
+                    <p className="text-xs text-text-muted">
+                      Browse freely; we&apos;ll ask you to sign in before you
+                      lock in a session.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const event = new CustomEvent("open-auth-modal");
+                      window.dispatchEvent(event);
+                    }}
+                    className="min-h-11 px-2 text-xs font-semibold text-cyan hover:text-cyan/80 transition-colors whitespace-nowrap cursor-pointer"
+                  >
+                    Sign In
+                  </button>
+                </div>
+              </div>
+            )}
+            <ZoneSelector selected={zone} onSelect={handleZoneSelect} />
+          </>
         )}
 
         {/* Step 1: Booking Form */}
@@ -379,7 +527,7 @@ function LoungePageInner() {
                       const event = new CustomEvent("open-auth-modal");
                       window.dispatchEvent(event);
                     }}
-                    className="text-xs font-semibold text-cyan hover:text-cyan/80 transition-colors whitespace-nowrap cursor-pointer"
+                    className="min-h-11 px-2 text-xs font-semibold text-cyan hover:text-cyan/80 transition-colors whitespace-nowrap cursor-pointer"
                   >
                     Sign In
                   </button>

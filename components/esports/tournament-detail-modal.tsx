@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Calendar, Clock, Gamepad2, Users, Trophy, Swords, Medal, Loader2, Settings, Video, CheckCircle, GitBranch, ShieldCheck, UserPlus } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Calendar, Clock, Gamepad2, Users, Trophy, Swords, Medal, Loader2, Settings, Share2, Video, CheckCircle, GitBranch, ShieldCheck, UserPlus } from "lucide-react";
+import toast from "react-hot-toast";
 import { Modal } from "@/components/ui/modal";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +61,32 @@ export function TournamentDetailModal({
 }: TournamentDetailModalProps) {
   const [showUnverifiedGate, setShowUnverifiedGate] = useState(false);
 
+  const handleShare = useCallback(async () => {
+    if (!tournament) return;
+    // Canonical shareable tournament page URL.
+    const shareUrl = `${window.location.origin}/esports/${tournament.id}`;
+    const shareText = `${tournament.title} — ${tournament.game} tournament on CGE Esports`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: tournament.title,
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch {
+        // User cancelled — do nothing
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Link copied to clipboard!");
+      } catch {
+        // Ignore
+      }
+    }
+  }, [tournament]);
+
   if (!tournament) return null;
 
   const emoji = getGameEmoji(tournament.game);
@@ -103,8 +130,124 @@ export function TournamentDetailModal({
     ? tournament.rules.split("\n").filter(Boolean)
     : DEFAULT_TOURNAMENT_RULES;
 
+  /* ── Main action (register / pay / withdraw states) ─────
+   * Rendered inline on desktop and inside a sticky bottom bar on
+   * mobile so the entry fee + CTA are visible at the decision moment. */
+  const actionSection =
+    isPast || tournament.status === "completed" || tournament.status === "cancelled" ? (
+      <Button fullWidth size="lg" variant="primary" disabled>
+        <Trophy size={16} />
+        Tournament Ended
+      </Button>
+    ) : isRegistered ? (
+      <div className="space-y-2">
+        {paymentPending ? (
+          <Button
+            fullWidth
+            size="lg"
+            variant="primary"
+            disabled={registerLoading}
+            onClick={() => onPayRegistration?.(tournament.id)}
+          >
+            {registerLoading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Starting payment...
+              </>
+            ) : (
+              <>
+                <Trophy size={16} />
+                Complete Payment
+              </>
+            )}
+          </Button>
+        ) : (
+          <Button fullWidth size="lg" variant="primary" disabled>
+            <Trophy size={16} />
+            Registered ✓
+          </Button>
+        )}
+        {paymentPending && (
+          <p className="text-[11px] text-center text-gold">
+            {isTeamEvent
+              ? "Your team slot is reserved while payment is pending."
+              : "Your slot is reserved while payment is pending."}
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={() => onUnregister?.(tournament.id)}
+          disabled={registerLoading}
+          className="w-full text-center text-[11px] text-text-muted hover:text-magenta transition-colors cursor-pointer py-1"
+        >
+          {registerLoading
+            ? "Withdrawing..."
+            : isTeamEvent
+              ? "Withdraw team from tournament"
+              : "Withdraw from tournament"}
+        </button>
+      </div>
+    ) : isFull ? (
+      <Button fullWidth size="lg" variant="primary" disabled>
+        <Users size={16} />
+        Tournament Full
+      </Button>
+    ) : tournament.status === "in_progress" ? (
+      <Button fullWidth size="lg" variant="primary" disabled>
+        <Swords size={16} />
+        Tournament In Progress
+      </Button>
+    ) : (
+      <Button
+        fullWidth
+        size="lg"
+        variant="primary"
+        disabled={registerLoading}
+        onClick={handleRegisterClick}
+      >
+        {registerLoading ? (
+          <>
+            <Loader2 size={16} className="animate-spin" />
+            {isTeamEvent ? "Registering team..." : "Registering..."}
+          </>
+        ) : (
+          <>
+            <Trophy size={16} />
+            {isTeamEvent
+              ? tournament.entry_fee > 0
+                ? "Pay & Register Team"
+                : "Register Team"
+              : tournament.entry_fee > 0
+                ? "Pay & Register"
+                : "Register Now"}
+          </>
+        )}
+      </Button>
+    );
+
+  /* ── Sticky bottom bar (mobile): entry fee + CTA always visible ── */
+  const stickyMobileActions = (
+    <div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-surface border-t border-border px-4 py-3 safe-area-pb">
+      <div className="flex items-center justify-between gap-3 mb-2.5">
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-text-muted">Entry Fee</p>
+          <p className="text-base font-bold font-heading text-magenta">
+            {tournament.entry_fee > 0 ? formatPrice(tournament.entry_fee) : "Free"}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] uppercase tracking-widest text-text-muted">Prize Pool</p>
+          <p className="text-base font-bold font-heading text-gold truncate max-w-[160px]">
+            {tournament.prize}
+          </p>
+        </div>
+      </div>
+      {actionSection}
+    </div>
+  );
+
   const content = (
-    <div>
+    <div className="pb-36 sm:pb-0">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <span className="text-5xl">{emoji}</span>
@@ -114,7 +257,17 @@ export function TournamentDetailModal({
             {tournament.title}
           </h3>
         </div>
-        <Badge color={status.color} size="md">{status.label}</Badge>
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          <Badge color={status.color} size="md">{status.label}</Badge>
+          <button
+            type="button"
+            onClick={handleShare}
+            className="p-2 rounded-lg bg-surface-alt border border-border hover:border-cyan/30 transition-all duration-200 cursor-pointer"
+            aria-label="Share tournament"
+          >
+            <Share2 size={16} className="text-text-muted hover:text-cyan transition-colors" />
+          </button>
+        </div>
       </div>
 
       {/* Organizer trust */}
@@ -354,97 +507,8 @@ export function TournamentDetailModal({
         </div>
       )}
 
-      {/* Action button */}
-      {isPast || tournament.status === "completed" || tournament.status === "cancelled" ? (
-        <Button fullWidth size="lg" variant="primary" disabled>
-          <Trophy size={16} />
-          Tournament Ended
-        </Button>
-      ) : isRegistered ? (
-        <div className="space-y-2">
-          {paymentPending ? (
-            <Button
-              fullWidth
-              size="lg"
-              variant="primary"
-              disabled={registerLoading}
-              onClick={() => onPayRegistration?.(tournament.id)}
-            >
-              {registerLoading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Starting payment...
-                </>
-              ) : (
-                <>
-                  <Trophy size={16} />
-                  Complete Payment
-                </>
-              )}
-            </Button>
-          ) : (
-            <Button fullWidth size="lg" variant="primary" disabled>
-              <Trophy size={16} />
-              Registered ✓
-            </Button>
-          )}
-          {paymentPending && (
-            <p className="text-[11px] text-center text-gold">
-              {isTeamEvent
-                ? "Your team slot is reserved while payment is pending."
-                : "Your slot is reserved while payment is pending."}
-            </p>
-          )}
-          <button
-            type="button"
-            onClick={() => onUnregister?.(tournament.id)}
-            disabled={registerLoading}
-            className="w-full text-center text-[11px] text-text-muted hover:text-magenta transition-colors cursor-pointer py-1"
-          >
-            {registerLoading
-              ? "Withdrawing..."
-              : isTeamEvent
-                ? "Withdraw team from tournament"
-                : "Withdraw from tournament"}
-          </button>
-        </div>
-      ) : isFull ? (
-        <Button fullWidth size="lg" variant="primary" disabled>
-          <Users size={16} />
-          Tournament Full
-        </Button>
-      ) : tournament.status === "in_progress" ? (
-        <Button fullWidth size="lg" variant="primary" disabled>
-          <Swords size={16} />
-          Tournament In Progress
-        </Button>
-      ) : (
-        <Button
-          fullWidth
-          size="lg"
-          variant="primary"
-          disabled={registerLoading}
-          onClick={handleRegisterClick}
-        >
-          {registerLoading ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              {isTeamEvent ? "Registering team..." : "Registering..."}
-            </>
-          ) : (
-            <>
-              <Trophy size={16} />
-              {isTeamEvent
-                ? tournament.entry_fee > 0
-                  ? "Pay & Register Team"
-                  : "Register Team"
-                : tournament.entry_fee > 0
-                  ? "Pay & Register"
-                  : "Register Now"}
-            </>
-          )}
-        </Button>
-      )}
+      {/* Action button (inline on desktop; mobile uses the sticky bar) */}
+      <div className="hidden sm:block">{actionSection}</div>
     </div>
   );
 
@@ -464,6 +528,8 @@ export function TournamentDetailModal({
           <div className="px-4 py-3">
             {content}
           </div>
+
+          {stickyMobileActions}
         </BottomSheet>
       </div>
 

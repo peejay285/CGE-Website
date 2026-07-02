@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   X,
   Trophy,
@@ -70,10 +70,12 @@ const STEPS: Step[] = [
 
 interface OnboardingTourProps {
   isSignedIn: boolean;
+  /** Reports whether the tour is currently on screen (e.g. to suppress other floating chrome). */
+  onOpenChange?: (open: boolean) => void;
 }
 
 // Shown to every first-time visitor, signed in or not — auth no longer gates the tour.
-export function OnboardingTour(_props: OnboardingTourProps) {
+export function OnboardingTour({ onOpenChange }: OnboardingTourProps) {
   const [open, setOpen] = useState(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -84,6 +86,10 @@ export function OnboardingTour(_props: OnboardingTourProps) {
   });
   const [step, setStep] = useState(0);
   const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    onOpenChange?.(open);
+  }, [open, onOpenChange]);
 
   function dismiss() {
     setOpen(false);

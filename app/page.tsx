@@ -1,12 +1,11 @@
 import { Hero } from "@/components/home/hero";
 import { StatsBar } from "@/components/home/stats-bar";
 import { LivePreview } from "@/components/home/live-preview";
-import { EsportsShowcase, MarketplaceShowcase, CommunityShowcase } from "@/components/home/feature-showcase";
+import { Pillars } from "@/components/home/pillars";
 import { HowItWorks } from "@/components/home/how-it-works";
 import { ZoneComparison } from "@/components/home/zone-comparison";
 import { PricingGrid } from "@/components/home/pricing-grid";
 import { Testimonials } from "@/components/home/testimonials";
-import { AppDownloadCta } from "@/components/home/app-download-cta";
 import { SectionTitle } from "@/components/ui/section-title";
 
 export default function Home() {
@@ -23,22 +22,20 @@ export default function Home() {
       {/* 3. Live preview — real tournaments, posts, listings (auto-hides if empty) */}
       <LivePreview />
 
-      {/* 4. Esports showcase — tournament system preview */}
+      {/* 4. Four pillars — esports, marketplace, community, lounge */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 py-20">
-        <EsportsShowcase />
+        <SectionTitle
+          eyebrow="The Platform"
+          title="FOUR WAYS TO PLAY"
+          subtitle="Compete in tournaments, trade gear, connect with gamers nationwide, or game in person at the lounge."
+          align="center"
+        />
+        <div className="mt-12">
+          <Pillars />
+        </div>
       </section>
 
-      {/* 4. Marketplace showcase — buy/sell/swap preview */}
-      <section className="max-w-7xl mx-auto px-4 md:px-6 py-20 border-t border-border/50">
-        <MarketplaceShowcase />
-      </section>
-
-      {/* 5. Community showcase — social features preview */}
-      <section className="max-w-7xl mx-auto px-4 md:px-6 py-20 border-t border-border/50">
-        <CommunityShowcase />
-      </section>
-
-      {/* 6. How It Works — 3 steps */}
+      {/* 5. How It Works — 3 steps */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 py-20 border-t border-border/50">
         <SectionTitle
           eyebrow="Get Started"
@@ -51,7 +48,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 7. Lounge — zones + pricing (the physical venue) */}
+      {/* 6. Lounge — zones + pricing (the physical venue) */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 py-20 border-t border-border/50">
         <SectionTitle
           eyebrow="The Lounge"
@@ -67,7 +64,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 8. Event highlights — real social proof */}
+      {/* 7. Event highlights — real social proof */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 py-20 border-t border-border/50">
         <SectionTitle
           eyebrow="Event Highlights"
@@ -78,12 +75,6 @@ export default function Home() {
         <div className="mt-8">
           <Testimonials />
         </div>
-      </section>
-
-      {/* 9. Companion app CTA */}
-      <section id="download" className="max-w-7xl mx-auto px-4 md:px-6 py-20 border-t border-border/50">
-
-        <AppDownloadCta />
       </section>
     </>
   );
