@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { Camera, ArrowLeftRight, Heart, Eye, Sparkles, MapPin, ShieldCheck, Crown, BadgeCheck, Shield, Trophy, Star } from "lucide-react";
 import { cn, formatPrice, timeAgo } from "@/lib/utils";
+import { getConditionConfig } from "@/lib/constants";
 import { ImageSkeleton } from "@/components/ui/image-skeleton";
 import { CategoryIcon, getCategoryConfig } from "@/components/ui/category-icon";
 import type { MarketplaceListing } from "@/lib/types";
@@ -19,13 +20,6 @@ function isNewListing(createdAt: string): boolean {
   const hoursSinceCreated =
     (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
   return hoursSinceCreated < 24;
-}
-
-function getConditionStyle(condition: string) {
-  if (condition === "New") return "bg-green/15 text-green border-green/25";
-  if (condition.includes("Like New")) return "bg-cyan/15 text-cyan border-cyan/25";
-  if (condition.includes("Good")) return "bg-gold/15 text-gold border-gold/25";
-  return "bg-magenta/15 text-magenta border-magenta/25";
 }
 
 // Inline trust badge config for listing cards
@@ -236,10 +230,10 @@ export const ListingCard = memo(function ListingCard({ listing, onClick, onSave,
           <span
             className={cn(
               "inline-flex items-center text-[9px] font-semibold rounded-md px-1.5 py-0.5 border",
-              getConditionStyle(listing.condition)
+              getConditionConfig(listing.condition).tagClass
             )}
           >
-            {listing.condition}
+            {getConditionConfig(listing.condition).label}
           </span>
           <span className="inline-flex items-center gap-0.5 text-[9px] font-medium text-text-muted bg-surface-alt rounded-md px-1.5 py-0.5 border border-border">
             <CategoryIcon category={listing.category} size={9} />

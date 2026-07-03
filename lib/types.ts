@@ -417,12 +417,22 @@ export interface Event {
   created_at: string;
 }
 
+/**
+ * Nigerian market condition taxonomy (Jiji pattern).
+ * Canonical stored values — legacy rows may still hold old free-text values
+ * ("New", "Used - Like New", ...) until the condition taxonomy migration runs;
+ * normalizeListingCondition() in lib/constants.ts maps them at render time.
+ */
+export type ListingCondition = "brand_new" | "foreign_used" | "local_used";
+
 export interface MarketplaceListing {
   id: string;
   user_id: string;
   title: string;
   price: number;
-  condition: string;
+  // `(string & {})` keeps legacy free-text values assignable while still
+  // surfacing the canonical union in autocomplete.
+  condition: ListingCondition | (string & {});
   category: string;
   description: string | null;
   images: string[];

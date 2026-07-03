@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import {
   MARKETPLACE_CATEGORIES,
   LISTING_CONDITIONS,
+  LISTING_CONDITION_CONFIG,
+  getConditionConfig,
   SWAP_SUGGESTIONS,
   NIGERIAN_STATES,
   PREMIUM_LIMITS,
@@ -87,7 +89,7 @@ export function CreateListingModal({
 
   const conditionOptions = LISTING_CONDITIONS.map((cond) => ({
     value: cond,
-    label: cond,
+    label: LISTING_CONDITION_CONFIG[cond].label,
   }));
 
   function addSwapTag(tag: string) {
@@ -463,12 +465,19 @@ export function CreateListingModal({
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           />
-          <Select
-            label="Condition"
-            options={conditionOptions}
-            value={condition}
-            onChange={(e) => setCondition(e.target.value)}
-          />
+          <div>
+            <Select
+              label="Condition"
+              options={conditionOptions}
+              value={condition}
+              onChange={(e) => setCondition(e.target.value)}
+            />
+            <p className="text-[11px] text-text-muted/60 mt-1">
+              {condition
+                ? getConditionConfig(condition).helper
+                : "Foreign Used = imported second-hand (UK/US used)"}
+            </p>
+          </div>
         </div>
 
         {/* Location */}

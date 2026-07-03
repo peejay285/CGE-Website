@@ -38,6 +38,11 @@ const LeaveReviewModal = dynamic(
   () => import("@/components/marketplace/leave-review-modal").then((m) => ({ default: m.LeaveReviewModal })),
   { ssr: false }
 );
+// Swap Matches — lazy loaded; only relevant to signed-in users with listings
+const SwapMatchesSection = dynamic(
+  () => import("@/components/marketplace/swap-matches-section").then((m) => ({ default: m.SwapMatchesSection })),
+  { ssr: false }
+);
 import {
   useMarketplacePage,
   SORT_OPTIONS,
@@ -103,11 +108,22 @@ export default function MarketplacePage() {
           onListingClick={mp.handleOpenListing}
         />
 
+        {/* Swap Matches — reverse browsing for users with active listings */}
+        {mp.user && (
+          <SwapMatchesSection
+            onListingClick={mp.handleOpenListing}
+            onSwap={mp.handleProposeSwap}
+            onSave={mp.handleToggleSave}
+          />
+        )}
+
         <ListingFilters
           search={mp.search}
           onSearchChange={mp.setSearch}
           listingTypeFilter={mp.listingTypeFilter}
           onListingTypeFilterChange={mp.setListingTypeFilter}
+          conditionFilter={mp.conditionFilter}
+          onConditionFilterChange={mp.setConditionFilter}
           isSignedIn={!!mp.user}
           priceRange={mp.priceRange}
           onPriceRangeChange={mp.setPriceRange}
@@ -205,12 +221,12 @@ export default function MarketplacePage() {
                   : "No listings found"
               }
               subtitle={
-                mp.search || mp.category !== "All" || mp.listingTypeFilter !== "all"
+                mp.search || mp.category !== "All" || mp.listingTypeFilter !== "all" || mp.conditionFilter
                   ? "Try adjusting your search or filters"
                   : "We're seeding the first listings with our beta cohort. The marketplace opens nationwide when beta launches — list your gear early to be ready."
               }
               action={
-                mp.search || mp.category !== "All" || mp.listingTypeFilter !== "all"
+                mp.search || mp.category !== "All" || mp.listingTypeFilter !== "all" || mp.conditionFilter
                   ? { label: "Clear Filters", onClick: mp.handleClearFilters }
                   : { label: "List Something", onClick: () => mp.openAuthOrAction(() => mp.setCreateOpen(true)) }
               }

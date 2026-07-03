@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Calendar, Clock, Gamepad2, Users, Trophy, Swords, Medal, Loader2, Settings, Share2, Video, CheckCircle, GitBranch, ShieldCheck, UserPlus } from "lucide-react";
 import toast from "react-hot-toast";
 import { Modal } from "@/components/ui/modal";
@@ -9,17 +9,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { UnverifiedOrganizerDialog } from "@/components/esports/unverified-organizer-dialog";
-import { formatPrice, sanitizeUrl } from "@/lib/utils";
+import { cn, formatPrice, sanitizeUrl } from "@/lib/utils";
 import {
   getGameEmoji,
   STATUS_CONFIG,
-  getCountdown,
   getFilledCount,
+  getPayoutDistribution,
+  estimatePrizePool,
+  placementAmount,
+  formatPlacement,
   DEFAULT_TOURNAMENT_RULES,
   formatTournamentDate,
   formatTournamentTime,
 } from "@/lib/esports-utils";
 import type { TournamentWithCount } from "@/lib/esports-utils";
+import { useCountdown } from "@/hooks/use-countdown";
 import type { Team, TournamentRegistration, TournamentTeamRegistration } from "@/lib/types";
 
 interface TournamentDetailModalProps {
@@ -60,6 +64,33 @@ export function TournamentDetailModal({
   onManage,
 }: TournamentDetailModalProps) {
   const [showUnverifiedGate, setShowUnverifiedGate] = useState(false);
+  // Client-side gate (Battlefy pattern): must confirm the rules before
+  // the register CTA unlocks. Nothing is stored server-side.
+  const [rulesAgreed, setRulesAgreed] = useState(false);
+
+  // Reset the agreement whenever a different tournament opens.
+  useEffect(() => {
+    setRulesAgreed(false);
+  }, [tournament?.id, open]);
+
+  // Live countdown — hooks must run before the early return below.
+  const liveCountdown = useCountdown(
+    tournament?.date ?? "",
+    tournament?.time ?? "",
+    Boolean(tournament) && tournament?.status === "open"
+  );
+
+  // The rules section renders twice (desktop Modal + mobile BottomSheet),
+  // so scroll to whichever instance is actually visible.
+  const scrollToRules = useCallback(() => {
+    const nodes = document.querySelectorAll<HTMLElement>("[data-tournament-rules]");
+    for (const node of nodes) {
+      if (node.offsetParent !== null) {
+        node.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+    }
+  }, []);
 
   const handleShare = useCallback(async () => {
     if (!tournament) return;
@@ -101,7 +132,20 @@ export function TournamentDetailModal({
   );
   const teamMissingCount = Math.max(0, requiredTeamSize - resolvedTeamMemberCount);
   const filledCount = getFilledCount(tournament);
-  const countdown = getCountdown(tournament.date, tournament.time);
+  const countdown = liveCountdown;
+  const distribution = getPayoutDistribution(tournament);
+  const pool = estimatePrizePool(tournament);
+  const isDynamicPool = pool.isEstimate && tournament.entry_fee > 0;
+  // Compact "1st ₦X · 2nd ₦Y · 3rd ₦Z" line (percent-only when no pool yet).
+  const breakdownLine = distribution
+    .map((entry) =>
+      pool.amount > 0
+        ? `${formatPlacement(entry.place)} ${formatPrice(
+            placementAmount(pool.amount, entry.percent)
+          )}`
+        : `${formatPlacement(entry.place)} ${entry.percent}%`
+    )
+    .join(" · ");
   const organizer = tournament.organizer;
   const organizerName = organizer?.gamertag || organizer?.full_name || "Organizer";
   const organizerVerified =
@@ -119,6 +163,7 @@ export function TournamentDetailModal({
   const shouldWarnUnverified = Boolean(organizer) && !organizerVerified && !isHost;
 
   function handleRegisterClick() {
+    if (!rulesAgreed) return;
     if (shouldWarnUnverified) {
       setShowUnverifiedGate(true);
       return;
@@ -198,31 +243,57 @@ export function TournamentDetailModal({
         Tournament In Progress
       </Button>
     ) : (
-      <Button
-        fullWidth
-        size="lg"
-        variant="primary"
-        disabled={registerLoading}
-        onClick={handleRegisterClick}
-      >
-        {registerLoading ? (
-          <>
-            <Loader2 size={16} className="animate-spin" />
-            {isTeamEvent ? "Registering team..." : "Registering..."}
-          </>
-        ) : (
-          <>
-            <Trophy size={16} />
-            {isTeamEvent
-              ? tournament.entry_fee > 0
-                ? "Pay & Register Team"
-                : "Register Team"
-              : tournament.entry_fee > 0
-                ? "Pay & Register"
-                : "Register Now"}
-          </>
-        )}
-      </Button>
+      <div className="space-y-2.5">
+        {/* Rules agreement gate — the CTA stays locked until checked */}
+        <label className="flex items-start gap-2.5 rounded-lg border border-border bg-surface-alt px-3 py-2.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={rulesAgreed}
+            onChange={(e) => setRulesAgreed(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-cyan cursor-pointer"
+          />
+          <span className="text-[11px] leading-relaxed text-text-muted">
+            I have read the{" "}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                scrollToRules();
+              }}
+              className="text-cyan underline underline-offset-2 hover:text-cyan/80 cursor-pointer"
+            >
+              tournament rules
+            </button>{" "}
+            and agree to them
+          </span>
+        </label>
+        <Button
+          fullWidth
+          size="lg"
+          variant="primary"
+          disabled={registerLoading || !rulesAgreed}
+          onClick={handleRegisterClick}
+        >
+          {registerLoading ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              {isTeamEvent ? "Registering team..." : "Registering..."}
+            </>
+          ) : (
+            <>
+              <Trophy size={16} />
+              {isTeamEvent
+                ? tournament.entry_fee > 0
+                  ? "Pay & Register Team"
+                  : "Register Team"
+                : tournament.entry_fee > 0
+                  ? "Pay & Register"
+                  : "Register Now"}
+            </>
+          )}
+        </Button>
+      </div>
     );
 
   /* ── Sticky bottom bar (mobile): entry fee + CTA always visible ── */
@@ -411,6 +482,20 @@ export function TournamentDetailModal({
         </div>
       </div>
 
+      {/* Prize breakdown: per-placement amounts from distribution + pool */}
+      {breakdownLine && (
+        <div className="-mt-3 mb-6 rounded-lg border border-gold/15 bg-gold/5 px-3 py-2 text-center">
+          <p className="text-xs font-semibold text-gold">{breakdownLine}</p>
+          {isDynamicPool && (
+            <p className="mt-0.5 text-[10px] text-text-muted">
+              {pool.amount > 0
+                ? `Based on the current pool estimate of ${formatPrice(pool.amount)} from paid entries — grows as more players register.`
+                : "Amounts are set from the prize pool once paid entries come in."}
+            </p>
+          )}
+        </div>
+      )}
+
       {tournament.entry_fee > 0 && (
         <div className="mb-6 rounded-lg border border-cyan/20 bg-cyan/5 p-3">
           <div className="flex items-start gap-2.5">
@@ -452,26 +537,54 @@ export function TournamentDetailModal({
           Prize Distribution
         </h4>
         <div className="grid grid-cols-3 gap-2">
-          <div className="p-3 rounded-lg bg-surface-alt border border-gold/20 text-center">
-            <p className="text-lg mb-1">{"\uD83E\uDD47"}</p>
-            <p className="text-[10px] uppercase tracking-widest text-text-muted mb-0.5">1st Place</p>
-            <p className="text-sm font-bold font-heading text-gold">60%</p>
-          </div>
-          <div className="p-3 rounded-lg bg-surface-alt border border-border text-center">
-            <p className="text-lg mb-1">{"\uD83E\uDD48"}</p>
-            <p className="text-[10px] uppercase tracking-widest text-text-muted mb-0.5">2nd Place</p>
-            <p className="text-sm font-bold font-heading text-text">25%</p>
-          </div>
-          <div className="p-3 rounded-lg bg-surface-alt border border-border text-center">
-            <p className="text-lg mb-1">{"\uD83E\uDD49"}</p>
-            <p className="text-[10px] uppercase tracking-widest text-text-muted mb-0.5">3rd Place</p>
-            <p className="text-sm font-bold font-heading text-text">15%</p>
-          </div>
+          {distribution.map((entry) => {
+            const medal =
+              entry.place === 1
+                ? "\uD83E\uDD47"
+                : entry.place === 2
+                  ? "\uD83E\uDD48"
+                  : entry.place === 3
+                    ? "\uD83E\uDD49"
+                    : "\uD83C\uDFC5";
+            const amount =
+              pool.amount > 0 ? placementAmount(pool.amount, entry.percent) : 0;
+            return (
+              <div
+                key={entry.place}
+                className={cn(
+                  "p-3 rounded-lg bg-surface-alt border text-center",
+                  entry.place === 1 ? "border-gold/20" : "border-border"
+                )}
+              >
+                <p className="text-lg mb-1">{medal}</p>
+                <p className="text-[10px] uppercase tracking-widest text-text-muted mb-0.5">
+                  {entry.label || `${formatPlacement(entry.place)} Place`}
+                </p>
+                <p
+                  className={cn(
+                    "text-sm font-bold font-heading",
+                    entry.place === 1 ? "text-gold" : "text-text"
+                  )}
+                >
+                  {amount > 0 ? formatPrice(amount) : `${entry.percent}%`}
+                </p>
+                {amount > 0 && (
+                  <p className="text-[10px] text-text-muted mt-0.5">{entry.percent}%</p>
+                )}
+              </div>
+            );
+          })}
         </div>
+        {isDynamicPool && pool.amount > 0 && (
+          <p className="mt-2 text-[10px] text-text-muted">
+            Estimated from paid entries so far. Final amounts are confirmed when the
+            tournament completes.
+          </p>
+        )}
       </div>
 
       {/* Rules */}
-      <div className="mb-6">
+      <div className="mb-6 scroll-mt-4" data-tournament-rules>
         <h4 className="text-xs font-semibold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
           <Medal size={14} className="text-cyan" />
           Tournament Rules

@@ -8,12 +8,16 @@ import { cn, formatPrice } from "@/lib/utils";
 import {
   getGameEmoji,
   STATUS_CONFIG,
-  getCountdown,
   getFilledCount,
+  getPayoutDistribution,
+  estimatePrizePool,
+  placementAmount,
+  formatPlacement,
   formatTournamentDate,
   formatTournamentTime,
 } from "@/lib/esports-utils";
 import type { TournamentWithCount } from "@/lib/esports-utils";
+import { useCountdown } from "@/hooks/use-countdown";
 
 interface TournamentCardProps {
   tournament: TournamentWithCount;
@@ -37,7 +41,12 @@ export const TournamentCard = memo(function TournamentCard({
   const filledCount = getFilledCount(tournament);
   const isFull = filledCount >= tournament.slots;
   const progressColor = isFull ? "var(--color-red)" : "var(--color-cyan)";
-  const countdown = getCountdown(tournament.date, tournament.time);
+  // Live countdown — only ticks for open (upcoming) tournaments.
+  const countdown = useCountdown(
+    tournament.date,
+    tournament.time,
+    tournament.status === "open" && !isPast
+  );
   const organizer = tournament.organizer;
   const organizerName = organizer?.gamertag || organizer?.full_name;
   const organizerVerified =
@@ -53,6 +62,16 @@ export const TournamentCard = memo(function TournamentCard({
   const entryLabel = `${isTeamEvent ? `Team (${teamSize})` : "Solo"} · ${
     isPaidEntry ? `${formatPrice(tournament.entry_fee)} entry` : "Free"
   }`;
+  // Compact prize breakdown hint: "1st ₦X" from distribution + pool estimate.
+  const distribution = getPayoutDistribution(tournament);
+  const pool = estimatePrizePool(tournament);
+  const firstPlace = distribution.find((entry) => entry.place === 1);
+  const firstPlaceHint =
+    firstPlace && pool.amount > 0
+      ? `${formatPlacement(firstPlace.place)} ${formatPrice(
+          placementAmount(pool.amount, firstPlace.percent)
+        )}`
+      : null;
 
   return (
     <article
@@ -174,9 +193,15 @@ export const TournamentCard = memo(function TournamentCard({
         </div>
         <div className="text-right">
           <p className="text-[10px] uppercase tracking-widest text-text-muted mb-0.5">Prize</p>
-          <span className="text-sm font-bold font-heading text-gold">
+          <span className="text-lg font-bold font-heading text-gold leading-tight">
             {tournament.prize}
           </span>
+          {firstPlaceHint && (
+            <p className="text-[10px] font-semibold text-gold/80 mt-0.5">
+              {firstPlaceHint}
+              {pool.isEstimate ? " est." : ""}
+            </p>
+          )}
         </div>
       </div>
     </article>

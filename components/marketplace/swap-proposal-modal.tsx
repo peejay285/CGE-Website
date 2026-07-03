@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { getConditionConfig } from "@/lib/constants";
 import type { MarketplaceListing } from "@/lib/types";
 import { SafetyDisclaimerBanner } from "./safety-disclaimer-banner";
 import { SwapValueComparison } from "./swap-value-comparison";
@@ -78,7 +79,7 @@ export function SwapProposalModal({
               {targetListing.title}
             </h4>
             <Badge color="magenta" size="sm" className="mt-0.5">
-              {targetListing.condition}
+              {getConditionConfig(targetListing.condition).label}
             </Badge>
           </div>
         </div>
@@ -173,7 +174,7 @@ export function SwapProposalModal({
                       {listing.title}
                     </h4>
                     <Badge color="magenta" size="sm" className="mt-1">
-                      {listing.condition}
+                      {getConditionConfig(listing.condition).label}
                     </Badge>
                   </div>
                 </button>

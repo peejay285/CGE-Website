@@ -19,6 +19,7 @@ import {
   Crown,
   Camera,
   Wallet,
+  Landmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -120,6 +121,13 @@ export default function ProfilePage() {
     },
     {
       icon: Wallet,
+      label: "Wallet",
+      description: "Tournament winnings & payout status",
+      href: "/profile/wallet",
+      color: "text-gold",
+    },
+    {
+      icon: Landmark,
       label: "Payout Account",
       description: profile.payout_profile_verified_at
         ? "Ready for tournament prize releases"

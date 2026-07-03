@@ -31,24 +31,36 @@ export function Hero() {
           </h1>
 
           <p className="text-text-muted text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-8 leading-relaxed">
-            Host tournaments, compete, buy, sell, swap gear, join the community,
-            and book CGE lounge sessions directly from the web.
+            Book a gaming session, join a tournament, or swap your gear — all
+            in one place.
           </p>
 
           {/* Four pillars */}
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 mb-8">
-            <span className="inline-flex items-center gap-1.5 text-xs font-ui font-medium uppercase tracking-wider text-text-muted/70">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 sm:gap-x-4 mb-8">
+            <Link
+              href="/esports"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-transparent text-xs font-ui font-medium uppercase tracking-wider text-text-muted/70 transition-colors duration-200 hover:text-magenta hover:border-magenta/30 hover:bg-magenta/5 active:bg-magenta/10"
+            >
               <Trophy size={14} className="text-magenta" /> Esports
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-xs font-ui font-medium uppercase tracking-wider text-text-muted/70">
+            </Link>
+            <Link
+              href="/marketplace"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-transparent text-xs font-ui font-medium uppercase tracking-wider text-text-muted/70 transition-colors duration-200 hover:text-cyan hover:border-cyan/30 hover:bg-cyan/5 active:bg-cyan/10"
+            >
               <ShoppingBag size={14} className="text-cyan" /> Marketplace
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-xs font-ui font-medium uppercase tracking-wider text-text-muted/70">
+            </Link>
+            <Link
+              href="/community"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-transparent text-xs font-ui font-medium uppercase tracking-wider text-text-muted/70 transition-colors duration-200 hover:text-green hover:border-green/30 hover:bg-green/5 active:bg-green/10"
+            >
               <Users size={14} className="text-green" /> Community
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-xs font-ui font-medium uppercase tracking-wider text-text-muted/70">
+            </Link>
+            <Link
+              href="/lounge"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-transparent text-xs font-ui font-medium uppercase tracking-wider text-text-muted/70 transition-colors duration-200 hover:text-gold hover:border-gold/30 hover:bg-gold/5 active:bg-gold/10"
+            >
               <Gamepad2 size={14} className="text-gold" /> Lounge
-            </span>
+            </Link>
           </div>
 
           {/* Primary CTAs */}
@@ -68,6 +80,19 @@ export function Hero() {
               Join Tournaments
             </Link>
           </div>
+
+          {/* Swap hook */}
+          <Link
+            href="/marketplace"
+            className="group inline-flex items-center gap-1.5 mb-4 text-xs text-magenta/80 hover:text-magenta transition-colors duration-200"
+          >
+            <span aria-hidden>🔄</span>
+            <span className="border-b border-magenta/25 group-hover:border-magenta/60 transition-colors duration-200">
+              Nigeria&apos;s first swap-first gaming marketplace — trade your
+              PS4 for a PS5
+            </span>
+            <span aria-hidden>→</span>
+          </Link>
 
           <p className="text-text-muted/40 text-xs tracking-wide">
             Full web platform now. Mobile app perks are coming for alerts, check-ins, and rewards.

@@ -4,7 +4,7 @@ import { Suspense, useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
-import { ZONES, BRAND } from "@/lib/constants";
+import { ZONES, BRAND, RESCHEDULE_POLICY } from "@/lib/constants";
 import { getUnitPrice, getBookingTotals } from "@/lib/pricing";
 import { useAuth } from "@/hooks/use-auth";
 import { useBookings } from "@/hooks/use-bookings";
@@ -498,6 +498,19 @@ function LoungePageInner() {
               </div>
             )}
             <ZoneSelector selected={zone} onSelect={handleZoneSelect} />
+            {/* Reschedule policy — visible before anyone pays */}
+            <p className="text-center text-xs text-text-muted/60 mt-6">
+              {RESCHEDULE_POLICY.shortLead} —{" "}
+              <a
+                href={BRAND.whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 hover:text-text-muted transition-colors"
+              >
+                message us on WhatsApp
+              </a>
+              .
+            </p>
           </>
         )}
 

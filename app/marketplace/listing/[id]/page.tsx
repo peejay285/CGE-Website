@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import type { MarketplaceListing } from "@/lib/types";
+import { getConditionConfig } from "@/lib/constants";
 import ListingDetailPageClient from "./listing-detail-page-client";
 
 const LISTING_SELECT =
@@ -71,7 +72,7 @@ export async function generateMetadata({
     } else if (typeof data.price === "number" && data.price > 0) {
       detailParts.push(`₦${data.price.toLocaleString()}`);
     }
-    if (data.condition) detailParts.push(data.condition);
+    if (data.condition) detailParts.push(getConditionConfig(data.condition).label);
     if (data.category) detailParts.push(data.category);
     const description = `${detailParts.join(" · ")}${
       detailParts.length > 0 ? ". " : ""

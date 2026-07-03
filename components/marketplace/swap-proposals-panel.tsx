@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { timeAgo, getInitials } from "@/lib/utils";
+import { getConditionConfig } from "@/lib/constants";
 import { SwapStateTracker } from "./swap-state-tracker";
 import { SwapValueComparison } from "./swap-value-comparison";
 import { SwapAssistPanel } from "./swap-assist-panel";
@@ -31,12 +32,6 @@ const categoryEmojis: Record<string, string> = {
   Consoles: "🖥️",
 };
 
-const conditionColor = (condition: string) => {
-  if (condition === "New") return "green" as const;
-  if (condition.includes("Like New")) return "cyan" as const;
-  if (condition.includes("Good")) return "gold" as const;
-  return "magenta" as const;
-};
 
 const statusColor = (status: SwapProposalStatus) => {
   switch (status) {
@@ -213,8 +208,8 @@ function ProposalCard({
           </p>
           <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
             {offered?.condition && (
-              <Badge color={conditionColor(offered.condition)} size="sm">
-                {offered.condition}
+              <Badge color={getConditionConfig(offered.condition).badgeColor} size="sm">
+                {getConditionConfig(offered.condition).label}
               </Badge>
             )}
             {offered?.category && (

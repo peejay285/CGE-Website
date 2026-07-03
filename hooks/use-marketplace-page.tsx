@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { createClient } from "@/lib/supabase/client";
 import { haversineKm } from "@/lib/utils";
+import { normalizeListingCondition } from "@/lib/constants";
 import { trackView } from "@/components/marketplace/recently-viewed";
 import { addSavedSearch } from "@/components/marketplace/saved-searches";
 import type { MarketplaceListing, SwapProposal } from "@/lib/types";
@@ -90,6 +91,8 @@ export function useMarketplacePage() {
   const [category, setCategory] = useState("All");
   const [sort, setSort] = useState<SortOption>("newest");
   const [listingTypeFilter, setListingTypeFilter] = useState("all");
+  // "" = any condition, otherwise a canonical ListingCondition value
+  const [conditionFilter, setConditionFilter] = useState("");
   const [priceRange, setPriceRange] = useState<{ min: string; max: string }>({
     min: "",
     max: "",
@@ -313,6 +316,13 @@ export function useMarketplacePage() {
         if (!listing.user_has_saved) return false;
       }
 
+      // Condition filter — legacy stored values are normalized so old rows
+      // ("New", "Used - Good", ...) still match the canonical taxonomy.
+      if (conditionFilter) {
+        if (normalizeListingCondition(listing.condition) !== conditionFilter)
+          return false;
+      }
+
       const minPrice = priceRange.min ? Number(priceRange.min) : null;
       const maxPrice = priceRange.max ? Number(priceRange.max) : null;
       const listingPrice =
@@ -325,7 +335,7 @@ export function useMarketplacePage() {
 
       return true;
     });
-  }, [listings, sort, listingTypeFilter, priceRange, nearMe, geolocation.coords]);
+  }, [listings, sort, listingTypeFilter, conditionFilter, priceRange, nearMe, geolocation.coords]);
 
   /* ── Memoized listing titles (used by ListingFilters) ─── */
 
@@ -771,6 +781,7 @@ export function useMarketplacePage() {
     setSearch("");
     setCategory("All");
     setListingTypeFilter("all");
+    setConditionFilter("");
     setPriceRange({ min: "", max: "" });
   }, []);
 
@@ -804,6 +815,8 @@ export function useMarketplacePage() {
     setSort,
     listingTypeFilter,
     setListingTypeFilter,
+    conditionFilter,
+    setConditionFilter,
     priceRange,
     setPriceRange,
     locationState,

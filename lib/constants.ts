@@ -1,3 +1,5 @@
+import type { ListingCondition } from "./types";
+
 export const BRAND = {
   name: "Creative Gaming Entertainment",
   short: "CGE",
@@ -7,6 +9,17 @@ export const BRAND = {
   whatsapp: "https://wa.me/2348160658509",
   hours: { weekday: "10 AM – 9 PM", sunday: "1 PM – 9 PM" },
   agePolicy: "13+",
+} as const;
+
+// Interim reschedule/cancel policy — single source of truth for the copy
+// shown before payment (lounge wizard) and after (booking confirmation).
+export const RESCHEDULE_POLICY = {
+  hoursNotice: 6,
+  shortLead: "Free reschedule up to 6 hours before your session",
+  short:
+    "Free reschedule up to 6 hours before your session — message us on WhatsApp.",
+  full:
+    "Need to reschedule or cancel? Contact us on WhatsApp at least 6 hours before your session and we'll move it free of charge.",
 } as const;
 
 export const PRICING = {
@@ -110,12 +123,79 @@ export const MARKETPLACE_CATEGORIES = [
   "Consoles",
 ] as const;
 
+// ── Listing condition taxonomy (Nigerian market / Jiji pattern) ─────────────
+// Canonical stored values are snake_case. Legacy rows created before the
+// taxonomy migration may still hold the old free-text values ("New",
+// "Used - Like New", "Used - Good", "Used - Fair"); normalizeListingCondition
+// maps them so they keep rendering correctly everywhere.
 export const LISTING_CONDITIONS = [
-  "New",
-  "Used - Like New",
-  "Used - Good",
-  "Used - Fair",
+  "brand_new",
+  "foreign_used",
+  "local_used",
 ] as const;
+
+export const LISTING_CONDITION_CONFIG: Record<
+  ListingCondition,
+  {
+    label: string;
+    helper: string;
+    /** Badge color name (components/ui/badge) */
+    badgeColor: "green" | "cyan" | "neutral";
+    /** Raw Tailwind classes for compact tag chips (listing cards) */
+    tagClass: string;
+  }
+> = {
+  brand_new: {
+    label: "Brand New",
+    helper: "Sealed or unused, in original packaging",
+    badgeColor: "green",
+    tagClass: "bg-green/15 text-green border-green/25",
+  },
+  foreign_used: {
+    label: "Foreign Used",
+    helper: "Imported second-hand (UK/US used)",
+    badgeColor: "cyan",
+    tagClass: "bg-cyan/15 text-cyan border-cyan/25",
+  },
+  local_used: {
+    label: "Local Used",
+    helper: "Used here in Nigeria",
+    badgeColor: "neutral",
+    tagClass: "bg-surface-alt text-text-muted border-border",
+  },
+} as const;
+
+/**
+ * Maps any stored condition value (canonical or legacy free text) to the
+ * canonical taxonomy. Mirrors the mapping in
+ * supabase/listing-condition-taxonomy-migration.sql — keep both in sync.
+ */
+export function normalizeListingCondition(
+  condition: string
+): ListingCondition | null {
+  const c = condition.trim().toLowerCase();
+  if (c === "brand_new" || c === "new" || c === "brand new") return "brand_new";
+  if (c === "foreign_used" || c === "foreign used") return "foreign_used";
+  if (c === "local_used" || c === "local used" || c.startsWith("used"))
+    return "local_used";
+  return null;
+}
+
+/**
+ * Shared value→label/color lookup so the condition tag renders identically
+ * everywhere (cards, detail, proposals, filters). Unknown legacy values fall
+ * back to neutral styling with the raw text as the label.
+ */
+export function getConditionConfig(condition: string) {
+  const normalized = normalizeListingCondition(condition);
+  if (normalized) return LISTING_CONDITION_CONFIG[normalized];
+  return {
+    label: condition,
+    helper: "",
+    badgeColor: "neutral" as const,
+    tagClass: "bg-surface-alt text-text-muted border-border",
+  };
+}
 
 export const TOURNAMENT_GAMES = [
   "FC 26",

@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 
-type BadgeColor = "cyan" | "magenta" | "gold" | "green" | "red";
+type BadgeColor = "cyan" | "magenta" | "gold" | "green" | "red" | "neutral";
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -17,6 +17,7 @@ const colorMap: Record<BadgeColor, string> = {
   gold: "bg-gold/10 text-gold border-gold/25",
   green: "bg-green/10 text-green border-green/25",
   red: "bg-red/10 text-red border-red/25",
+  neutral: "bg-surface-alt text-text-muted border-border",
 };
 
 export function Badge({ children, color = "cyan", size = "sm", className }: BadgeProps) {

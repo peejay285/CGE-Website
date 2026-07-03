@@ -10,7 +10,11 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NIGERIAN_STATES } from "@/lib/constants";
+import {
+  NIGERIAN_STATES,
+  LISTING_CONDITIONS,
+  LISTING_CONDITION_CONFIG,
+} from "@/lib/constants";
 import { SearchSuggestions, addToSearchHistory } from "./search-suggestions";
 
 type ListingTypeFilter = "all" | "swap" | "buy" | "saved";
@@ -40,6 +44,9 @@ interface ListingFiltersProps {
   onSearchSubmit?: (value: string) => void;
   listingTypeFilter: string;
   onListingTypeFilterChange: (filter: string) => void;
+  /** "" = any condition, otherwise a canonical ListingCondition value */
+  conditionFilter: string;
+  onConditionFilterChange: (condition: string) => void;
   isSignedIn?: boolean;
   priceRange: { min: string; max: string };
   onPriceRangeChange: (range: { min: string; max: string }) => void;
@@ -57,6 +64,8 @@ export function ListingFilters({
   onSearchSubmit,
   listingTypeFilter,
   onListingTypeFilterChange,
+  conditionFilter,
+  onConditionFilterChange,
   isSignedIn,
   priceRange,
   onPriceRangeChange,
@@ -236,6 +245,31 @@ export function ListingFilters({
             </option>
           ))}
         </select>
+
+        {/* Divider */}
+        <div className="w-px bg-border/50 shrink-0 my-1" />
+
+        {/* Condition filter — Nigerian taxonomy */}
+        {LISTING_CONDITIONS.map((cond) => {
+          const isActive = conditionFilter === cond;
+          return (
+            <button
+              key={cond}
+              type="button"
+              onClick={() => onConditionFilterChange(isActive ? "" : cond)}
+              aria-pressed={isActive}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 cursor-pointer border whitespace-nowrap",
+                "active:scale-95",
+                isActive
+                  ? "bg-green/15 text-green border-green/30"
+                  : "bg-surface-alt text-text-muted border-border hover:text-text hover:border-green/20"
+              )}
+            >
+              {LISTING_CONDITION_CONFIG[cond].label}
+            </button>
+          );
+        })}
 
         {/* Divider */}
         {listingTypeFilter !== "swap" && (

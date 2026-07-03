@@ -65,6 +65,89 @@ export function isTournamentPast(dateStr: string, status?: string): boolean {
   return parsed < today;
 }
 
+// ── Prize payout distribution helpers ───────────────
+// Mirrors the DB default on tournaments.payout_distribution
+// (see supabase/tournament-prize-payouts-migration.sql).
+
+export type PayoutDistributionEntry = {
+  place: number;
+  label?: string;
+  percent: number;
+};
+
+export const DEFAULT_PAYOUT_DISTRIBUTION: PayoutDistributionEntry[] = [
+  { place: 1, label: "1st Place", percent: 60 },
+  { place: 2, label: "2nd Place", percent: 25 },
+  { place: 3, label: "3rd Place", percent: 15 },
+];
+
+/** "1st", "2nd", "3rd", "4th", ... */
+export function formatPlacement(place: number): string {
+  const mod100 = place % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${place}th`;
+  switch (place % 10) {
+    case 1:
+      return `${place}st`;
+    case 2:
+      return `${place}nd`;
+    case 3:
+      return `${place}rd`;
+    default:
+      return `${place}th`;
+  }
+}
+
+/**
+ * Sanitized payout distribution for a tournament, falling back to the
+ * platform default (60/25/15) when the jsonb is missing or malformed.
+ */
+export function getPayoutDistribution(
+  tournament: Pick<Tournament, "payout_distribution">
+): PayoutDistributionEntry[] {
+  const raw = tournament.payout_distribution;
+  if (!Array.isArray(raw)) return DEFAULT_PAYOUT_DISTRIBUTION;
+  const valid = raw
+    .filter(
+      (item) =>
+        item &&
+        Number.isFinite(Number(item.place)) &&
+        Number(item.place) >= 1 &&
+        Number(item.percent) > 0
+    )
+    .map((item) => ({
+      place: Number(item.place),
+      label: item.label,
+      percent: Number(item.percent),
+    }))
+    .sort((a, b) => a.place - b.place);
+  return valid.length > 0 ? valid : DEFAULT_PAYOUT_DISTRIBUTION;
+}
+
+/**
+ * Best-known prize pool in naira. Uses the locked pool once payouts have
+ * been prepared; before that the pool grows with paid entries, so we
+ * estimate from entry fee × current registrations.
+ */
+export function estimatePrizePool(
+  tournament: Tournament & { registration_count?: number }
+): { amount: number; isEstimate: boolean } {
+  if (tournament.prize_pool_total && tournament.prize_pool_total > 0) {
+    return { amount: tournament.prize_pool_total, isEstimate: false };
+  }
+  if (tournament.entry_fee > 0) {
+    return {
+      amount: tournament.entry_fee * getFilledCount(tournament),
+      isEstimate: true,
+    };
+  }
+  return { amount: 0, isEstimate: true };
+}
+
+/** Gross naira amount for one placement — same floor math as the payout RPC. */
+export function placementAmount(pool: number, percent: number): number {
+  return Math.floor((pool * percent) / 100);
+}
+
 // ── Default rules fallback ───────────────────────────
 
 export const DEFAULT_TOURNAMENT_RULES = [

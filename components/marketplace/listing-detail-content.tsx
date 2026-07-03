@@ -32,17 +32,10 @@ import { SellerProfileCard } from "./seller-profile-card";
 import { SellerReviewsSection } from "./seller-reviews-section";
 import { RelatedListings } from "./related-listings";
 import { SafetyDisclaimerBanner } from "./safety-disclaimer-banner";
-import { ASSISTED_SWAP_SERVICE } from "@/lib/constants";
+import { ASSISTED_SWAP_SERVICE, getConditionConfig } from "@/lib/constants";
 import type { MarketplaceListing, SwapProposal } from "@/lib/types";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-const conditionColor = (condition: string) => {
-  if (condition === "New") return "green" as const;
-  if (condition.includes("Like New")) return "cyan" as const;
-  if (condition.includes("Good")) return "gold" as const;
-  return "magenta" as const;
-};
 
 /** Canonical shareable URL for a listing. */
 export function getListingShareUrl(listingId: string): string {
@@ -58,7 +51,7 @@ export function getWhatsAppUrl(
     isSwapIntent
       ? `Hi! I'd like to swap for your item on CGE Marketplace:\n\n` +
           `${listing.title}\n` +
-          `Condition: ${listing.condition}\n` +
+          `Condition: ${getConditionConfig(listing.condition).label}\n` +
           (listing.swap_for
             ? `You're looking for: ${listing.swap_for}\n`
             : "") +
@@ -66,7 +59,7 @@ export function getWhatsAppUrl(
       : `Hi! I'm interested in your listing on CGE Marketplace:\n\n` +
           `${listing.title}\n` +
           `${formatPrice(listing.price)}\n` +
-          `Condition: ${listing.condition}\n\n` +
+          `Condition: ${getConditionConfig(listing.condition).label}\n\n` +
           `Is this still available?`
   );
   const phone = listing.seller?.phone;
@@ -444,8 +437,11 @@ export function ListingDetailContent({
 
           {/* Badges row */}
           <div className="flex flex-wrap items-center gap-2">
-            <Badge color={conditionColor(listing.condition)} size="md">
-              {listing.condition}
+            <Badge
+              color={getConditionConfig(listing.condition).badgeColor}
+              size="md"
+            >
+              {getConditionConfig(listing.condition).label}
             </Badge>
             <Badge color="magenta" size="md">
               <CategoryIcon category={listing.category} size={10} className="mr-1" />

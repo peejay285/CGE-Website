@@ -28,7 +28,8 @@ export const createBookingSchema = z.object({
 export const createListingSchema = z.object({
   title: z.string().min(3).max(100),
   price: z.number().int().min(0),
-  condition: z.enum(["New", "Used - Like New", "Used - Good", "Used - Fair"]),
+  // Nigerian condition taxonomy (see lib/constants.ts LISTING_CONDITION_CONFIG)
+  condition: z.enum(["brand_new", "foreign_used", "local_used"]),
   category: z.enum([
     "Controllers",
     "Games",

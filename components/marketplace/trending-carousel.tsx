@@ -5,6 +5,7 @@ import { Flame, ChevronLeft, ChevronRight } from "lucide-react";
 import { ImageSkeleton } from "@/components/ui/image-skeleton";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { cn, formatPrice } from "@/lib/utils";
+import { getConditionConfig } from "@/lib/constants";
 import type { MarketplaceListing } from "@/lib/types";
 
 interface TrendingCarouselProps {
@@ -162,7 +163,9 @@ function TrendingCard({
           <span className="text-[10px] text-text-muted">
             {listing.views_count} views &middot; {listing.saves_count} saves
           </span>
-          <span className="text-[10px] text-text-muted">{listing.condition}</span>
+          <span className="text-[10px] text-text-muted">
+            {getConditionConfig(listing.condition).label}
+          </span>
         </div>
       </div>
     </button>
