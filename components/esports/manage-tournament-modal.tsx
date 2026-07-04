@@ -62,6 +62,17 @@ function disputeBadgeColor(status: string) {
   return "red" as const;
 }
 
+function refundBadgeColor(status: string | null | undefined) {
+  if (status === "refunded") return "green" as const;
+  if (status === "failed") return "red" as const;
+  return "gold" as const;
+}
+
+function refundBadgeLabel(status: string | null | undefined) {
+  if (status === "refund_pending") return "pending";
+  return status ?? "pending";
+}
+
 // Disputes are filed by a participant; resolve their name from match context.
 function disputeReporterName(dispute: MatchDispute) {
   const m = dispute.match;
@@ -101,6 +112,14 @@ export function ManageTournamentModal({
   const [viewerIsAdmin, setViewerIsAdmin] = useState(false);
   const [disputeNotes, setDisputeNotes] = useState<Record<number, string>>({});
   const [resolvingDisputeId, setResolvingDisputeId] = useState<number | null>(null);
+  // Cancellation + refund pipeline state
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelLoading, setCancelLoading] = useState(false);
+  // Set after a successful cancel_tournament RPC so the modal reflects the
+  // new state immediately (the parent's tournament prop refreshes on reload).
+  const [cancelledLocally, setCancelledLocally] = useState(false);
+  const [processingRefundId, setProcessingRefundId] = useState<string | null>(null);
 
   const {
     matches,
@@ -165,6 +184,10 @@ export function ManageTournamentModal({
       setRegistrants([]);
       setDisputeNotes({});
       setResolvingDisputeId(null);
+      setConfirmCancel(false);
+      setCancelReason("");
+      setCancelledLocally(false);
+      setProcessingRefundId(null);
     }, 0);
     return () => clearTimeout(timer);
   }, [tournament]);
@@ -420,16 +443,80 @@ export function ManageTournamentModal({
     [tournament, releasePayout]
   );
 
+  const handleCancelTournament = useCallback(async () => {
+    if (!tournament) return;
+
+    const reason = cancelReason.trim();
+    if (!reason) {
+      toast.error("Add a short reason — players will see it");
+      return;
+    }
+
+    setCancelLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("cancel_tournament", {
+      p_tournament_id: tournament.id,
+      p_reason: reason,
+    });
+    setCancelLoading(false);
+
+    if (error) {
+      toast.error(error.message || "Could not cancel tournament");
+      return;
+    }
+
+    toast.success("Tournament cancelled — paid entries queued for refund");
+    setCancelledLocally(true);
+    setConfirmCancel(false);
+    if (onLoadRegistrants) {
+      onLoadRegistrants(tournament.id).then(setRegistrants);
+    }
+  }, [tournament, cancelReason, onLoadRegistrants]);
+
+  const handleProcessRefund = useCallback(
+    async (registrant: TournamentRegistrant) => {
+      if (!tournament) return;
+
+      setProcessingRefundId(registrant.id);
+      try {
+        const response = await fetch(
+          `/api/tournament-refunds/${registrant.id}/process`,
+          { method: "POST" }
+        );
+        const payload = (await response.json().catch(() => null)) as
+          | { error?: string; status?: string }
+          | null;
+
+        if (!response.ok) {
+          throw new Error(payload?.error || "Failed to process refund");
+        }
+
+        toast.success("Refund processed");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to process refund");
+      } finally {
+        setProcessingRefundId(null);
+        if (onLoadRegistrants) {
+          onLoadRegistrants(tournament.id).then(setRegistrants);
+        }
+      }
+    },
+    [tournament, onLoadRegistrants]
+  );
+
   if (!tournament) return null;
 
   const showCustomGame = game === "Other";
   const resolvedGame = showCustomGame ? customGame.trim() : game;
-  const isEditable = tournament.status === "open" || tournament.status === "full";
+  const effectiveStatus = cancelledLocally ? "cancelled" : tournament.status;
+  const isEditable = effectiveStatus === "open" || effectiveStatus === "full";
   const filledCount = getFilledCount(tournament);
   const openDisputeCount = disputes.filter((d) => d.status === "open").length;
   const payoutDistribution = getPayoutDistribution(tournament);
   const placementsByPlace = new Map(placements.map((p) => [p.placement, p]));
   const paidRegistrants = registrants.filter((r) => r.payment_status === "paid");
+  // Entries queued through cancel_tournament (pending / refunded / failed)
+  const refundableRegistrants = registrants.filter((r) => Boolean(r.refund_status));
   const payoutPool =
     payoutSummary?.prize_pool_total ??
     tournament.prize_pool_total ??
@@ -597,30 +684,81 @@ export function ManageTournamentModal({
               <span className="text-xs text-text-muted">Current Status:</span>
               <Badge
                 color={
-                  tournament.status === "open" ? "green" :
-                  tournament.status === "in_progress" ? "cyan" :
-                  tournament.status === "completed" ? "gold" :
-                  tournament.status === "full" ? "red" : "red"
+                  effectiveStatus === "open" ? "green" :
+                  effectiveStatus === "in_progress" ? "cyan" :
+                  effectiveStatus === "completed" ? "gold" :
+                  effectiveStatus === "full" ? "red" : "red"
                 }
                 size="md"
               >
-                {tournament.status === "open" ? "Open" :
-                 tournament.status === "in_progress" ? "Live" :
-                 tournament.status === "completed" ? "Completed" :
-                 tournament.status === "full" ? "Full" : "Cancelled"}
+                {effectiveStatus === "open" ? "Open" :
+                 effectiveStatus === "in_progress" ? "Live" :
+                 effectiveStatus === "completed" ? "Completed" :
+                 effectiveStatus === "full" ? "Full" : "Cancelled"}
               </Badge>
             </div>
             <span className="text-xs text-text-muted">{filledCount}/{tournament.slots} registered</span>
           </div>
 
-          {(tournament.status === "open" || tournament.status === "full") && (
+          {effectiveStatus === "cancelled" && (
+            <div className="rounded-lg border border-red/20 bg-red/5 p-3">
+              <p className="text-xs font-semibold text-red">Tournament cancelled</p>
+              {(tournament.cancellation_reason || (cancelledLocally && cancelReason.trim())) && (
+                <p className="mt-1 text-[11px] leading-relaxed text-text-muted">
+                  Reason: {tournament.cancellation_reason || cancelReason.trim()}
+                </p>
+              )}
+              <p className="mt-1 text-[11px] leading-relaxed text-text-muted">
+                Paid entries are queued for refund — track them in the Payouts tab.
+              </p>
+            </div>
+          )}
+
+          {(effectiveStatus === "open" || effectiveStatus === "full") && !confirmCancel && (
             <div className="flex gap-2">
-              <Button variant="primary" size="sm" disabled={loading} onClick={() => handleStatusChange("in_progress")} className="flex-1">
+              <Button variant="primary" size="sm" disabled={loading || cancelLoading} onClick={() => handleStatusChange("in_progress")} className="flex-1">
                 <Play size={14} /> Start Tournament
               </Button>
-              <Button variant="danger" size="sm" disabled={loading} onClick={() => handleStatusChange("cancelled")}>
-                <XCircle size={14} /> Cancel
+              <Button variant="danger" size="sm" disabled={loading || cancelLoading} onClick={() => setConfirmCancel(true)}>
+                <XCircle size={14} /> Cancel Tournament
               </Button>
+            </div>
+          )}
+
+          {(effectiveStatus === "open" || effectiveStatus === "full") && confirmCancel && (
+            <div className="rounded-lg border border-red/30 bg-red/5 p-3 space-y-3">
+              <p className="text-xs font-semibold text-red">Cancel this tournament?</p>
+              <p className="text-[11px] leading-relaxed text-text-muted">
+                All paid entries will be refunded. Players will see your reason on the tournament page.
+              </p>
+              <Textarea
+                label="Reason for cancellation"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="e.g. Not enough registrations to run the bracket"
+                maxLength={300}
+                rows={2}
+              />
+              <div className="flex gap-2">
+                <Button
+                  variant="danger"
+                  size="sm"
+                  className="flex-1"
+                  disabled={cancelLoading || cancelReason.trim().length === 0}
+                  onClick={handleCancelTournament}
+                >
+                  {cancelLoading ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <>
+                      <XCircle size={14} /> Cancel &amp; Refund Entries
+                    </>
+                  )}
+                </Button>
+                <Button variant="ghost" size="sm" disabled={cancelLoading} onClick={() => setConfirmCancel(false)}>
+                  Keep Tournament
+                </Button>
+              </div>
             </div>
           )}
 
@@ -914,7 +1052,7 @@ export function ManageTournamentModal({
             </p>
           </div>
 
-          {tournament.status !== "completed" && (
+          {tournament.status !== "completed" && effectiveStatus !== "cancelled" && (
             <div className="rounded-lg border border-gold/20 bg-gold/5 p-3">
               <p className="text-xs text-gold font-semibold">Complete the tournament before generating payout drafts.</p>
               <p className="text-[11px] text-text-muted mt-1">
@@ -995,6 +1133,72 @@ export function ManageTournamentModal({
 
           {payoutError && (
             <p className="text-xs text-red text-center">{payoutError}</p>
+          )}
+
+          {(effectiveStatus === "cancelled" || refundableRegistrants.length > 0) && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-text-muted mb-3">Entry Fee Refunds</p>
+              {refundableRegistrants.length === 0 ? (
+                <div className="rounded-lg border border-border bg-surface-alt p-3">
+                  <p className="text-[11px] text-text-muted">No paid entries to refund.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {refundableRegistrants.map((registrant) => {
+                    const processing = processingRefundId === registrant.id;
+                    const canProcess =
+                      viewerIsAdmin &&
+                      (registrant.refund_status === "refund_pending" ||
+                        registrant.refund_status === "failed");
+
+                    return (
+                      <div key={registrant.id} className="rounded-lg border border-border bg-surface-alt p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-text truncate">
+                              {registrant.profile?.gamertag || registrant.profile?.full_name || "Player"}
+                            </p>
+                            <p className="text-[11px] text-text-muted">
+                              Entry {formatPrice(registrant.total ?? 0)}
+                            </p>
+                          </div>
+                          <Badge color={refundBadgeColor(registrant.refund_status)} size="sm">
+                            {refundBadgeLabel(registrant.refund_status)}
+                          </Badge>
+                        </div>
+                        {registrant.refund_status === "refunded" && registrant.refunded_at && (
+                          <p className="mt-2 text-[11px] text-text-muted">
+                            Refunded on {new Date(registrant.refunded_at).toLocaleDateString("en-GB")}
+                            {registrant.refund_reference ? ` — ref ${registrant.refund_reference}` : ""}
+                          </p>
+                        )}
+                        {registrant.refund_status === "failed" && registrant.refund_notes && (
+                          <p className="mt-2 text-[11px] text-red">{registrant.refund_notes}</p>
+                        )}
+                        {canProcess && (
+                          <div className="mt-3 flex justify-end">
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              disabled={processing}
+                              onClick={() => handleProcessRefund(registrant)}
+                            >
+                              {processing ? <Loader2 size={14} className="animate-spin" /> : <Wallet size={14} />}
+                              {registrant.refund_status === "failed" ? "Retry refund" : "Process refund"}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {!viewerIsAdmin && refundableRegistrants.length > 0 && (
+                <p className="mt-2 text-[11px] text-text-muted">
+                  CGE admins release Paystack refunds from here. Players see their refund status on the tournament page.
+                </p>
+              )}
+            </div>
           )}
 
           <div>

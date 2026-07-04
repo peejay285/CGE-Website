@@ -3,7 +3,12 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { escapePostgrestSearch } from "@/lib/utils";
-import type { MarketplaceListing, SwapProposal, SwapAssistPayment } from "@/lib/types";
+import type {
+  MarketplaceListing,
+  SwapProposal,
+  SwapAssistPayment,
+  SwapMeetupMethod,
+} from "@/lib/types";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 interface ListingFilters {
@@ -533,7 +538,9 @@ export function useMarketplace(filters?: ListingFilters) {
     async (
       listingId: string,
       offeredListingId: string,
-      message?: string
+      message?: string,
+      cashAdjustment?: number,
+      meetupMethod?: SwapMeetupMethod
     ): Promise<SwapProposal | null> => {
       try {
         setActionLoading(true);
@@ -551,6 +558,8 @@ export function useMarketplace(filters?: ListingFilters) {
             proposer_id: user.id,
             offered_listing_id: offeredListingId,
             message: message || null,
+            cash_adjustment: Math.trunc(cashAdjustment ?? 0),
+            meetup_method: meetupMethod ?? "unset",
           })
           .select(
             "*, proposer:profiles!proposer_id(id, full_name, avatar_url, gamertag), offered_listing:marketplace_listings!offered_listing_id(id, title, images, condition, category, price, buyout_price)"

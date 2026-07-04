@@ -107,6 +107,34 @@ export interface PaystackTransferResponse {
   };
 }
 
+export interface PaystackRefundParams {
+  transaction: string; // Paystack transaction reference to refund
+  amount?: number; // in kobo (Naira × 100) — omit for a full refund
+  currency?: "NGN";
+  merchant_note?: string;
+  customer_note?: string;
+}
+
+export interface PaystackRefundResponse {
+  status: boolean;
+  message: string;
+  data: {
+    id: number;
+    amount: number;
+    currency: string;
+    status: "pending" | "processing" | "processed" | "failed" | string;
+    merchant_note: string | null;
+    customer_note: string | null;
+    refunded_at: string | null;
+    expected_at: string | null;
+    transaction: {
+      id: number;
+      reference: string;
+      amount: number;
+    };
+  };
+}
+
 export async function initializeTransaction(
   params: PaystackInitializeParams
 ): Promise<PaystackInitializeResponse> {
@@ -167,6 +195,28 @@ export async function initiateTransfer(
 
   if (!res.ok) {
     throw new Error(`Paystack transfer failed: ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+export async function refundTransaction(
+  params: PaystackRefundParams
+): Promise<PaystackRefundResponse> {
+  const res = await fetch(`${PAYSTACK_BASE_URL}/refund`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      currency: params.currency ?? "NGN",
+      ...params,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Paystack refund failed: ${res.statusText}`);
   }
 
   return res.json();

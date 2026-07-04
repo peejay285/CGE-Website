@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { timeAgo, getInitials } from "@/lib/utils";
 import { getConditionConfig } from "@/lib/constants";
 import { SwapStateTracker } from "./swap-state-tracker";
+import { SwapTermsSummary } from "./swap-terms-summary";
 import { SwapValueComparison } from "./swap-value-comparison";
 import { SwapAssistPanel } from "./swap-assist-panel";
 import type { MarketplaceListing, SwapProposal, SwapProposalStatus } from "@/lib/types";
@@ -261,8 +262,13 @@ function ProposalCard({
           theirItem={offered}
           yourLabel="You give"
           theirLabel="You get"
+          // The panel is the listing owner's view: positive cash from the
+          // proposer lands on the owner's "You get" side.
+          cashAdjustment={-(proposal.cash_adjustment ?? 0)}
         />
       )}
+
+      <SwapTermsSummary proposal={proposal} viewerRole="owner" />
 
       <SwapStateTracker proposal={proposal} />
 

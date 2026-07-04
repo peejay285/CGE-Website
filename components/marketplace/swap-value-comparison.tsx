@@ -18,11 +18,18 @@ interface SwapValueComparisonProps {
   theirItem: SwapItem;
   yourLabel?: string;
   theirLabel?: string;
+  /**
+   * Cash balancing the swap, from the viewer's perspective: positive =
+   * cash added on top of yourItem, negative = cash added on top of
+   * theirItem. Callers displaying a stored proposal should sign the
+   * proposal's cash_adjustment for the viewing side.
+   */
+  cashAdjustment?: number;
   className?: string;
 }
 
 // A swap listing's working value: its listed price, else its cash buyout price.
-function itemValue(item: SwapItem): number | null {
+export function itemValue(item: SwapItem): number | null {
   if (typeof item.price === "number" && item.price > 0) return item.price;
   if (typeof item.buyout_price === "number" && item.buyout_price > 0) return item.buyout_price;
   return null;
@@ -31,7 +38,7 @@ function itemValue(item: SwapItem): number | null {
 // Swaps within 15% of each other read as "fair".
 const FAIR_THRESHOLD = 0.15;
 
-function ItemCell({ item, label }: { item: SwapItem; label: string }) {
+function ItemCell({ item, label, cash }: { item: SwapItem; label: string; cash: number }) {
   const hasImage = Boolean(item.images && item.images.length > 0);
   const value = itemValue(item);
   return (
@@ -49,6 +56,14 @@ function ItemCell({ item, label }: { item: SwapItem; label: string }) {
       <p className="text-[11px] font-bold font-heading text-text-muted">
         {value !== null ? formatPrice(value) : "No price"}
       </p>
+      {cash > 0 && (
+        <>
+          <p className="text-[10px] font-semibold text-cyan">+ {formatPrice(cash)} cash</p>
+          {value !== null && (
+            <p className="text-[10px] text-text-muted">≈ {formatPrice(value + cash)}</p>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -58,15 +73,22 @@ export function SwapValueComparison({
   theirItem,
   yourLabel = "Your item",
   theirLabel = "Their item",
+  cashAdjustment = 0,
   className,
 }: SwapValueComparisonProps) {
   const yourVal = itemValue(yourItem);
   const theirVal = itemValue(theirItem);
   const canCompare = yourVal !== null && theirVal !== null;
 
-  // Net value to the viewer: positive = they bring more (you trade up).
-  const delta = canCompare ? theirVal! - yourVal! : 0;
-  const ref = canCompare ? Math.max(yourVal!, theirVal!) : 0;
+  // Cash sits on exactly one side of the trade.
+  const yourCash = cashAdjustment > 0 ? cashAdjustment : 0;
+  const theirCash = cashAdjustment < 0 ? -cashAdjustment : 0;
+  const hasCash = yourCash > 0 || theirCash > 0;
+
+  // Net value to the viewer, cash included: positive = they bring more
+  // (you trade up).
+  const delta = canCompare ? theirVal! + theirCash - (yourVal! + yourCash) : 0;
+  const ref = canCompare ? Math.max(yourVal! + yourCash, theirVal! + theirCash) : 0;
   const pct = ref > 0 ? Math.abs(delta) / ref : 0;
   const fair = pct <= FAIR_THRESHOLD;
 
@@ -81,28 +103,34 @@ export function SwapValueComparison({
   } else if (delta === 0) {
     verdict = {
       label: "Even value swap",
-      detail: "Both items are priced the same.",
+      detail: hasCash
+        ? "The cash top-up balances the values exactly."
+        : "Both items are priced the same.",
       color: "text-green",
       Icon: Scale,
     };
   } else if (fair) {
     verdict = {
       label: "Fair swap",
-      detail: `Within ${Math.round(pct * 100)}% — about ${formatPrice(Math.abs(delta))} apart.`,
+      detail: `Within ${Math.round(pct * 100)}% — about ${formatPrice(Math.abs(delta))} apart${hasCash ? " after cash" : ""}.`,
       color: "text-green",
       Icon: Scale,
     };
   } else if (delta > 0) {
     verdict = {
       label: `You'd gain ${formatPrice(delta)} in value`,
-      detail: "You're trading up — their item is worth more.",
+      detail: hasCash
+        ? "You're trading up — their side is worth more, even after cash."
+        : "You're trading up — their item is worth more.",
       color: "text-cyan",
       Icon: TrendingUp,
     };
   } else {
     verdict = {
       label: `You'd give ${formatPrice(-delta)} more value`,
-      detail: "You're trading down — your item is worth more.",
+      detail: hasCash
+        ? "You're trading down — your side is worth more, even after cash."
+        : "You're trading down — your item is worth more.",
       color: "text-gold",
       Icon: TrendingDown,
     };
@@ -113,9 +141,9 @@ export function SwapValueComparison({
   return (
     <div className={cn("rounded-lg border border-border bg-surface-alt p-3", className)}>
       <div className="flex items-center gap-2">
-        <ItemCell item={yourItem} label={yourLabel} />
+        <ItemCell item={yourItem} label={yourLabel} cash={yourCash} />
         <ArrowLeftRight size={16} className="shrink-0 text-text-muted" />
-        <ItemCell item={theirItem} label={theirLabel} />
+        <ItemCell item={theirItem} label={theirLabel} cash={theirCash} />
       </div>
       <div className="mt-3 flex items-start gap-2 border-t border-border pt-3">
         <Icon size={14} className={cn("mt-0.5 shrink-0", verdict.color)} />

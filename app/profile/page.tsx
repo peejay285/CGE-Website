@@ -20,6 +20,7 @@ import {
   Camera,
   Wallet,
   Landmark,
+  IdCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -91,6 +92,13 @@ export default function ProfilePage() {
   );
 
   const menuItems = [
+    {
+      icon: IdCard,
+      label: "My Player Card",
+      description: "Your shareable public player card",
+      href: `/player/${user.id}`,
+      color: "text-magenta",
+    },
     {
       icon: ShoppingBag,
       label: "My Listings",

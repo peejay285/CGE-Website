@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useMarketplace } from "@/hooks/use-marketplace";
 import { SwapStateTracker } from "@/components/marketplace/swap-state-tracker";
+import { SwapTermsSummary } from "@/components/marketplace/swap-terms-summary";
 import { SwapValueComparison } from "@/components/marketplace/swap-value-comparison";
 import { SwapAssistPanel } from "@/components/marketplace/swap-assist-panel";
 import { SwapProposalsPanel } from "@/components/marketplace/swap-proposals-panel";
@@ -353,6 +354,9 @@ function OutgoingProposalCard({
           theirItem={target}
           yourLabel="You give"
           theirLabel="You get"
+          // Proposer's view: positive cash_adjustment means the viewer
+          // adds cash on their own "You give" side.
+          cashAdjustment={proposal.cash_adjustment ?? 0}
         />
       ) : (
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
@@ -375,6 +379,8 @@ function OutgoingProposalCard({
           Your note: &ldquo;{proposal.message}&rdquo;
         </p>
       )}
+
+      <SwapTermsSummary proposal={proposal} viewerRole="proposer" />
 
       <SwapStateTracker proposal={proposal} />
 

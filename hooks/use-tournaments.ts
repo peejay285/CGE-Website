@@ -855,6 +855,10 @@ export function useTournaments(initialStatus?: string) {
               registered_at: registration.registered_at,
               checked_in: registration.checked_in,
               checked_in_at: registration.checked_in_at,
+              refund_status: registration.refund_status,
+              refund_reference: registration.refund_reference,
+              refunded_at: registration.refunded_at,
+              refund_notes: registration.refund_notes,
               profile: {
                 ...captain,
                 id: recipientId,

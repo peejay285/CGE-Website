@@ -498,6 +498,29 @@ function LoungePageInner() {
               </div>
             )}
             <ZoneSelector selected={zone} onSelect={handleZoneSelect} />
+            {/* Group bookings — WhatsApp handoff, kept out of the wizard */}
+            <div className="max-w-2xl mx-auto mt-8">
+              <div className="flex items-center gap-3 rounded-xl border border-green/20 bg-green/5 px-5 py-3.5">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-text">
+                    Booking for a group or party? (5+ people)
+                  </p>
+                  <p className="text-xs text-text-muted">
+                    Message us on WhatsApp and we&apos;ll arrange it.
+                  </p>
+                </div>
+                <a
+                  href={`${BRAND.whatsapp}?text=${encodeURIComponent(
+                    "Hi CGE! I want to book a group session for __ people on __",
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center min-h-11 px-4 rounded-lg border border-green/30 bg-green/10 text-xs font-semibold text-green hover:bg-green/15 transition-colors whitespace-nowrap"
+                >
+                  WhatsApp Us
+                </a>
+              </div>
+            </div>
             {/* Reschedule policy — visible before anyone pays */}
             <p className="text-center text-xs text-text-muted/60 mt-6">
               {RESCHEDULE_POLICY.shortLead} —{" "}

@@ -91,7 +91,9 @@ export const TournamentCard = memo(function TournamentCard({
         "transition-all duration-300 hover:border-cyan/30 hover:shadow-[0_4px_24px_rgba(0,240,255,0.08)]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan/50",
         "active:scale-[0.98]",
-        isPast && "opacity-60"
+        isPast && "opacity-60",
+        // Cancelled tournaments render muted — the status badge still reads "Cancelled"
+        tournament.status === "cancelled" && "opacity-55 saturate-50 hover:border-border hover:shadow-none"
       )}
     >
       {/* Header */}

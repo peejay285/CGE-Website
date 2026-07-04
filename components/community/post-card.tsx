@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, memo } from "react";
+import Link from "next/link";
 import {
   Heart,
   MessageCircle,
@@ -169,25 +170,36 @@ export const PostCard = memo(function PostCard({
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          {post.author?.avatar_url ? (
-            <img
-              src={post.author.avatar_url}
-              alt={authorName}
-              className="h-10 w-10 rounded-full object-cover"
-            />
-          ) : (
-            <div
-              className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold",
-                avatarColor
-              )}
-            >
-              {initials}
-            </div>
-          )}
+          <Link
+            href={`/player/${post.author_id}`}
+            aria-label={`View ${authorName}'s player card`}
+            className="shrink-0"
+          >
+            {post.author?.avatar_url ? (
+              <img
+                src={post.author.avatar_url}
+                alt={authorName}
+                className="h-10 w-10 rounded-full object-cover"
+              />
+            ) : (
+              <div
+                className={cn(
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold",
+                  avatarColor
+                )}
+              >
+                {initials}
+              </div>
+            )}
+          </Link>
           <div>
             <div className="flex items-center gap-1.5">
-              <p className="text-sm font-semibold text-text">{authorName}</p>
+              <Link
+                href={`/player/${post.author_id}`}
+                className="text-sm font-semibold text-text hover:underline"
+              >
+                {authorName}
+              </Link>
               {trustBadge && (
                 <ShieldCheck size={12} className="text-cyan" />
               )}

@@ -11,7 +11,7 @@ import { haversineKm } from "@/lib/utils";
 import { normalizeListingCondition } from "@/lib/constants";
 import { trackView } from "@/components/marketplace/recently-viewed";
 import { addSavedSearch } from "@/components/marketplace/saved-searches";
-import type { MarketplaceListing, SwapProposal } from "@/lib/types";
+import type { MarketplaceListing, SwapProposal, SwapMeetupMethod } from "@/lib/types";
 
 /* ── Sort helpers ───────────────────────────────────────── */
 
@@ -581,13 +581,20 @@ export function useMarketplacePage() {
   );
 
   const handleSubmitSwapProposal = useCallback(
-    async (offeredListingId: string, message?: string) => {
+    async (
+      offeredListingId: string,
+      message?: string,
+      cashAdjustment?: number,
+      meetupMethod?: SwapMeetupMethod
+    ) => {
       if (!swapProposalTarget) return;
 
       const proposal = await createSwapProposal(
         swapProposalTarget.id,
         offeredListingId,
-        message
+        message,
+        cashAdjustment,
+        meetupMethod
       );
 
       if (proposal) {

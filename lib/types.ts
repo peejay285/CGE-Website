@@ -107,6 +107,8 @@ export interface Tournament {
   rules: string | null;
   created_by: string | null;
   created_at: string;
+  cancellation_reason?: string | null;
+  cancelled_at?: string | null;
   prize_pool_total?: number;
   payout_status?: string;
   payout_distribution?: Array<{
@@ -132,6 +134,8 @@ export interface Tournament {
   max_team_size?: number;
 }
 
+export type TournamentRefundStatus = "refund_pending" | "refunded" | "failed";
+
 export interface TournamentRegistration {
   id: string;
   tournament_id: number;
@@ -144,6 +148,10 @@ export interface TournamentRegistration {
   registered_at: string;
   checked_in?: boolean;
   checked_in_at?: string | null;
+  refund_status?: TournamentRefundStatus | null;
+  refund_reference?: string | null;
+  refunded_at?: string | null;
+  refund_notes?: string | null;
 }
 
 export interface TournamentTeamRegistration {
@@ -159,6 +167,10 @@ export interface TournamentTeamRegistration {
   registered_at: string;
   checked_in?: boolean;
   checked_in_at?: string | null;
+  refund_status?: TournamentRefundStatus | null;
+  refund_reference?: string | null;
+  refunded_at?: string | null;
+  refund_notes?: string | null;
   team?: Team;
 }
 
@@ -174,6 +186,10 @@ export interface TournamentRegistrant {
   registered_at: string;
   checked_in?: boolean;
   checked_in_at?: string | null;
+  refund_status?: TournamentRefundStatus | null;
+  refund_reference?: string | null;
+  refunded_at?: string | null;
+  refund_notes?: string | null;
   bracket_participant_id?: string;
   profile?: Pick<
     Profile,
@@ -454,6 +470,9 @@ export interface MarketplaceListing {
   user_has_saved: boolean;
 }
 
+/** How the parties exchange items — see swap-meetup-method-migration. */
+export type SwapMeetupMethod = "unset" | "cge_lounge" | "in_person" | "shipping";
+
 export type SwapProposalStatus =
   | "pending"
   | "accepted"
@@ -489,6 +508,14 @@ export interface SwapProposal {
   disputed_by: string | null;
   dispute_reason: string | null;
   expires_at: string | null;
+  /**
+   * Naira the proposer adds on top of their item (positive) or requests
+   * from the listing owner (negative). 0 = straight swap.
+   * See swap-cash-topup-migration.
+   */
+  cash_adjustment?: number;
+  // Swap logistics — see swap-meetup-method-migration
+  meetup_method?: SwapMeetupMethod;
   // CGE-assisted swap (facilitation) — see swap-assist-facilitation-migration
   assist_status?: SwapAssistStatus;
   assist_fee_total?: number | null;

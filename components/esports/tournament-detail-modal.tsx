@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Calendar, Clock, Gamepad2, Users, Trophy, Swords, Medal, Loader2, Settings, Share2, Video, CheckCircle, GitBranch, ShieldCheck, UserPlus } from "lucide-react";
+import { Calendar, Clock, Gamepad2, Users, Trophy, Swords, Medal, Loader2, Settings, Share2, Video, CheckCircle, GitBranch, ShieldCheck, UserPlus, XCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import { Modal } from "@/components/ui/modal";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
@@ -159,6 +159,12 @@ export function TournamentDetailModal({
     Boolean(isRegistered) &&
     registrationTotal > 0 &&
     registration?.payment_status !== "paid";
+  const isCancelled = tournament.status === "cancelled";
+  // Paid entry that gets refunded when the tournament is cancelled.
+  const hasPaidEntry =
+    Boolean(isRegistered) &&
+    registration?.payment_status === "paid" &&
+    (registration?.total ?? 0) > 0;
   // Warn before registering for an unverified organizer's event (not for the host).
   const shouldWarnUnverified = Boolean(organizer) && !organizerVerified && !isHost;
 
@@ -179,7 +185,12 @@ export function TournamentDetailModal({
    * Rendered inline on desktop and inside a sticky bottom bar on
    * mobile so the entry fee + CTA are visible at the decision moment. */
   const actionSection =
-    isPast || tournament.status === "completed" || tournament.status === "cancelled" ? (
+    isCancelled ? (
+      <Button fullWidth size="lg" variant="primary" disabled>
+        <XCircle size={16} />
+        Tournament Cancelled
+      </Button>
+    ) : isPast || tournament.status === "completed" ? (
       <Button fullWidth size="lg" variant="primary" disabled>
         <Trophy size={16} />
         Tournament Ended
@@ -340,6 +351,36 @@ export function TournamentDetailModal({
           </button>
         </div>
       </div>
+
+      {/* Cancelled banner — refund status for registered players */}
+      {isCancelled && (
+        <div className="mb-6 rounded-lg border border-red/25 bg-red/5 p-3">
+          <div className="flex items-start gap-2.5">
+            <XCircle size={16} className="mt-0.5 shrink-0 text-red" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-widest text-red">
+                Tournament Cancelled
+              </p>
+              {tournament.cancellation_reason && (
+                <p className="mt-1 text-[11px] leading-relaxed text-text-muted">
+                  Reason: {tournament.cancellation_reason}
+                </p>
+              )}
+              {hasPaidEntry && (
+                <p className="mt-1.5 text-[11px] leading-relaxed text-text">
+                  {registration?.refund_status === "refunded"
+                    ? `Your entry fee was refunded${
+                        registration.refunded_at
+                          ? ` on ${new Date(registration.refunded_at).toLocaleDateString("en-GB")}`
+                          : ""
+                      }.`
+                    : "This tournament was cancelled — your entry fee refund is on the way."}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Organizer trust */}
       {organizer && (

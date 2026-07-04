@@ -3,6 +3,7 @@
 import { Check, Truck, Package, AlertCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SwapProposal } from "@/lib/types";
+import { MEETUP_METHOD_CONFIG } from "./swap-terms-summary";
 
 interface SwapStateTrackerProps {
   proposal: SwapProposal;
@@ -87,6 +88,11 @@ export function SwapStateTracker({ proposal, className }: SwapStateTrackerProps)
     return null;
   }
 
+  const meetup =
+    proposal.meetup_method && proposal.meetup_method !== "unset"
+      ? MEETUP_METHOD_CONFIG[proposal.meetup_method]
+      : null;
+
   return (
     <div
       className={cn(
@@ -123,6 +129,19 @@ export function SwapStateTracker({ proposal, className }: SwapStateTrackerProps)
           );
         })}
       </div>
+      {meetup && (
+        <div className="mt-2 flex items-start justify-center gap-1.5 text-center">
+          <meetup.Icon size={11} className="text-cyan shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <p className="text-[10px] font-medium text-text">{meetup.label}</p>
+            {proposal.meetup_method === "cge_lounge" && (
+              <p className="text-[9px] text-text-muted leading-relaxed">
+                Exchange happens at the CGE lounge with staff present.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
       {proposal.expires_at && (
         <p className="text-[10px] text-text-muted text-center mt-2">
           Expires {new Date(proposal.expires_at).toLocaleDateString()}
