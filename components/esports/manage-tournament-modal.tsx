@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { Loader2, Users, Settings, Trash2, Play, CheckCircle, XCircle, GitBranch, RefreshCw, Wallet, ShieldAlert, Flag } from "lucide-react";
+import { Loader2, Users, Settings, Trash2, Play, CheckCircle, XCircle, GitBranch, RefreshCw, Wallet, ShieldAlert, Flag, Sparkles, Lock, Plus, Trophy } from "lucide-react";
 import toast from "react-hot-toast";
 import { Modal } from "@/components/ui/modal";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
@@ -17,11 +17,17 @@ import { createClient } from "@/lib/supabase/client";
 import { getFilledCount } from "@/lib/esports-utils";
 import { useTournamentMatches } from "@/hooks/use-tournament-matches";
 import { useTournamentPayouts } from "@/hooks/use-tournament-payouts";
+import { usePredictions } from "@/hooks/use-predictions";
 import { useAuth } from "@/hooks/use-auth";
 import type { Tournament, TournamentMatch, TournamentPayout, TournamentRegistrant, MatchDispute } from "@/lib/types";
 import type { BracketParticipant, BracketType } from "@/lib/bracket-engine";
 
-type ManageView = "details" | "registrants" | "bracket" | "disputes" | "payouts";
+type ManageView = "details" | "registrants" | "bracket" | "disputes" | "payouts" | "prediction";
+
+/** Platform points formatter — predictions never touch naira. */
+function formatPts(points: number) {
+  return `${points.toLocaleString("en-NG")} pts`;
+}
 
 const FALLBACK_PAYOUT_DISTRIBUTION = [
   { place: 1, label: "1st Place", percent: 60 },
@@ -120,6 +126,12 @@ export function ManageTournamentModal({
   // new state immediately (the parent's tournament prop refreshes on reload).
   const [cancelledLocally, setCancelledLocally] = useState(false);
   const [processingRefundId, setProcessingRefundId] = useState<string | null>(null);
+  // Prediction (Twitch-style, platform points) host tools state
+  const [predQuestion, setPredQuestion] = useState("");
+  const [predOptionLabels, setPredOptionLabels] = useState<string[]>(["", ""]);
+  const [settleOptionId, setSettleOptionId] = useState("");
+  const [confirmSettlePrediction, setConfirmSettlePrediction] = useState(false);
+  const [confirmCancelPrediction, setConfirmCancelPrediction] = useState(false);
 
   const {
     matches,
@@ -147,6 +159,17 @@ export function ManageTournamentModal({
     approvePayouts,
     releasePayout,
   } = useTournamentPayouts();
+  const {
+    prediction,
+    pools: predictionPools,
+    totalPoints: predictionTotal,
+    loading: predictionLoading,
+    actionLoading: predictionActionLoading,
+    createPrediction,
+    lockPrediction,
+    settlePrediction,
+    cancelPrediction,
+  } = usePredictions(open && tournament ? tournament.id : null);
 
   // Edit form state
   const [title, setTitle] = useState("");
@@ -188,6 +211,11 @@ export function ManageTournamentModal({
       setCancelReason("");
       setCancelledLocally(false);
       setProcessingRefundId(null);
+      setPredQuestion(`Who wins ${tournament.title}?`);
+      setPredOptionLabels(["", ""]);
+      setSettleOptionId("");
+      setConfirmSettlePrediction(false);
+      setConfirmCancelPrediction(false);
     }, 0);
     return () => clearTimeout(timer);
   }, [tournament]);
@@ -504,6 +532,64 @@ export function ManageTournamentModal({
     [tournament, onLoadRegistrants]
   );
 
+  const handleCreatePrediction = useCallback(async () => {
+    const question = predQuestion.trim();
+    const labels = predOptionLabels.map((label) => label.trim()).filter(Boolean);
+
+    if (!question) {
+      toast.error("Add a prediction question");
+      return;
+    }
+    if (labels.length < 2) {
+      toast.error("Add at least 2 option labels");
+      return;
+    }
+
+    const errorMessage = await createPrediction(
+      question,
+      labels.map((label, index) => ({ id: `opt-${index + 1}`, label }))
+    );
+    if (errorMessage) {
+      toast.error(errorMessage);
+    } else {
+      toast.success("Prediction opened — viewers can stake points now");
+      setPredOptionLabels(["", ""]);
+    }
+  }, [predQuestion, predOptionLabels, createPrediction]);
+
+  const handleLockPrediction = useCallback(async () => {
+    if (!prediction) return;
+    const errorMessage = await lockPrediction(prediction.id);
+    if (errorMessage) {
+      toast.error(errorMessage);
+    } else {
+      toast.success("Prediction locked — no more stakes");
+    }
+  }, [prediction, lockPrediction]);
+
+  const handleSettlePrediction = useCallback(async () => {
+    if (!prediction || !settleOptionId) return;
+    const errorMessage = await settlePrediction(prediction.id, settleOptionId);
+    if (errorMessage) {
+      toast.error(errorMessage);
+    } else {
+      toast.success("Prediction settled — winners have been paid out");
+    }
+    setConfirmSettlePrediction(false);
+    setSettleOptionId("");
+  }, [prediction, settleOptionId, settlePrediction]);
+
+  const handleCancelPrediction = useCallback(async () => {
+    if (!prediction) return;
+    const errorMessage = await cancelPrediction(prediction.id);
+    if (errorMessage) {
+      toast.error(errorMessage);
+    } else {
+      toast.success("Prediction cancelled — all stakes refunded");
+    }
+    setConfirmCancelPrediction(false);
+  }, [prediction, cancelPrediction]);
+
   if (!tournament) return null;
 
   const showCustomGame = game === "Other";
@@ -671,6 +757,27 @@ export function ManageTournamentModal({
           {payouts.length > 0 && (
             <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gold/10 text-gold text-[10px] font-bold">
               {payouts.length}
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeView === "prediction"}
+          onClick={() => setActiveView("prediction")}
+          className={cn(
+            "flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0",
+            "active:scale-95",
+            activeView === "prediction"
+              ? "bg-cyan/10 text-cyan border border-cyan/25"
+              : "bg-surface-alt text-text-muted border border-border hover:border-cyan/20"
+          )}
+        >
+          <Sparkles size={14} />
+          Prediction
+          {prediction && (prediction.status === "open" || prediction.status === "locked") && (
+            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-cyan/10 text-cyan text-[10px] font-bold uppercase">
+              {prediction.status === "open" ? "Live" : "Locked"}
             </span>
           )}
         </button>
@@ -1303,6 +1410,299 @@ export function ManageTournamentModal({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ═══════ Prediction View (platform points, never cash) ═══════ */}
+      {activeView === "prediction" && (
+        <div className="space-y-5">
+          <div className="rounded-lg border border-cyan/20 bg-cyan/5 p-3">
+            <p className="text-xs font-semibold uppercase tracking-widest text-cyan flex items-center gap-1.5">
+              <Sparkles size={12} /> Crowd Predictions
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-text-muted">
+              Viewers stake free platform points on an outcome. Winners split the
+              losing pool proportionally and get their stake back. Points are never
+              cash and never refundable to naira.
+            </p>
+          </div>
+
+          {predictionLoading && !prediction ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 size={22} className="animate-spin text-cyan" />
+            </div>
+          ) : (
+            <>
+              {/* ── Existing prediction: pool overview + controls ── */}
+              {prediction && (
+                <div className="rounded-lg border border-border bg-surface-alt p-3 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm font-semibold text-text">{prediction.question}</p>
+                    <Badge
+                      color={
+                        prediction.status === "open"
+                          ? "green"
+                          : prediction.status === "locked"
+                            ? "gold"
+                            : "cyan"
+                      }
+                      size="sm"
+                    >
+                      {prediction.status}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {prediction.options.map((option) => {
+                      const pool = predictionPools.find((p) => p.option_id === option.id);
+                      const percent = Math.round(pool?.percent ?? 0);
+                      const isWinner = prediction.winning_option === option.id;
+                      return (
+                        <div
+                          key={option.id}
+                          className={cn(
+                            "flex items-center justify-between gap-3 rounded-md border p-2",
+                            isWinner ? "border-gold/40 bg-gold/5" : "border-border bg-surface"
+                          )}
+                        >
+                          <p className={cn("text-xs font-semibold truncate", isWinner ? "text-gold" : "text-text")}>
+                            {isWinner && <Trophy size={11} className="inline mr-1 -mt-0.5" />}
+                            {option.label}
+                          </p>
+                          <p className="text-[11px] text-text-muted shrink-0">
+                            {formatPts(pool?.points ?? 0)} · {percent}%
+                            {pool && pool.stakers > 0 ? ` · ${pool.stakers} backer${pool.stakers === 1 ? "" : "s"}` : ""}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <p className="text-[11px] text-text-muted">
+                    Total staked: <span className="font-semibold text-text">{formatPts(predictionTotal)}</span>
+                  </p>
+
+                  {effectiveStatus === "cancelled" &&
+                    (prediction.status === "open" || prediction.status === "locked") && (
+                      <div className="rounded-md border border-gold/25 bg-gold/5 p-2.5">
+                        <p className="text-[11px] leading-relaxed text-gold">
+                          This tournament is cancelled — staking is already blocked. Cancel
+                          the prediction below to refund everyone&apos;s points (or settle it
+                          if the result was already decided).
+                        </p>
+                      </div>
+                    )}
+
+                  {/* Lifecycle controls */}
+                  {(prediction.status === "open" || prediction.status === "locked") && (
+                    <div className="space-y-3 border-t border-border pt-3">
+                      {prediction.status === "open" && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          fullWidth
+                          disabled={predictionActionLoading}
+                          onClick={handleLockPrediction}
+                        >
+                          <Lock size={14} /> Lock Predictions
+                        </Button>
+                      )}
+
+                      {/* Settle: pick winner + confirm */}
+                      {!confirmSettlePrediction ? (
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <Select
+                              value={settleOptionId}
+                              onChange={(e) => setSettleOptionId(e.target.value)}
+                              options={prediction.options.map((option) => ({
+                                value: option.id,
+                                label: option.label,
+                              }))}
+                            />
+                          </div>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            disabled={predictionActionLoading || !settleOptionId}
+                            onClick={() => setConfirmSettlePrediction(true)}
+                          >
+                            <CheckCircle size={14} /> Settle
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-cyan/30 bg-cyan/5 p-3 space-y-2">
+                          <p className="text-xs font-semibold text-cyan">
+                            Settle with &quot;
+                            {prediction.options.find((o) => o.id === settleOptionId)?.label}
+                            &quot; as the winner?
+                          </p>
+                          <p className="text-[11px] leading-relaxed text-text-muted">
+                            Winners get their stake back plus a share of the losing pool.
+                            This pays out points immediately and cannot be undone.
+                          </p>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              className="flex-1"
+                              disabled={predictionActionLoading}
+                              onClick={handleSettlePrediction}
+                            >
+                              {predictionActionLoading ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <>
+                                  <CheckCircle size={14} /> Confirm &amp; Pay Out
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={predictionActionLoading}
+                              onClick={() => setConfirmSettlePrediction(false)}
+                            >
+                              Back
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Cancel + refund */}
+                      {!confirmCancelPrediction ? (
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          disabled={predictionActionLoading}
+                          onClick={() => setConfirmCancelPrediction(true)}
+                        >
+                          <XCircle size={14} /> Cancel Prediction
+                        </Button>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <p className="text-xs text-red flex-1">
+                            Cancel and refund all {formatPts(predictionTotal)} staked?
+                          </p>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            disabled={predictionActionLoading}
+                            onClick={handleCancelPrediction}
+                          >
+                            {predictionActionLoading ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              "Yes, Refund All"
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={predictionActionLoading}
+                            onClick={() => setConfirmCancelPrediction(false)}
+                          >
+                            Keep
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {prediction.status === "settled" && (
+                    <p className="text-[11px] text-text-muted">
+                      Settled{prediction.settled_at ? ` on ${new Date(prediction.settled_at).toLocaleString("en-GB")}` : ""}
+                      {" — winning option: "}
+                      <span className="font-semibold text-gold">
+                        {prediction.options.find((o) => o.id === prediction.winning_option)?.label ?? "—"}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* ── Create form (no active prediction) ── */}
+              {(!prediction || prediction.status === "settled") &&
+                (effectiveStatus === "completed" || effectiveStatus === "cancelled" ? (
+                  <p className="text-xs text-text-muted text-center py-4">
+                    Predictions can only be opened while the tournament is running.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="border-t border-border pt-4">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-text-muted mb-4">
+                        {prediction ? "New Prediction" : "Open a Prediction"}
+                      </p>
+                    </div>
+                    <Input
+                      label="Question"
+                      value={predQuestion}
+                      onChange={(e) => setPredQuestion(e.target.value)}
+                      maxLength={140}
+                      placeholder={`Who wins ${tournament.title}?`}
+                    />
+                    <div className="space-y-2">
+                      <p className="text-xs text-text-muted">Options (2–6)</p>
+                      {predOptionLabels.map((label, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            value={label}
+                            onChange={(e) =>
+                              setPredOptionLabels((prev) =>
+                                prev.map((l, i) => (i === index ? e.target.value : l))
+                              )
+                            }
+                            maxLength={60}
+                            placeholder={`Option ${index + 1}`}
+                          />
+                          {predOptionLabels.length > 2 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              aria-label={`Remove option ${index + 1}`}
+                              onClick={() =>
+                                setPredOptionLabels((prev) => prev.filter((_, i) => i !== index))
+                              }
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      {predOptionLabels.length < 6 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPredOptionLabels((prev) => [...prev, ""])}
+                        >
+                          <Plus size={14} /> Add Option
+                        </Button>
+                      )}
+                    </div>
+                    <Button
+                      variant="magenta"
+                      fullWidth
+                      disabled={
+                        predictionActionLoading ||
+                        !predQuestion.trim() ||
+                        predOptionLabels.filter((l) => l.trim()).length < 2
+                      }
+                      onClick={handleCreatePrediction}
+                    >
+                      {predictionActionLoading ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" /> Opening...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={16} /> Open Prediction
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ))}
+            </>
+          )}
         </div>
       )}
     </div>

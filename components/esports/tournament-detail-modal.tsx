@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { UnverifiedOrganizerDialog } from "@/components/esports/unverified-organizer-dialog";
+import { PredictionPanel } from "@/components/esports/prediction-panel";
 import { cn, formatPrice, sanitizeUrl } from "@/lib/utils";
 import {
   getGameEmoji,
@@ -623,6 +624,11 @@ export function TournamentDetailModal({
           </p>
         )}
       </div>
+
+      {/* Crowd prediction (Twitch-style, platform points). Renders in
+          both the desktop Modal and mobile BottomSheet via `content`;
+          renders nothing when the tournament has no prediction. */}
+      <PredictionPanel tournamentId={tournament.id} />
 
       {/* Rules */}
       <div className="mb-6 scroll-mt-4" data-tournament-rules>

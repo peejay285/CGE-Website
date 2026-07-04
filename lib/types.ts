@@ -266,6 +266,39 @@ export interface TournamentPayout {
   >;
 }
 
+// ── Tournament Prediction Types (Twitch-style, platform points) ──
+
+export interface PredictionOption {
+  id: string;
+  label: string;
+}
+
+export type TournamentPredictionStatus = "open" | "locked" | "settled" | "cancelled";
+
+export interface TournamentPrediction {
+  id: string;
+  tournament_id: number;
+  question: string;
+  /** 2–6 options, validated by the create RPC. */
+  options: PredictionOption[];
+  status: TournamentPredictionStatus;
+  winning_option: string | null;
+  created_by: string;
+  created_at: string;
+  locked_at: string | null;
+  settled_at: string | null;
+}
+
+export interface PredictionStake {
+  id: string;
+  prediction_id: string;
+  user_id: string;
+  option_id: string;
+  /** Platform points (10–10,000). Never naira, never cashable. */
+  points: number;
+  created_at: string;
+}
+
 // ── Bracket & Match Types ────────────────────────────
 
 export type MatchStatus =
