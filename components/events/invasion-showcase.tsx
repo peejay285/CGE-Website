@@ -169,28 +169,48 @@ export function InvasionShowcase({ className }: { className?: string }) {
           </div>
         </div>
 
-        {/* Real moments from the floor */}
+        {/* Real moments from the floor — pro shots from the Dec 2025 edition */}
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             {
-              src: "/images/invasion/reel-champion.webp",
-              alt: "Mortal Kombat grand winner holding the prize cheque and trophy at Invasion 2025",
-              caption: "The MK grand winner",
+              src: "/images/invasion/inv25-center-stage.webp",
+              alt: "Player competing at the Call of Duty Mobile station on the Invasion stage",
+              caption: "Center stage",
             },
             {
-              src: "/images/invasion/reel-station.webp",
-              alt: "Player competing at a branded station during Invasion 2025",
-              caption: "Locked in",
+              src: "/images/invasion/inv25-match-crowd.webp",
+              alt: "A match in progress in front of the crowd at Invasion 2025",
+              caption: "Match in progress",
             },
             {
-              src: "/images/invasion/reel-award.webp",
-              alt: "Winner congratulated on stage at Invasion 2025",
-              caption: "Podium moments",
+              src: "/images/invasion/inv25-redcarpet-kid.webp",
+              alt: "Young fan posing on the Invasion Tournament red carpet",
+              caption: "The red carpet",
             },
             {
-              src: "/images/invasion/reel-fan.webp",
-              alt: "Smiling attendee in an Invasion Tournament shirt",
-              caption: "The Invasion faithful",
+              src: "/images/invasion/inv25-prizepool-banner.webp",
+              alt: "Attendees posing in front of the one million naira prize pool banner",
+              caption: "₦1M on the line",
+            },
+            {
+              src: "/images/invasion/inv25-champion-kiss.webp",
+              alt: "FC26 champion kissing the golden trophy at Invasion 2025",
+              caption: "The FC26 champion",
+            },
+            {
+              src: "/images/invasion/inv25-grand-cheque.webp",
+              alt: "Grand winner holding the five hundred thousand naira cheque and trophy",
+              caption: "₦500K grand prize",
+            },
+            {
+              src: "/images/invasion/inv25-mk-winners.webp",
+              alt: "Mortal Kombat grand winner with his one hundred thousand naira cheque",
+              caption: "MK grand winner",
+            },
+            {
+              src: "/images/invasion/inv25-codm-champion.webp",
+              alt: "Call of Duty Mobile champion smiling with medal and trophy",
+              caption: "CODM champion",
             },
           ].map((photo) => (
             <figure key={photo.src} className="group">
