@@ -36,13 +36,27 @@ export default function CommunityPage() {
   return (
     <PullToRefresh onRefresh={cp.refresh}>
     <section className="max-w-5xl mx-auto px-4 md:px-6 py-12">
-      <div className="flex items-center gap-3 mb-6">
-        <Users className="h-6 w-6 text-green" />
-        <SectionTitle
-          eyebrow="Connect & Play"
-          title="Nigeria's Gaming Community"
-          subtitle="Share your wins, find opponents, swap notes — gamers nationwide."
-        />
+      <div className="relative rounded-2xl border border-border overflow-hidden mb-6">
+        {/* Real lounge photo backdrop — decorative */}
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <Image
+            src="/images/lounge/community-couch.webp"
+            alt=""
+            fill
+            loading="lazy"
+            sizes="(max-width: 1024px) 100vw, 1024px"
+            className="object-cover opacity-20"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-base via-base/80 to-base/40" />
+        </div>
+        <div className="relative flex items-center gap-3 px-5 py-6">
+          <Users className="h-6 w-6 text-green" />
+          <SectionTitle
+            eyebrow="Connect & Play"
+            title="Nigeria's Gaming Community"
+            subtitle="Share your wins, find opponents, swap notes — gamers nationwide."
+          />
+        </div>
       </div>
 
       <AppGateBanner pillar="community" />

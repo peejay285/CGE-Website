@@ -7,6 +7,7 @@ import { ZoneComparison } from "@/components/home/zone-comparison";
 import { PricingGrid } from "@/components/home/pricing-grid";
 import { Testimonials } from "@/components/home/testimonials";
 import { SectionTitle } from "@/components/ui/section-title";
+import Image from "next/image";
 
 export default function Home() {
   return (
@@ -56,6 +57,22 @@ export default function Home() {
           subtitle="Visit our gaming lounge — PS4, PS5, and VR zones with transparent pricing."
           align="center"
         />
+        <figure className="mt-8">
+          <div className="relative aspect-[21/9] rounded-xl overflow-hidden border border-cyan/30 shadow-[0_0_30px_rgba(0,240,255,0.08)]">
+            <Image
+              src="/images/lounge/lounge-interior-hero.webp"
+              alt="Inside the CGE gaming lounge in Bonny Island"
+              fill
+              loading="lazy"
+              sizes="(max-width: 1280px) 100vw, 1232px"
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-base/60 via-transparent to-transparent" />
+          </div>
+          <figcaption className="mt-3 text-center text-xs uppercase tracking-widest text-text-muted">
+            The CGE Lounge — Bonny Island
+          </figcaption>
+        </figure>
         <div className="mt-8">
           <ZoneComparison />
         </div>

@@ -21,6 +21,13 @@ const ZONE_ICONS: Record<string, React.ReactNode> = {
   vr: <Glasses size={32} />,
 };
 
+// Real lounge photography per zone; unmapped ids fall back to zone.image
+const ZONE_PHOTOS: Record<string, string> = {
+  main: "/images/lounge/stations-detail.webp",
+  vip: "/images/lounge/dual-screen-crowd.webp",
+  vr: "/images/lounge/vr-aiming.webp",
+};
+
 const ZONE_DETAILS: Record<
   string,
   { from: string; includes: string[] }
@@ -77,22 +84,33 @@ export function ZoneSelector({ selected, onSelect }: ZoneSelectorProps) {
 
   return (
     <div>
-      {/* Page intro */}
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 mb-4 px-4 py-1.5 rounded-full border border-cyan/20 bg-cyan/5">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan animate-pulse" />
-          <span className="text-xs font-ui font-semibold text-cyan uppercase tracking-widest">
-            Book a Session
-          </span>
-        </div>
+      {/* Page intro — real lounge photo with heading overlaid */}
+      <div className="relative h-64 sm:h-80 md:h-96 rounded-2xl overflow-hidden mb-8">
+        <Image
+          src="/images/lounge/lounge-interior-hero.webp"
+          alt="Inside the CGE gaming lounge"
+          fill
+          priority
+          sizes="(max-width: 1280px) 100vw, 1152px"
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-base via-base/55 to-base/10" />
+        <div className="absolute inset-x-0 bottom-0 text-center px-4 pb-6 sm:pb-8">
+          <div className="inline-flex items-center gap-2 mb-4 px-4 py-1.5 rounded-full border border-cyan/20 bg-cyan/5 backdrop-blur-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan animate-pulse" />
+            <span className="text-xs font-ui font-semibold text-cyan uppercase tracking-widest">
+              Book a Session
+            </span>
+          </div>
 
-        <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-text mb-3">
-          CHOOSE YOUR ZONE
-        </h1>
-        <p className="text-sm sm:text-base max-w-lg mx-auto leading-relaxed" style={{ color: "#C4C4CC" }}>
-          Three zones, one mission — game at the highest level.
-          Pick your arena and lock in your session.
-        </p>
+          <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-text mb-3">
+            CHOOSE YOUR ZONE
+          </h1>
+          <p className="text-sm sm:text-base max-w-lg mx-auto leading-relaxed" style={{ color: "#C4C4CC" }}>
+            Three zones, one mission — game at the highest level.
+            Pick your arena and lock in your session.
+          </p>
+        </div>
       </div>
 
       {/* How It Works */}
@@ -156,7 +174,7 @@ export function ZoneSelector({ selected, onSelect }: ZoneSelectorProps) {
 
               {/* Photo header — falls back to gradient + icon if /public/zones/{id}.jpg is missing */}
               <ZoneHeader
-                src={zone.image}
+                src={ZONE_PHOTOS[zone.id] ?? zone.image}
                 gradient={zone.gradient}
                 alt={zone.name}
                 isPicked={isPicked}

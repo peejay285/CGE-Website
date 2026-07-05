@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { Trophy, Search, X, Swords, Plus, Calendar, Users, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TabBar } from "@/components/ui/tab-bar";
@@ -50,6 +51,18 @@ export default function EsportsPage() {
     <PullToRefresh onRefresh={ep.refresh}>
       {/* Hero section */}
       <section className="relative overflow-hidden">
+        {/* Real lounge photo backdrop — decorative */}
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <Image
+            src="/images/lounge/lounge-silhouettes.webp"
+            alt=""
+            fill
+            loading="lazy"
+            sizes="100vw"
+            className="object-cover opacity-25"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-base/70 via-base/85 to-base" />
+        </div>
         <div className="absolute inset-0 bg-gradient-to-b from-cyan/5 via-magenta/5 to-transparent pointer-events-none" />
         <div className="absolute inset-0 dot-grid pointer-events-none opacity-40" />
 
