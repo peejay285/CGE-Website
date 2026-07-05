@@ -4,7 +4,6 @@ import { LivePreview } from "@/components/home/live-preview";
 import { Pillars } from "@/components/home/pillars";
 import { HowItWorks } from "@/components/home/how-it-works";
 import { ZoneComparison } from "@/components/home/zone-comparison";
-import { PricingGrid } from "@/components/home/pricing-grid";
 import { Testimonials } from "@/components/home/testimonials";
 import { SectionTitle } from "@/components/ui/section-title";
 import Image from "next/image";
@@ -75,9 +74,6 @@ export default function Home() {
         </figure>
         <div className="mt-8">
           <ZoneComparison />
-        </div>
-        <div className="mt-12">
-          <PricingGrid />
         </div>
       </section>
 

@@ -1,12 +1,31 @@
-import { ZONES } from "@/lib/constants";
+import { PRICING, ZONES } from "@/lib/constants";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { formatPrice } from "@/lib/utils";
 
+interface PriceRow {
+  readonly game: string;
+  readonly price: number;
+  readonly unit: string;
+}
+
+const ZONE_PRICING: Record<string, readonly PriceRow[]> = {
+  main: PRICING.mainLounge,
+  vip: PRICING.vipLounge,
+  vr: PRICING.vr,
+};
+
+/**
+ * One card per zone with the full story: what it is, what's in it,
+ * and what it costs. (Merged from the old ZoneComparison + PricingGrid,
+ * which repeated the same three zones twice.)
+ */
 export function ZoneComparison() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {ZONES.map((zone) => {
         const isVip = zone.id === "vip";
+        const rows = ZONE_PRICING[zone.id] ?? [];
 
         return (
           <Card
@@ -54,6 +73,24 @@ export function ZoneComparison() {
                   {zone.capacity} {zone.capacity === 1 ? "player" : "players"}
                 </span>
               </div>
+
+              {/* Pricing */}
+              {rows.map((row) => (
+                <div
+                  key={row.game}
+                  className="flex items-center justify-between py-2 border-t border-border"
+                >
+                  <span className="text-sm text-text-muted">{row.game}</span>
+                  <div className="text-right">
+                    <span className="text-base font-bold text-cyan">
+                      {formatPrice(row.price)}
+                    </span>
+                    <span className="text-xs text-text-muted ml-1">
+                      / {row.unit}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </Card>
         );
