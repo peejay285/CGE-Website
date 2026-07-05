@@ -9,6 +9,7 @@ import { TabBar } from "@/components/ui/tab-bar";
 import { CardSkeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { EventCard } from "@/components/events/event-card";
+import { InvasionShowcase } from "@/components/events/invasion-showcase";
 import { EventDetailModal } from "@/components/events/event-detail-modal";
 import { EventCalendar } from "@/components/events/event-calendar";
 import { useEvents } from "@/hooks/use-events";
@@ -143,6 +144,14 @@ export default function EventsPage() {
         title="Events & Happenings"
         subtitle="Stay updated with the latest events, parties, and special nights at CGE gaming lounge."
       />
+
+      {/* Invasion Tournament brand showcase (static, above the DB listing) */}
+      <InvasionShowcase className="mb-14" />
+
+      {/* Lounge & community events listing (DB-driven) */}
+      <h2 className="font-heading text-xl md:text-2xl font-bold tracking-tight text-text mb-6">
+        All Events
+      </h2>
 
       {/* Search + Tabs row */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">

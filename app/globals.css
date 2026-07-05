@@ -99,6 +99,18 @@ body {
   50% { transform: translateY(-3px) scale(1.005); }
 }
 
+/* CTA light sweep — a thin streak of light crosses the button, then rests */
+@keyframes ctaSweep {
+  0%, 60% { transform: translateX(-160%) skewX(-20deg); }
+  85%, 100% { transform: translateX(320%) skewX(-20deg); }
+}
+
+/* CTA breathing glow — tuned for small buttons */
+@keyframes ctaGlow {
+  0%, 100% { box-shadow: 0 2px 12px rgba(0, 240, 255, 0.25); }
+  50% { box-shadow: 0 2px 26px rgba(0, 240, 255, 0.5); }
+}
+
 /* Utility Classes */
 .animate-fadeIn {
   animation: fadeIn 0.6s ease-out forwards;
@@ -131,6 +143,14 @@ body {
 
 .animate-subtleFloat {
   animation: subtleFloat 4s ease-in-out infinite;
+}
+
+.animate-ctaSweep {
+  animation: ctaSweep 4.5s ease-in-out infinite;
+}
+
+.animate-ctaGlow {
+  animation: ctaGlow 3s ease-in-out infinite;
 }
 
 /* Netflix-style infinite scroll */
@@ -358,7 +378,9 @@ html {
   .animate-float,
   .animate-gradientShift,
   .animate-borderGlow,
-  .animate-subtleFloat {
+  .animate-subtleFloat,
+  .animate-ctaSweep,
+  .animate-ctaGlow {
     animation: none !important;
   }
 

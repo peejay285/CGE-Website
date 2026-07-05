@@ -55,8 +55,9 @@ export const ZONES = [
     name: "Main Lounge",
     icon: "🎮",
     capacity: 6,
+    capacityLabel: "6 stations",
     console: "PS4",
-    desc: "6-player gaming arena with PS4 consoles",
+    desc: "Gaming arena with 6 PS4 stations",
     image: "/zones/main.jpg",
     gradient: "from-cyan/30 via-cyan/10 to-base",
   },
@@ -65,6 +66,7 @@ export const ZONES = [
     name: "VIP Lounge",
     icon: "👑",
     capacity: 1,
+    capacityLabel: "1 player",
     console: "PS5",
     desc: "Private PS5 space for one ticket at a time",
     image: "/zones/vip.jpg",
@@ -75,6 +77,7 @@ export const ZONES = [
     name: "VR Zone",
     icon: "🥽",
     capacity: 2,
+    capacityLabel: "2 players",
     console: "VR",
     desc: "Immersive VR sessions for up to 2 players",
     image: "/zones/vr.jpg",
@@ -334,8 +337,9 @@ export const SAFETY_GUIDELINES = {
 
 export const NAV_LINKS = [
   { label: "Lounge", href: "/lounge" },
-  { label: "Marketplace", href: "/marketplace" },
   { label: "Esports", href: "/esports" },
+  { label: "Events", href: "/events" },
+  { label: "Marketplace", href: "/marketplace" },
   { label: "Community", href: "/community" },
   { label: "About", href: "/about" },
 ] as const;

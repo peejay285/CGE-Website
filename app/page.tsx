@@ -1,12 +1,13 @@
 import { Hero } from "@/components/home/hero";
 import { StatsBar } from "@/components/home/stats-bar";
+import { FeaturedEvent } from "@/components/home/featured-event";
 import { LivePreview } from "@/components/home/live-preview";
 import { Pillars } from "@/components/home/pillars";
 import { HowItWorks } from "@/components/home/how-it-works";
 import { ZoneComparison } from "@/components/home/zone-comparison";
+import { LoungeLivePhoto } from "@/components/home/lounge-live-photo";
 import { Testimonials } from "@/components/home/testimonials";
 import { SectionTitle } from "@/components/ui/section-title";
-import Image from "next/image";
 
 export default function Home() {
   return (
@@ -19,10 +20,15 @@ export default function Home() {
         <StatsBar />
       </section>
 
-      {/* 3. Live preview — real tournaments, posts, listings (auto-hides if empty) */}
+      {/* 3. Featured event — next upcoming tournament (Invasion teaser fallback) */}
+      <section className="max-w-7xl mx-auto px-4 md:px-6 mt-8 min-h-0">
+        <FeaturedEvent />
+      </section>
+
+      {/* 4. Live preview — real tournaments, posts, listings (auto-hides if empty) */}
       <LivePreview />
 
-      {/* 4. Four pillars — esports, marketplace, community, lounge */}
+      {/* 5. Four pillars — esports, marketplace, community, lounge */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 py-20">
         <SectionTitle
           eyebrow="The Platform"
@@ -35,7 +41,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 5. How It Works — 3 steps */}
+      {/* 6. How It Works — 3 steps */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 py-20 border-t border-border/50">
         <SectionTitle
           eyebrow="Get Started"
@@ -48,7 +54,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 6. Lounge — zones + pricing (the physical venue) */}
+      {/* 7. Lounge — zones + pricing (the physical venue) */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 py-20 border-t border-border/50">
         <SectionTitle
           eyebrow="The Lounge"
@@ -56,28 +62,13 @@ export default function Home() {
           subtitle="Visit our gaming lounge — PS4, PS5, and VR zones with transparent pricing."
           align="center"
         />
-        <figure className="mt-8">
-          <div className="relative aspect-[21/9] rounded-xl overflow-hidden border border-cyan/30 shadow-[0_0_30px_rgba(0,240,255,0.08)]">
-            <Image
-              src="/images/lounge/lounge-interior-hero.webp"
-              alt="Inside the CGE gaming lounge in Bonny Island"
-              fill
-              loading="lazy"
-              sizes="(max-width: 1280px) 100vw, 1232px"
-              className="object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-base/60 via-transparent to-transparent" />
-          </div>
-          <figcaption className="mt-3 text-center text-xs uppercase tracking-widest text-text-muted">
-            The CGE Lounge — Bonny Island
-          </figcaption>
-        </figure>
+        <LoungeLivePhoto />
         <div className="mt-8">
           <ZoneComparison />
         </div>
       </section>
 
-      {/* 7. Event highlights — real social proof */}
+      {/* 8. Event highlights — real social proof */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 py-20 border-t border-border/50">
         <SectionTitle
           eyebrow="Event Highlights"

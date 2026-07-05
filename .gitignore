@@ -44,3 +44,4 @@ next-env.d.ts
 # Raw media originals — huge files, never commit (GitHub rejects >100MB)
 /public/images/raw/
 /public/videos/experience/
+/public/Videos/experience/

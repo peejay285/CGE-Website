@@ -70,7 +70,7 @@ export function ZoneComparison() {
                   Capacity
                 </span>
                 <span className="text-sm font-semibold text-text">
-                  {zone.capacity} {zone.capacity === 1 ? "player" : "players"}
+                  {zone.capacityLabel}
                 </span>
               </div>
 

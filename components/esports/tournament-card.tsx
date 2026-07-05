@@ -37,7 +37,12 @@ export const TournamentCard = memo(function TournamentCard({
   style,
 }: TournamentCardProps) {
   const emoji = getGameEmoji(tournament.game);
-  const status = STATUS_CONFIG[tournament.status];
+  // A tournament whose date has passed but was never closed out shouldn't
+  // keep advertising itself as "Open" — display it as ended.
+  const status =
+    isPast && tournament.status === "open"
+      ? ({ label: "Ended", color: "neutral" } as const)
+      : STATUS_CONFIG[tournament.status];
   const filledCount = getFilledCount(tournament);
   const isFull = filledCount >= tournament.slots;
   const progressColor = isFull ? "var(--color-red)" : "var(--color-cyan)";

@@ -171,13 +171,8 @@ create policy "Users can view own registrations"
 create policy "Authenticated users can register"
   on tournament_registrations for insert with check (auth.uid() = user_id);
 
--- Seed tournaments
-insert into tournaments (title, game, date, time, entry_fee, prize, slots, format, platform, status) values
-  ('FC 26 Weekend Cup', 'FC 26', '2026-03-15', '2:00 PM', 2000, '₦50,000', 16, 'Single Elimination', 'PS5', 'open'),
-  ('Tekken 8 Showdown', 'Tekken 8', '2026-03-22', '3:00 PM', 1500, '₦30,000', 8, 'Double Elimination', 'PS5', 'open'),
-  ('COD Warzone Battle', 'Call of Duty', '2026-04-01', '4:00 PM', 3000, '₦80,000', 32, 'Battle Royale', 'PS5', 'open'),
-  ('Mortal Kombat League', 'MK1', '2026-04-08', '1:00 PM', 1000, '₦20,000', 16, 'Round Robin', 'PS4', 'open')
-on conflict do nothing;
+-- Seed tournaments — REMOVED (was demo/test data; deleted from prod July 2026).
+-- Real tournaments are created through the app's Host a Tournament flow.
 
 -- ─── EVENTS ──────────────────────────────────
 create table if not exists events (

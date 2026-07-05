@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { ZONES, PRICING, BRAND } from "@/lib/constants";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn, formatPrice } from "@/lib/utils";
-import { Gamepad2, Crown, Glasses, CalendarDays, Zap, Clock, ArrowRight } from "lucide-react";
+import { Gamepad2, Crown, Glasses, CalendarDays, Zap, Clock, ArrowRight, Check } from "lucide-react";
 import { ZoneAvailability } from "./zone-availability";
 
 interface ZoneSelectorProps {
@@ -37,7 +37,7 @@ const ZONE_DETAILS: Record<
     includes: [
       "PS4 console access",
       "Controllers provided",
-      "Up to 6 players",
+      "6 gaming stations",
     ],
   },
   vip: {
@@ -82,8 +82,19 @@ const HOW_IT_WORKS = [
 export function ZoneSelector({ selected, onSelect }: ZoneSelectorProps) {
   const [picked, setPicked] = useState<string | null>(selected);
 
+  // Live open/closed status — computed after mount to avoid SSR time mismatch.
+  const [openNow, setOpenNow] = useState<boolean | null>(null);
+  useEffect(() => {
+    const now = new Date();
+    const startHour = now.getDay() === 0 ? 13 : 10; // Sun 1 PM, else 10 AM
+    const mins = now.getHours() * 60 + now.getMinutes();
+    setOpenNow(mins >= startHour * 60 && mins < 21 * 60); // closes 9 PM
+  }, []);
+
+  const pickedZone = picked ? ZONES.find((z) => z.id === picked) : null;
+
   return (
-    <div>
+    <div className={cn(picked && "pb-24")}>
       {/* Page intro — real lounge photo with heading overlaid */}
       <div className="relative h-64 sm:h-80 md:h-96 rounded-2xl overflow-hidden mb-8">
         <Image
@@ -138,11 +149,29 @@ export function ZoneSelector({ selected, onSelect }: ZoneSelectorProps) {
         </div>
       </div>
 
-      {/* Operating Hours */}
-      <div className="flex items-center justify-center gap-1.5 mb-10">
-        <Clock size={12} className="text-text-muted" />
-        <span className="text-xs text-text-muted">
-          Open Mon&ndash;Sat {BRAND.hours.weekday} &middot; Sun {BRAND.hours.sunday}
+      {/* Operating Hours — with live status */}
+      <div className="flex flex-wrap items-center justify-center gap-2.5 mb-10">
+        {openNow !== null && (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider",
+              openNow
+                ? "border-green/30 bg-green/10 text-green"
+                : "border-border bg-surface-alt text-text-muted"
+            )}
+          >
+            <span
+              className={cn(
+                "w-1.5 h-1.5 rounded-full",
+                openNow ? "bg-green animate-pulse" : "bg-text-muted"
+              )}
+            />
+            {openNow ? "Open now" : "Closed now"}
+          </span>
+        )}
+        <span className="inline-flex items-center gap-1.5 text-xs text-text-muted">
+          <Clock size={12} className="text-text-muted" />
+          Mon&ndash;Sat {BRAND.hours.weekday} &middot; Sun {BRAND.hours.sunday}
         </span>
       </div>
 
@@ -163,12 +192,27 @@ export function ZoneSelector({ selected, onSelect }: ZoneSelectorProps) {
                   "border-cyan bg-cyan/5 shadow-[0_0_25px_rgba(0,240,255,0.12)]"
               )}
             >
-              {/* VIP badge */}
+              {/* Zone badges */}
               {zone.id === "vip" && (
                 <div className="absolute top-3 right-3 z-10">
                   <Badge color="gold" size="sm">
                     Premium
                   </Badge>
+                </div>
+              )}
+              {zone.id === "main" && (
+                <div className="absolute top-3 right-3 z-10">
+                  <Badge color="cyan" size="sm">
+                    Most Popular
+                  </Badge>
+                </div>
+              )}
+
+              {/* Selected check chip */}
+              {isPicked && (
+                <div className="absolute top-3 left-3 z-10 flex items-center gap-1 rounded-full bg-cyan px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-base shadow-[0_0_12px_rgba(0,240,255,0.5)]">
+                  <Check size={11} strokeWidth={3} />
+                  Selected
                 </div>
               )}
 
@@ -202,7 +246,7 @@ export function ZoneSelector({ selected, onSelect }: ZoneSelectorProps) {
                   {zone.console}
                 </Badge>
                 <Badge color="gold" size="sm">
-                  {zone.capacity} {zone.capacity === 1 ? "player" : "players"}
+                  {zone.capacityLabel}
                 </Badge>
               </div>
 
@@ -244,11 +288,6 @@ export function ZoneSelector({ selected, onSelect }: ZoneSelectorProps) {
                 </div>
               )}
 
-              {isPicked && (
-                <div className="mt-4 text-xs font-semibold uppercase tracking-wider text-cyan">
-                  Selected
-                </div>
-              )}
               </div>
             </Card>
           );
@@ -270,6 +309,31 @@ export function ZoneSelector({ selected, onSelect }: ZoneSelectorProps) {
           <ArrowRight size={18} />
         </Button>
       </div>
+
+      {/* Floating selection bar — your pick follows you to the CTA.
+          Sits above the mobile bottom nav (bottom-16) and flush on desktop. */}
+      {picked && pickedZone && (
+        <div className="fixed inset-x-0 bottom-16 lg:bottom-0 z-40 animate-slideUp pointer-events-none">
+          <div className="mx-auto max-w-4xl px-4 pb-3 lg:pb-4">
+            <div className="pointer-events-auto flex items-center justify-between gap-3 rounded-2xl border border-cyan/30 bg-surface/95 backdrop-blur-xl px-4 py-3 shadow-[0_-4px_30px_rgba(0,240,255,0.15)]">
+              <div className="min-w-0">
+                <p className="text-sm font-bold font-heading text-text truncate">
+                  {pickedZone.name}
+                </p>
+                {ZONE_DETAILS[picked] && (
+                  <p className="text-xs text-cyan">
+                    From {ZONE_DETAILS[picked].from}
+                  </p>
+                )}
+              </div>
+              <Button variant="primary" onClick={() => onSelect(picked)}>
+                Continue
+                <ArrowRight size={16} />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

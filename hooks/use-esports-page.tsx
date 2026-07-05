@@ -128,13 +128,19 @@ export function useEsportsPage() {
   const uniqueGames = useMemo(() => getUniqueGames(), [getUniqueGames]);
 
   const stats = useMemo(() => {
-    const openCount = tournaments.filter((t) => t.status === "open").length;
-    const totalPrize = tournaments.reduce((sum, t) => {
+    const prizeOf = (t: (typeof tournaments)[number]) => {
       const match = t.prize.match(/[\d,]+/);
-      return sum + (match ? parseInt(match[0].replace(/,/g, ""), 10) : 0);
-    }, 0);
+      return match ? parseInt(match[0].replace(/,/g, ""), 10) : 0;
+    };
+    // "Open" means genuinely joinable: status open AND date not in the past.
+    const live = tournaments.filter(
+      (t) => t.status === "open" && !isTournamentPast(t.date, t.status)
+    );
+    const openCount = live.length;
+    const livePrize = live.reduce((sum, t) => sum + prizeOf(t), 0);
+    const allTimePrize = tournaments.reduce((sum, t) => sum + prizeOf(t), 0);
     const totalPlayers = new Set(registrations.map((r) => r.user_id)).size;
-    return { openCount, totalPrize, totalPlayers };
+    return { openCount, livePrize, allTimePrize, totalPlayers };
   }, [tournaments, registrations]);
 
   const filteredTournaments = useMemo(() => {

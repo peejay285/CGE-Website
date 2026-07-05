@@ -16,7 +16,7 @@ LOUNGE — BONNY ISLAND BRANCH (currently the only physical location):
 - Age Policy: 13+
 
 LOUNGE PRICING (Bonny Island branch):
-- Main Lounge (PS4, 6 players): FC 26 = ₦3,000/hr, Other Games = ₦2,000/hr
+- Main Lounge (PS4, 6 gaming stations): FC 26 = ₦3,000/hr, Other Games = ₦2,000/hr
 - VIP Lounge (PS5 private room): ₦5,000/hr, 1 ticket per slot
 - VR Zone: ₦2,000 per 15-minute session, up to 2 players per slot
 - Drinks: Coca-Cola, Fanta, Water = ₦500 each

@@ -8,7 +8,7 @@ interface StatItem {
 
 const STATS: StatItem[] = [
   { icon: <Layers size={20} className="text-magenta" />, value: "4", label: "Pillars, One Platform" },
-  { icon: <Trophy size={20} className="text-gold" />, value: "₦500K+", label: "Prize Pool Paid Out" },
+  { icon: <Trophy size={20} className="text-gold" />, value: "₦1M+", label: "Prize Pools Hosted" },
   { icon: <MapPin size={20} className="text-cyan" />, value: "Bonny Island", label: "Flagship Lounge" },
   { icon: <Globe size={20} className="text-green" />, value: "Nationwide", label: "Esports & Marketplace" },
 ];

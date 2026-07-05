@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Gamepad2, Trophy, ShoppingBag, Users, ArrowRight } from "lucide-react";
 import { GameShowcase } from "./game-showcase";
 
@@ -7,6 +8,31 @@ export function Hero() {
     <section className="relative overflow-hidden">
       {/* Background effects */}
       <div className="absolute inset-0 bg-base">
+        {/* Real lounge silhouettes, faint — humanity behind the message */}
+        <Image
+          src="/images/lounge/lounge-silhouettes.webp"
+          alt=""
+          aria-hidden
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center opacity-[0.16]"
+        />
+        {/* Invasion venue drone sweep — desktop only, phones keep the photo */}
+        <video
+          aria-hidden
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          poster="/images/invasion/drone-stage.webp"
+          className="hidden md:block absolute inset-0 h-full w-full object-cover opacity-[0.32]"
+        >
+          <source src="/Videos/events/invasion-drone-loop.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-b from-base/60 via-base/25 to-base" />
+        <div className="absolute inset-0 bg-gradient-to-r from-base via-transparent to-base" />
         <div className="absolute inset-0 bg-gradient-to-br from-cyan/5 via-transparent to-magenta/5 animate-gradientShift" />
         <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-cyan/8 rounded-full blur-[75px]" />
         <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-magenta/8 rounded-full blur-[75px]" />
@@ -19,7 +45,7 @@ export function Hero() {
           <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full border border-cyan/20 bg-cyan/5">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan animate-pulse" />
             <span className="text-xs font-ui font-semibold text-cyan uppercase tracking-widest">
-              Nigeria&apos;s gaming platform for web and mobile
+              Built in Nigeria &middot; Bonny Island
             </span>
           </div>
 
@@ -84,19 +110,19 @@ export function Hero() {
           {/* Swap hook */}
           <Link
             href="/marketplace"
-            className="group inline-flex items-center gap-1.5 mb-4 text-xs text-magenta/80 hover:text-magenta transition-colors duration-200"
+            className="group inline-flex items-center gap-2 mb-4 rounded-full border border-magenta/25 bg-magenta/5 px-4 py-2 text-xs text-magenta/90 transition-all duration-200 hover:border-magenta/50 hover:bg-magenta/10 hover:text-magenta"
           >
-            <span aria-hidden>🔄</span>
-            <span className="border-b border-magenta/25 group-hover:border-magenta/60 transition-colors duration-200">
-              Nigeria&apos;s first swap-first gaming marketplace — trade your
+            <ShoppingBag size={13} className="shrink-0" />
+            <span>
+              Nigeria&apos;s first swap-first marketplace &mdash; trade your
               PS4 for a PS5
             </span>
-            <span aria-hidden>→</span>
+            <ArrowRight
+              size={13}
+              className="shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
+            />
           </Link>
 
-          <p className="text-text-muted/40 text-xs tracking-wide">
-            Full web platform now. Mobile app perks are coming for alerts, check-ins, and rewards.
-          </p>
         </div>
       </div>
 

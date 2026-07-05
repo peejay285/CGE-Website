@@ -94,9 +94,14 @@ export default function EsportsPage() {
             </div>
             <div className="text-center">
               <p className="text-2xl md:text-3xl font-bold font-heading text-gold">
-                {ep.stats.totalPrize > 0 ? `\u20A6${ep.stats.totalPrize.toLocaleString()}` : "\u20A60"}
+                {`\u20A6${(ep.stats.livePrize > 0
+                  ? ep.stats.livePrize
+                  : ep.stats.allTimePrize
+                ).toLocaleString()}`}
               </p>
-              <p className="text-[10px] uppercase tracking-widest text-text-muted font-semibold mt-1">Total Prize Pool</p>
+              <p className="text-[10px] uppercase tracking-widest text-text-muted font-semibold mt-1">
+                {ep.stats.livePrize > 0 ? "Live Prize Pool" : "Prizes Hosted To Date"}
+              </p>
             </div>
             <div className="text-center">
               <p className="text-2xl md:text-3xl font-bold font-heading text-magenta">{ep.tournaments.length}</p>
@@ -198,6 +203,29 @@ export default function EsportsPage() {
               />
             ) : (
               <div className="space-y-10">
+                {ep.upcomingTournaments.length === 0 && ep.pastTournaments.length > 0 && (
+                  <div className="rounded-xl border border-magenta/25 bg-gradient-to-br from-magenta/5 to-transparent p-6 text-center">
+                    <p className="font-heading text-base font-bold text-text mb-1">
+                      The next bracket is loading…
+                    </p>
+                    <p className="text-sm text-text-muted mb-4">
+                      No open tournaments right now — but you don&apos;t have to wait.
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                      <Button variant="magenta" onClick={ep.handleOpenCreateTournament}>
+                        <Plus size={14} />
+                        Host your own
+                      </Button>
+                      <Link
+                        href="/events"
+                        className="text-sm font-medium text-cyan hover:text-text transition-colors underline-offset-4 hover:underline"
+                      >
+                        See Invasion Tournament events
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
                 {ep.thisWeekTournaments.length > 0 && (
                   <section>
                     <h3 className="text-sm font-semibold uppercase tracking-widest text-magenta mb-4 flex items-center gap-2">
@@ -245,11 +273,6 @@ export default function EsportsPage() {
                   </section>
                 )}
 
-                {ep.upcomingTournaments.length === 0 && ep.pastTournaments.length > 0 && (
-                  <div className="rounded-lg border border-border bg-surface-alt p-4 text-center mb-6 order-first">
-                    <p className="text-sm text-text-muted">No upcoming tournaments right now. Check back soon!</p>
-                  </div>
-                )}
               </div>
             )}
           </div>
