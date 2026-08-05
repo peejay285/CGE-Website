@@ -1,4 +1,4 @@
-const DEFAULT_SITE_URL = "https://cge.ng";
+const DEFAULT_SITE_URL = "https://playcge.com";
 
 function normalizeUrl(value: string | undefined) {
   if (!value) return null;

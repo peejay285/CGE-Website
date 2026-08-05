@@ -25,7 +25,7 @@ env:
       - RUNTIME
 
   - variable: NEXT_PUBLIC_SITE_URL
-    value: https://cge-website--cge-suite.europe-west4.hosted.app
+    value: https://playcge.com
     availability:
       - BUILD
       - RUNTIME
