@@ -41,6 +41,13 @@ export function isBetaMode() {
   );
 }
 
+// Beta waiting room: while the site phase is "beta", signed-in users need
+// profiles.beta_approved before they can book, register, list, or post.
+// Flip NEXT_PUBLIC_SITE_PHASE off "beta" at launch and the gate is a no-op.
+export function isBetaGateActive() {
+  return process.env.NEXT_PUBLIC_SITE_PHASE === "beta";
+}
+
 export function shouldDisableIndexing() {
   if (isBetaMode()) return true;
   return isFalsey(process.env.NEXT_PUBLIC_ALLOW_INDEXING);

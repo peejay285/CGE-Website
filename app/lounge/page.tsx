@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { ZONES, BRAND, RESCHEDULE_POLICY } from "@/lib/constants";
 import { getUnitPrice, getBookingTotals } from "@/lib/pricing";
 import { useAuth } from "@/hooks/use-auth";
+import { useBetaAccess } from "@/hooks/use-beta-access";
 import { useBookings } from "@/hooks/use-bookings";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { BookingForm } from "@/components/lounge/booking-form";
 import { DrinksAddon } from "@/components/lounge/drinks-addon";
 import { PaymentStep } from "@/components/lounge/payment-step";
 import { BookingConfirmation } from "@/components/lounge/booking-confirmation";
+import { WaitlistModal } from "@/components/beta/waitlist-modal";
 import { bookingReceiptPath } from "@/lib/booking-receipt";
 
 /* ---------- Step labels ---------- */
@@ -26,6 +28,7 @@ const STEP_LABELS = ["Zone", "Details", "Extras", "Payment"];
 function LoungePageInner() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { approved: betaApproved, loading: betaLoading } = useBetaAccess(user?.id);
   const { createBooking, actionLoading, checkAvailability } = useBookings();
 
   // Booking wizard state
@@ -48,6 +51,9 @@ function LoungePageInner() {
   // Guest picked a zone and hit continue — advance automatically once
   // they finish signing in (their selections are preserved).
   const [pendingAuthAdvance, setPendingAuthAdvance] = useState(false);
+  // Closed beta: signed-in but unapproved accounts see the waitlist
+  // screen instead of advancing into the booking wizard.
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
   // Paystack redirect-back confirmation: "polling" while we wait for the
   // webhook, "timeout" once the fast window has passed (we keep checking
   // quietly in the background).
@@ -92,18 +98,28 @@ function LoungePageInner() {
       toast("Sign in to book — takes a minute", { icon: "🔒" });
       return;
     }
+    // Closed beta: signed-in but unapproved users wait for their wave.
+    if (user && !betaLoading && !betaApproved) {
+      setWaitlistOpen(true);
+      return;
+    }
     setBookingStep(1);
   }
 
-  // Guest signed in mid-flow — pick up where they left off.
+  // Guest signed in mid-flow — pick up where they left off (once the
+  // beta-approval check has resolved for the fresh session).
   useEffect(() => {
-    if (user && pendingAuthAdvance) {
+    if (user && pendingAuthAdvance && !betaLoading) {
       setPendingAuthAdvance(false);
+      if (!betaApproved) {
+        setWaitlistOpen(true);
+        return;
+      }
       if (zone) {
         setBookingStep((step) => (step === 0 ? 1 : step));
       }
     }
-  }, [user, pendingAuthAdvance, zone]);
+  }, [user, pendingAuthAdvance, zone, betaLoading, betaApproved]);
 
   function handleBookingFormNext(data: {
     game: string;
@@ -652,6 +668,8 @@ function LoungePageInner() {
           </div>
         )}
       </div>
+
+      <WaitlistModal open={waitlistOpen} onClose={() => setWaitlistOpen(false)} />
     </div>
   );
 }

@@ -13,6 +13,7 @@ const PLATFORM_LINKS = [
 
 const COMPANY_LINKS = [
   { label: "About CGE", href: "/about" },
+  { label: "Join the Beta", href: "/beta" },
   { label: "Events", href: "/events" },
   { label: "Terms of Service", href: "/terms" },
   { label: "Privacy Policy", href: "/privacy" },

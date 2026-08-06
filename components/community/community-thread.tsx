@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/community/post-card";
 import { CommentSection } from "@/components/community/comment-section";
 import { CreatePost } from "@/components/community/create-post";
+import { WaitlistModal } from "@/components/beta/waitlist-modal";
 import { getInitials } from "@/lib/utils";
 import { useCommunityPage } from "@/hooks/use-community-page";
 import type { CommunityTopic } from "@/lib/types";
@@ -177,6 +178,8 @@ export function CommunityThread({
           onClose={() => cp.setReportingPost(null)}
         />
       )}
+
+      <WaitlistModal open={cp.waitlistOpen} onClose={() => cp.setWaitlistOpen(false)} />
     </div>
   );
 }

@@ -19,6 +19,7 @@ import { CreatePost } from "@/components/community/create-post";
 import TopicBar from "@/components/community/topic-bar";
 import TrendingSidebar from "@/components/community/trending-sidebar";
 import { AppGateBanner } from "@/components/ui/app-gate";
+import { WaitlistModal } from "@/components/beta/waitlist-modal";
 import { getInitials } from "@/lib/utils";
 import { LiveTournamentsWidget } from "@/components/cross-pillar/live-tournaments-widget";
 import { HotListingsWidget } from "@/components/cross-pillar/hot-listings-widget";
@@ -325,6 +326,8 @@ export default function CommunityPage() {
           onClose={() => cp.setReportingPost(null)}
         />
       )}
+
+      <WaitlistModal open={cp.waitlistOpen} onClose={() => cp.setWaitlistOpen(false)} />
     </section>
     </PullToRefresh>
   );

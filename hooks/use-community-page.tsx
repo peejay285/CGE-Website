@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { useCommunityEnhanced } from "@/hooks/use-community-enhanced";
 import { useAuth } from "@/hooks/use-auth";
+import { useBetaAccess } from "@/hooks/use-beta-access";
 import { calculateTrendingScore } from "@/lib/community-constants";
 import type {
   PostComment,
@@ -17,6 +18,7 @@ export type SortMode = "recent" | "trending" | "most_liked" | "my_posts" | "book
 
 export function useCommunityPage(scope?: { eventId?: number; tournamentId?: number }) {
   const { user } = useAuth();
+  const { approved: betaApproved, loading: betaLoading } = useBetaAccess(user?.id);
   // Stable primitives so callbacks/effects don't churn on the object identity.
   const scopeEventId = scope?.eventId;
   const scopeTournamentId = scope?.tournamentId;
@@ -54,6 +56,8 @@ export function useCommunityPage(scope?: { eventId?: number; tournamentId?: numb
   const [sortMode, setSortMode] = useState<SortMode>("recent");
   const [selectedTopic, setSelectedTopic] = useState<CommunityTopic | "all">("all");
   const [reportingPost, setReportingPost] = useState<string | null>(null);
+  // Closed beta: waitlist screen for signed-in but unapproved accounts.
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
 
   // Liked-by modal
   const [likersModal, setLikersModal] = useState<{
@@ -209,6 +213,11 @@ export function useCommunityPage(scope?: { eventId?: number; tournamentId?: numb
       }
     ) => {
       if (!requireAuth("Sign in to post in the community")) return;
+      // Closed beta: signed-in but unapproved users wait for their wave.
+      if (!betaLoading && !betaApproved) {
+        setWaitlistOpen(true);
+        return;
+      }
       try {
         await createPost(content, {
           imageUrl: options?.imageUrl,
@@ -226,7 +235,7 @@ export function useCommunityPage(scope?: { eventId?: number; tournamentId?: numb
         toast.error(msg || "Failed to create post");
       }
     },
-    [requireAuth, createPost, selectedTopic, scopeEventId, scopeTournamentId]
+    [requireAuth, betaLoading, betaApproved, createPost, selectedTopic, scopeEventId, scopeTournamentId]
   );
 
   const handleEditPost = useCallback(
@@ -338,6 +347,8 @@ export function useCommunityPage(scope?: { eventId?: number; tournamentId?: numb
     // Auth
     user,
     refresh,
+    waitlistOpen,
+    setWaitlistOpen,
 
     // Data
     posts,

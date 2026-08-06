@@ -7,6 +7,7 @@ import { useTeams } from "@/hooks/use-teams";
 import { useAchievements } from "@/hooks/use-achievements";
 import { usePlayerFollows } from "@/hooks/use-player-follows";
 import { useAuth } from "@/hooks/use-auth";
+import { useBetaAccess } from "@/hooks/use-beta-access";
 import { isTournamentPast } from "@/lib/esports-utils";
 import type { TournamentWithCount } from "@/lib/esports-utils";
 import type { Team, TournamentRegistration, TournamentTeamRegistration } from "@/lib/types";
@@ -37,6 +38,8 @@ export function useEsportsPage() {
   const [hostedTournaments, setHostedTournaments] = useState<TournamentWithCount[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
+  // Closed beta: waitlist screen for signed-in but unapproved accounts.
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
   const [nowMs] = useState(() => Date.now());
 
   // --------------- Refs ---------------
@@ -54,6 +57,7 @@ export function useEsportsPage() {
 
   // --------------- External hooks ---------------
   const { user } = useAuth();
+  const { approved: betaApproved, loading: betaLoading } = useBetaAccess(user?.id);
 
   const {
     tournaments,
@@ -331,6 +335,12 @@ export function useEsportsPage() {
     async (tournamentId: number) => {
       if (!requireAuth("Sign in to register for tournaments")) return;
 
+      // Closed beta: signed-in but unapproved users wait for their wave.
+      if (!betaLoading && !betaApproved) {
+        setWaitlistOpen(true);
+        return;
+      }
+
       const tournament =
         selectedTournament?.id === tournamentId
           ? selectedTournament
@@ -378,6 +388,8 @@ export function useEsportsPage() {
     },
     [
       requireAuth,
+      betaLoading,
+      betaApproved,
       selectedTournament,
       tournaments,
       myTeam,
@@ -734,6 +746,8 @@ export function useEsportsPage() {
     setSelectedTeam,
     createTeamOpen,
     setCreateTeamOpen,
+    waitlistOpen,
+    setWaitlistOpen,
 
     // Auth
     user,

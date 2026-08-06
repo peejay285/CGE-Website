@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { useMarketplace } from "@/hooks/use-marketplace";
 import { useAuth } from "@/hooks/use-auth";
+import { useBetaAccess } from "@/hooks/use-beta-access";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { createClient } from "@/lib/supabase/client";
 import { haversineKm } from "@/lib/utils";
@@ -104,6 +105,8 @@ export function useMarketplacePage() {
   const [selectedListing, setSelectedListing] =
     useState<MarketplaceListing | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  // Closed beta: waitlist screen for signed-in but unapproved accounts.
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
   const [sellerPhone, setSellerPhone] = useState<string | null>(null);
   const [isPremium, setIsPremium] = useState(false);
 
@@ -138,6 +141,7 @@ export function useMarketplacePage() {
 
   const router = useRouter();
   const { user } = useAuth();
+  const { approved: betaApproved, loading: betaLoading } = useBetaAccess(user?.id);
   const {
     listings,
     loading,
@@ -354,6 +358,21 @@ export function useMarketplacePage() {
     },
     [user]
   );
+
+  // Single choke point for opening the create-listing modal: requires
+  // sign-in, then beta approval while the closed beta gate is active.
+  const handleOpenCreateListing = useCallback(() => {
+    if (!user) {
+      window.dispatchEvent(new CustomEvent("open-auth-modal"));
+      toast("Sign in to create a listing", { icon: "🔒" });
+      return;
+    }
+    if (!betaLoading && !betaApproved) {
+      setWaitlistOpen(true);
+      return;
+    }
+    setCreateOpen(true);
+  }, [user, betaLoading, betaApproved]);
 
   /* ── Save toggle ──────────────────────────────────────── */
 
@@ -835,6 +854,8 @@ export function useMarketplacePage() {
     setSelectedListing,
     createOpen,
     setCreateOpen,
+    waitlistOpen,
+    setWaitlistOpen,
     sellerPhone,
     isPremium,
     swapProposalTarget,
@@ -867,6 +888,7 @@ export function useMarketplacePage() {
 
     // Handlers
     openAuthOrAction,
+    handleOpenCreateListing,
     handleToggleSave,
     handleOpenListing,
     handleCreateListing,

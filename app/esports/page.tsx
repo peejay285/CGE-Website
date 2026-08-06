@@ -19,6 +19,7 @@ import { CommunityBuzzWidget } from "@/components/cross-pillar/community-buzz-wi
 import { HotListingsWidget } from "@/components/cross-pillar/hot-listings-widget";
 import { PillarQuickNav } from "@/components/cross-pillar/pillar-quick-nav";
 import { ErrorBoundary, WidgetErrorFallback } from "@/components/ui/error-boundary";
+import { WaitlistModal } from "@/components/beta/waitlist-modal";
 import { useEsportsPage, TABS, STATUS_FILTERS } from "@/hooks/use-esports-page";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 
@@ -502,6 +503,8 @@ export default function EsportsPage() {
         onDelete={ep.handleDeleteTeam}
         loading={ep.teamsLoading}
       />
+
+      <WaitlistModal open={ep.waitlistOpen} onClose={() => ep.setWaitlistOpen(false)} />
     </PullToRefresh>
   );
 }

@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Rocket } from "lucide-react";
 import { Hero } from "@/components/home/hero";
 import { StatsBar } from "@/components/home/stats-bar";
 import { FeaturedEvent } from "@/components/home/featured-event";
@@ -8,12 +10,32 @@ import { ZoneComparison } from "@/components/home/zone-comparison";
 import { LoungeLivePhoto } from "@/components/home/lounge-live-photo";
 import { Testimonials } from "@/components/home/testimonials";
 import { SectionTitle } from "@/components/ui/section-title";
+import { isBetaGateActive } from "@/lib/site-config";
 
 export default function Home() {
   return (
     <>
       {/* 1. Hero - brand statement + web platform CTAs */}
       <Hero />
+
+      {/* 1b. Closed beta banner — only while the beta gate is active */}
+      {isBetaGateActive() && (
+        <section className="max-w-7xl mx-auto px-4 md:px-6 relative z-20 mb-8">
+          <Link
+            href="/beta"
+            className="group mx-auto flex w-fit items-center gap-2 rounded-full border border-cyan/25 bg-cyan/5 px-5 py-2 text-xs font-semibold text-cyan hover:bg-cyan/10 transition-colors"
+          >
+            <Rocket size={13} />
+            <span>CGE is in closed beta &mdash; apply to join the first wave</span>
+            <span
+              aria-hidden="true"
+              className="transition-transform duration-300 group-hover:translate-x-1"
+            >
+              &rarr;
+            </span>
+          </Link>
+        </section>
+      )}
 
       {/* 2. Stats bar — social proof with animated counters */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 -mt-4 relative z-20">

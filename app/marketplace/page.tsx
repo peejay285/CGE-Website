@@ -12,6 +12,7 @@ import { RecentlyViewed } from "@/components/marketplace/recently-viewed";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { SavedSearchesButton } from "@/components/marketplace/saved-searches";
 import { AppGateBanner } from "@/components/ui/app-gate";
+import { WaitlistModal } from "@/components/beta/waitlist-modal";
 import { LiveTournamentsWidget } from "@/components/cross-pillar/live-tournaments-widget";
 import { CommunityBuzzWidget } from "@/components/cross-pillar/community-buzz-widget";
 import { PillarQuickNav } from "@/components/cross-pillar/pillar-quick-nav";
@@ -80,7 +81,7 @@ export default function MarketplacePage() {
             />
             <Button
               variant="magenta"
-              onClick={() => mp.openAuthOrAction(() => mp.setCreateOpen(true))}
+              onClick={mp.handleOpenCreateListing}
               className="hidden sm:flex"
             >
               <Plus size={16} />
@@ -228,7 +229,7 @@ export default function MarketplacePage() {
               action={
                 mp.search || mp.category !== "All" || mp.listingTypeFilter !== "all" || mp.conditionFilter
                   ? { label: "Clear Filters", onClick: mp.handleClearFilters }
-                  : { label: "List Something", onClick: () => mp.openAuthOrAction(() => mp.setCreateOpen(true)) }
+                  : { label: "List Something", onClick: mp.handleOpenCreateListing }
               }
             />
             {mp.search.trim() && (
@@ -277,7 +278,7 @@ export default function MarketplacePage() {
       {/* Floating "+" button — mobile only */}
       <div className="fixed bottom-[5.5rem] right-4 z-40 sm:hidden">
         <button
-          onClick={() => mp.openAuthOrAction(() => mp.setCreateOpen(true))}
+          onClick={mp.handleOpenCreateListing}
           className="w-14 h-14 rounded-full bg-magenta flex items-center justify-center shadow-[0_8px_30px_rgba(255,45,120,0.35)] active:scale-90 transition-transform cursor-pointer"
           aria-label="List a new item"
         >
@@ -351,6 +352,8 @@ export default function MarketplacePage() {
           onExpandToFull={mp.handleExpandChatToFull}
         />
       )}
+
+      <WaitlistModal open={mp.waitlistOpen} onClose={() => mp.setWaitlistOpen(false)} />
     </div>
     </PullToRefresh>
   );
