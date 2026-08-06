@@ -3,4 +3,4 @@ Allow: /
 Disallow: /api/
 Disallow: /auth/
 
-Sitemap: https://cge.ng/sitemap.xml
+Sitemap: https://playcge.com/sitemap.xml
