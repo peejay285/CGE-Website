@@ -64,7 +64,15 @@ export async function POST(request: Request) {
     const serviceClient = createServiceRoleClient();
     const { data: currentProfile } = await serviceClient
       .from("profiles")
-      .select("payout_account_last4, payout_bank_name, payout_profile_verified_at, phone")
+      .select("payout_account_last4, payout_bank_name, payout_profile_verified_at")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    // Phone lives in profile_private (self-only RLS) — read it with the
+    // service client for the security-notice SMS below.
+    const { data: privateProfile } = await serviceClient
+      .from("profile_private")
+      .select("phone")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -148,9 +156,9 @@ export async function POST(request: Request) {
     // notice goes out over SMS via Termii — the same channel used for
     // booking confirmations. Fire-and-forget: never block the response.
     // TODO: also send an email once an email provider is added.
-    if (currentProfile?.phone) {
+    if (privateProfile?.phone) {
       sendSMS({
-        to: currentProfile.phone as string,
+        to: privateProfile.phone as string,
         body: `CGE security notice: your payout bank account was changed to ${
           newBankName || "a new bank"
         } ending ${accountLast4}. If this wasn't you, contact us on WhatsApp 08160658509 immediately.`,

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { escapePostgrestSearch } from "@/lib/utils";
+import { escapePostgrestSearch, flattenSellerPhone } from "@/lib/utils";
 import type {
   MarketplaceListing,
   SwapProposal,
@@ -81,7 +81,7 @@ export function useMarketplace(filters?: ListingFilters) {
       let query = supabase
         .from("marketplace_listings")
         .select(
-          "*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, location_state, location_city, is_id_verified, premium_tier), listing_saves(user_id)"
+          "*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, profile_private(phone), created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, location_state, location_city, is_id_verified, premium_tier), listing_saves(user_id)"
         )
         // Premium sellers' listings appear first; ties break on created_at.
         .order("premium_tier", { foreignTable: "seller", ascending: false, nullsFirst: false })
@@ -112,7 +112,7 @@ export function useMarketplace(filters?: ListingFilters) {
 
         return {
           ...item,
-          seller: item.seller ?? undefined,
+          seller: flattenSellerPhone(item.seller),
           swap_for_tags: (item.swap_for_tags as string[]) ?? [],
           buyout_price: (item.buyout_price as number) ?? null,
           views_count: (item.views_count as number) ?? 0,
@@ -191,7 +191,7 @@ export function useMarketplace(filters?: ListingFilters) {
         const { data, error: fetchError } = await supabase
           .from("marketplace_listings")
           .select(
-            "*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, is_id_verified, premium_tier), listing_saves(user_id)"
+            "*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, profile_private(phone), created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, is_id_verified, premium_tier), listing_saves(user_id)"
           )
           .eq("id", id)
           .single();
@@ -205,7 +205,7 @@ export function useMarketplace(filters?: ListingFilters) {
 
         return {
           ...data,
-          seller: data.seller ?? undefined,
+          seller: flattenSellerPhone(data.seller),
           swap_for_tags: (data.swap_for_tags as string[]) ?? [],
           buyout_price: (data.buyout_price as number) ?? null,
           views_count: (data.views_count as number) ?? 0,
@@ -266,14 +266,14 @@ export function useMarketplace(filters?: ListingFilters) {
             location_city: listingData.location_city ?? null,
             status: "active",
           })
-          .select("*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, is_id_verified, premium_tier)")
+          .select("*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, profile_private(phone), created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, is_id_verified, premium_tier)")
           .single();
 
         if (insertError) throw insertError;
 
         const listing = {
           ...data,
-          seller: data.seller ?? undefined,
+          seller: flattenSellerPhone(data.seller),
           swap_for_tags: (data.swap_for_tags as string[]) ?? [],
           buyout_price: (data.buyout_price as number) ?? null,
           views_count: 0,
@@ -314,14 +314,14 @@ export function useMarketplace(filters?: ListingFilters) {
           .update(updates)
           .eq("id", id)
           .eq("user_id", user.id)
-          .select("*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, is_id_verified, premium_tier)")
+          .select("*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, profile_private(phone), created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, is_id_verified, premium_tier)")
           .single();
 
         if (updateError) throw updateError;
 
         const listing = {
           ...data,
-          seller: data.seller ?? undefined,
+          seller: flattenSellerPhone(data.seller),
           swap_for_tags: (data.swap_for_tags as string[]) ?? [],
           buyout_price: (data.buyout_price as number) ?? null,
           views_count: (data.views_count as number) ?? 0,
@@ -509,7 +509,7 @@ export function useMarketplace(filters?: ListingFilters) {
 
       const { data, error: fetchError } = await supabase
         .from("marketplace_listings")
-        .select("*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, is_id_verified, premium_tier)")
+        .select("*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, profile_private(phone), created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, is_id_verified, premium_tier)")
         .eq("user_id", user.id)
         .eq("status", "active")
         .order("created_at", { ascending: false });
@@ -518,7 +518,7 @@ export function useMarketplace(filters?: ListingFilters) {
 
       return (data ?? []).map((item: Record<string, unknown>) => ({
         ...item,
-        seller: item.seller ?? undefined,
+        seller: flattenSellerPhone(item.seller),
         swap_for_tags: (item.swap_for_tags as string[]) ?? [],
         buyout_price: (item.buyout_price as number) ?? null,
         views_count: (item.views_count as number) ?? 0,

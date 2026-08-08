@@ -1,8 +1,31 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import type { ListingSeller } from "@/lib/types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+/**
+ * Flattens the RLS-guarded `profile_private(phone)` embed onto the seller
+ * object so components keep reading `listing.seller?.phone`. Under the
+ * self-only policy on profile_private, other users' rows come back null,
+ * so phone resolves to null for everyone but the listing owner.
+ */
+export function flattenSellerPhone(seller: unknown): ListingSeller | undefined {
+  if (!seller) return undefined;
+  const { profile_private, ...rest } = seller as ListingSeller & {
+    profile_private?:
+      | { phone: string | null }
+      | { phone: string | null }[]
+      | null;
+  };
+  // PostgREST returns an object for the one-to-one embed; tolerate an array
+  // too so a relationship-detection change can't break the mapping.
+  const priv = Array.isArray(profile_private)
+    ? profile_private[0]
+    : profile_private;
+  return { ...rest, phone: priv?.phone ?? null };
 }
 
 export function formatPrice(amount: number): string {

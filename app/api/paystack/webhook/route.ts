@@ -145,8 +145,10 @@ export async function POST(request: Request) {
         } else {
           // Fire-and-forget SMS confirmation. No-ops cleanly if Termii isn't
           // configured. Don't block the webhook response on its outcome.
+          // Phone lives in profile_private (self-only RLS) — the service-role
+          // client here bypasses RLS.
           const { data: profile } = await supabase
-            .from("profiles")
+            .from("profile_private")
             .select("phone")
             .eq("id", (booking as { user_id: string }).user_id)
             .maybeSingle();

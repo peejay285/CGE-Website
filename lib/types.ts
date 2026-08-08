@@ -1,7 +1,9 @@
 export interface Profile {
   id: string;
   full_name: string;
-  phone: string | null;
+  // NOTE: phone deliberately lives in profile_private (self-only RLS) —
+  // see supabase/private-phone-migration.sql. Never add it back here:
+  // profiles is publicly SELECTable.
   avatar_url: string | null;
   gamertag: string | null;
   points: number;
@@ -40,6 +42,26 @@ export interface Profile {
   payout_account_last4?: string | null;
   payout_profile_verified_at?: string | null;
 }
+
+/**
+ * Self-only private contact data (supabase/private-phone-migration.sql).
+ * RLS: only the owner (auth.uid() = id) can read or write their row; anon
+ * gets nothing, so cross-user embeds resolve to null. Server-side readers
+ * (SMS notifications, admin tooling) use the service-role client.
+ */
+export interface ProfilePrivate {
+  id: string;
+  phone: string | null;
+  updated_at: string | null;
+}
+
+/**
+ * Seller as embedded on marketplace listings: public profile fields plus
+ * the phone the viewer is allowed to see. Under profile_private RLS the
+ * phone is only populated when the viewer owns the listing — for everyone
+ * else it is null and phone-dependent UI (WhatsApp contact) stays hidden.
+ */
+export type ListingSeller = Profile & { phone?: string | null };
 
 export interface IdVerificationSubmission {
   id: string;
@@ -498,7 +520,7 @@ export interface MarketplaceListing {
   distance_km?: number;
   status: "active" | "sold" | "archived";
   created_at: string;
-  seller?: Profile;
+  seller?: ListingSeller;
   saves_count: number;
   user_has_saved: boolean;
 }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { flattenSellerPhone } from "@/lib/utils";
 import type { MarketplaceListing } from "@/lib/types";
 
 /**
@@ -123,7 +124,7 @@ export function useSwapMatches() {
       const { data: candidates, error: candidatesError } = await supabase
         .from("marketplace_listings")
         .select(
-          "*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, is_id_verified, premium_tier)"
+          "*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, profile_private(phone), created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, is_id_verified, premium_tier)"
         )
         .eq("status", "active")
         .neq("user_id", user.id)
@@ -150,7 +151,7 @@ export function useSwapMatches() {
         found.push({
           listing: {
             ...item,
-            seller: item.seller ?? undefined,
+            seller: flattenSellerPhone(item.seller),
             swap_for_tags: tags,
             buyout_price: (item.buyout_price as number) ?? null,
             views_count: (item.views_count as number) ?? 0,

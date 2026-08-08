@@ -160,15 +160,41 @@ export async function POST(req: NextRequest) {
 
     if (voucherError) throw voucherError;
 
-    // Fetch winner profiles for the response
+    // Fetch winner profiles for the response. Phone lives in profile_private
+    // (self-only RLS) — the service-role client resolves the o2o embed.
     const winnerIds = winners.map((w) => w.user_id);
     const { data: profiles } = await admin
       .from("profiles")
-      .select("id, full_name, phone, gamertag")
+      .select("id, full_name, gamertag, profile_private(phone)")
       .in("id", winnerIds);
 
     const profileMap = new Map(
-      (profiles || []).map((p: { id: string; full_name: string; phone: string | null; gamertag: string | null }) => [p.id, p])
+      (profiles || []).map(
+        (p: {
+          id: string;
+          full_name: string;
+          gamertag: string | null;
+          profile_private:
+            | { phone: string | null }
+            | { phone: string | null }[]
+            | null;
+        }) => {
+          // PostgREST returns an object for the o2o embed, but the untyped
+          // client infers an array — handle both shapes.
+          const priv = Array.isArray(p.profile_private)
+            ? p.profile_private[0]
+            : p.profile_private;
+          return [
+            p.id,
+            {
+              id: p.id,
+              full_name: p.full_name,
+              phone: priv?.phone ?? null,
+              gamertag: p.gamertag,
+            },
+          ];
+        }
+      )
     );
 
     const results = (createdVouchers || []).map((v: { id: string; code: string; user_id: string; prize_label: string; zone_id: string; expires_at: string }) => ({

@@ -3,10 +3,11 @@ import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import type { MarketplaceListing } from "@/lib/types";
 import { getConditionConfig } from "@/lib/constants";
+import { flattenSellerPhone } from "@/lib/utils";
 import ListingDetailPageClient from "./listing-detail-page-client";
 
 const LISTING_SELECT =
-  "*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, phone, created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, location_state, location_city, is_id_verified, premium_tier), listing_saves(user_id)";
+  "*, seller:profiles!user_id(id, full_name, avatar_url, gamertag, profile_private(phone), created_at, trust_level, avg_rating, rating_count, total_sales, total_swaps, location_state, location_city, is_id_verified, premium_tier), listing_saves(user_id)";
 
 // UUIDs only — anything else is a guaranteed miss.
 const UUID_RE =
@@ -139,7 +140,7 @@ export default async function ListingDetailPage({
               | undefined;
             initialData = {
               ...row,
-              seller: row.seller ?? undefined,
+              seller: flattenSellerPhone(row.seller),
               swap_for_tags: (row.swap_for_tags as string[]) ?? [],
               buyout_price: (row.buyout_price as number) ?? null,
               views_count: (row.views_count as number) ?? 0,

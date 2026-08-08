@@ -17,7 +17,6 @@ import { useAuth } from "@/hooks/use-auth";
 import type { Event } from "@/lib/types";
 
 const TABS = ["List", "Calendar"];
-const EVENT_TYPES = ["All", "Party", "Special", "Demo", "Package"] as const;
 
 function isEventPast(dateStr: string): boolean {
   const parsed = new Date(dateStr);
@@ -34,6 +33,9 @@ const typeChipColor: Record<string, string> = {
   Demo: "bg-cyan/15 text-cyan",
   Package: "bg-green/15 text-green",
 };
+
+// Fallback style for any event type without an explicit colour mapping.
+const DEFAULT_CHIP_COLOR = "bg-cyan/15 text-cyan";
 
 export default function EventsPage() {
   const [activeTab, setActiveTab] = useState("List");
@@ -52,6 +54,17 @@ export default function EventsPage() {
     actionLoading,
     getEventById,
   } = useEvents();
+
+  // Derive the filter tabs from the types actually present in the fetched
+  // events (always leading with "All"), so the chips can never drift out of
+  // sync with the data the way a hardcoded template list would.
+  const eventTypes = useMemo(() => {
+    const unique: string[] = [];
+    for (const event of events) {
+      if (event.type && !unique.includes(event.type)) unique.push(event.type);
+    }
+    return ["All", ...unique];
+  }, [events]);
 
   // Filter events by type and search
   const filteredEvents = useMemo(() => {
@@ -179,16 +192,16 @@ export default function EventsPage() {
         <TabBar tabs={TABS} active={activeTab} onChange={setActiveTab} />
       </div>
 
-      {/* Type filter chips */}
+      {/* Type filter chips — derived from the types present in the data */}
       <div className="flex flex-wrap gap-2 mb-8">
-        {EVENT_TYPES.map((type) => (
+        {eventTypes.map((type) => (
           <button
             key={type}
             onClick={() => setTypeFilter(type)}
             className={cn(
               "px-3 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider transition-all cursor-pointer border",
               typeFilter === type
-                ? cn(typeChipColor[type], "border-transparent")
+                ? cn(typeChipColor[type] ?? DEFAULT_CHIP_COLOR, "border-transparent")
                 : "text-text-muted border-border hover:border-text-muted/30 hover:text-text"
             )}
           >

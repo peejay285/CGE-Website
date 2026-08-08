@@ -8,6 +8,7 @@ import {
   X,
   Navigation,
   Loader2,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -56,6 +57,13 @@ interface ListingFiltersProps {
   onNearMeToggle: () => void;
   geolocationStatus: "prompt" | "requesting" | "granted" | "denied" | "unsupported";
   listingTitles?: string[];
+  /**
+   * Opens the create-listing flow. Selling is a creation act rather than a
+   * browse mode, so instead of a fake "Sell" filter tab this renders an
+   * action chip right next to the Buy/Swap toggle — equally discoverable
+   * for signed-out visitors (the handler routes them through the auth modal).
+   */
+  onListItem?: () => void;
 }
 
 export function ListingFilters({
@@ -75,6 +83,7 @@ export function ListingFilters({
   onNearMeToggle,
   geolocationStatus,
   listingTitles,
+  onListItem,
 }: ListingFiltersProps) {
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
 
@@ -192,6 +201,23 @@ export function ListingFilters({
             </button>
           );
         })}
+
+        {/* Sell — action chip adjacent to the Buy/Swap toggle. Not a browse
+            filter: it opens the create-listing flow (auth modal first when
+            signed out). */}
+        {onListItem && (
+          <button
+            type="button"
+            onClick={onListItem}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 cursor-pointer border flex items-center gap-1 whitespace-nowrap",
+              "active:scale-95 bg-magenta text-white border-magenta/40 hover:bg-magenta/90"
+            )}
+          >
+            <Plus size={11} />
+            Sell an item
+          </button>
+        )}
 
         {/* Divider */}
         <div className="w-px bg-border/50 shrink-0 my-1" />

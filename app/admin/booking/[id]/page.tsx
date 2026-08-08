@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { CheckCircle, Clock, AlertCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/require-admin";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 import { formatBookingDate, formatPrice } from "@/lib/utils";
 import { MarkPaidButton } from "./mark-paid-button";
 
@@ -27,7 +28,16 @@ export default async function AdminBookingPage({ params }: Props) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, gamertag, phone")
+    .select("full_name, gamertag")
+    .eq("id", booking.user_id)
+    .maybeSingle();
+
+  // Phone lives in profile_private (self-only RLS), so the admin's own
+  // session can't read the customer's row — use the service client after
+  // requireAdmin() has verified the caller.
+  const { data: privateProfile } = await createServiceRoleClient()
+    .from("profile_private")
+    .select("phone")
     .eq("id", booking.user_id)
     .maybeSingle();
 
@@ -88,8 +98,8 @@ export default async function AdminBookingPage({ params }: Props) {
           {profile?.gamertag && (
             <p className="text-sm text-cyan">@{profile.gamertag}</p>
           )}
-          {profile?.phone && (
-            <p className="text-xs text-text-muted mt-1">📞 {profile.phone}</p>
+          {privateProfile?.phone && (
+            <p className="text-xs text-text-muted mt-1">📞 {privateProfile.phone}</p>
           )}
         </div>
 

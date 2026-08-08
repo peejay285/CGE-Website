@@ -123,6 +123,7 @@ export default function MarketplacePage() {
           onSearchChange={mp.setSearch}
           listingTypeFilter={mp.listingTypeFilter}
           onListingTypeFilterChange={mp.setListingTypeFilter}
+          onListItem={mp.handleOpenCreateListing}
           conditionFilter={mp.conditionFilter}
           onConditionFilterChange={mp.setConditionFilter}
           isSignedIn={!!mp.user}
@@ -191,6 +192,15 @@ export default function MarketplacePage() {
             {Array.from({ length: 8 }).map((_, i) => (
               <CardSkeleton key={i} />
             ))}
+          </div>
+        ) : mp.error ? (
+          <div className="mt-12">
+            <EmptyState
+              icon="⚠️"
+              title="Couldn't load listings"
+              subtitle="Something went wrong while fetching the marketplace. Check your connection and try again."
+              action={{ label: "Retry", onClick: mp.handleRetryListings }}
+            />
           </div>
         ) : mp.filteredListings.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">

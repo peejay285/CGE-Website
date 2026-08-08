@@ -147,6 +147,7 @@ export function useMarketplacePage() {
     loading,
     loadingMore,
     hasMore,
+    error,
     getListings,
     loadMore,
     createListing,
@@ -215,9 +216,11 @@ export function useMarketplacePage() {
           : null;
 
       const supabase = createClient();
+      // Phone lives in profile_private (self-only RLS) — the o2o embed
+      // returns the caller's own row here and null for anyone else.
       supabase
         .from("profiles")
-        .select("phone, location_state, premium_tier, premium_expires_at")
+        .select("location_state, premium_tier, premium_expires_at, profile_private(phone)")
         .eq("id", user.id)
         .single()
         .then(
@@ -225,14 +228,21 @@ export function useMarketplacePage() {
             data,
           }: {
             data: {
-              phone: string | null;
               location_state: string | null;
               premium_tier: string | null;
               premium_expires_at: string | null;
+              profile_private:
+                | { phone: string | null }
+                | { phone: string | null }[]
+                | null;
             } | null;
           }) => {
             if (cancelled) return;
-            setSellerPhone(data?.phone || metaPhone || null);
+            // o2o embed comes back as an object; tolerate an array shape too.
+            const priv = Array.isArray(data?.profile_private)
+              ? data?.profile_private[0]
+              : data?.profile_private;
+            setSellerPhone(priv?.phone || metaPhone || null);
             // Default the marketplace state filter to the user's profile state,
             // but only on first load — don't override an explicit user choice.
             if (data?.location_state && !profileLocationDefaulted) {
@@ -475,11 +485,11 @@ export function useMarketplacePage() {
       }
 
       if (data.phone) {
+        // Self-only upsert into profile_private (RLS: auth.uid() = id).
         const supabase = createClient();
         await supabase
-          .from("profiles")
-          .update({ phone: data.phone })
-          .eq("id", user.id);
+          .from("profile_private")
+          .upsert({ id: user.id, phone: data.phone });
         setSellerPhone(data.phone);
       }
 
@@ -803,6 +813,16 @@ export function useMarketplacePage() {
     []
   );
 
+  // Retry after a failed load, preserving the currently active filters
+  // (mirrors the re-fetch effect above).
+  const handleRetryListings = useCallback(() => {
+    const f: { search?: string; category?: string; locationState?: string } = {};
+    if (debouncedSearch) f.search = debouncedSearch;
+    if (category !== "All") f.category = category;
+    if (locationState) f.locationState = locationState;
+    getListings(f);
+  }, [debouncedSearch, category, locationState, getListings]);
+
   const handleClearFilters = useCallback(() => {
     setSearch("");
     setCategory("All");
@@ -879,6 +899,7 @@ export function useMarketplacePage() {
     loading,
     loadingMore,
     hasMore,
+    error,
     getListings,
     actionLoading,
 
@@ -915,6 +936,7 @@ export function useMarketplacePage() {
     handleViewSellerProfile,
     handleRelatedClick,
     handleSearchSelect,
+    handleRetryListings,
     handleClearFilters,
     handleSaveSearch,
   };
