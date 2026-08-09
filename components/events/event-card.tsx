@@ -62,9 +62,13 @@ export function EventCard({ event, onClick, isPast, isRegistered }: EventCardPro
           <div className="flex items-center gap-2 text-xs text-text-muted">
             <Users size={13} className="text-cyan/60" />
             <span>
-              {event.registration_count !== undefined
-                ? `${event.registration_count} / ${event.capacity} spots`
-                : `${event.capacity} spots`}
+              {/* Past events: "X/Y spots" reads like unsold inventory — say
+                  it's done, and only cite attendance if we actually have it. */}
+              {isPast
+                ? `Event completed${event.registration_count ? ` · ${event.registration_count} attended` : ""}`
+                : event.registration_count !== undefined
+                  ? `${event.registration_count} / ${event.capacity} spots`
+                  : `${event.capacity} spots`}
             </span>
           </div>
         )}

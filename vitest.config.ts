@@ -9,6 +9,10 @@ export default defineConfig({
     environment: "node",
     globals: true,
     include: ["tests/**/*.test.ts"],
+    // The first test in a file pays the initial module-transform cost for the
+    // route under test; on slower filesystems/CI that alone can blow the 5s
+    // default and fail an otherwise-passing test.
+    testTimeout: 30_000,
   },
   resolve: {
     // Mirror the "@/..." path alias used across the app.

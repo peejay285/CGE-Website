@@ -255,10 +255,9 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    // Signed out: the page early-returns a sign-in view before `loading` is
+    // ever read, so there's nothing to reset here.
+    if (!user) return;
     const userId = user.id;
 
     async function load() {

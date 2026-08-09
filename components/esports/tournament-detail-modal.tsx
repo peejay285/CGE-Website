@@ -69,8 +69,12 @@ export function TournamentDetailModal({
   // the register CTA unlocks. Nothing is stored server-side.
   const [rulesAgreed, setRulesAgreed] = useState(false);
 
-  // Reset the agreement whenever a different tournament opens.
+  // Reset the agreement whenever a different tournament opens (or the modal
+  // reopens). Deriving this during render would let an agreement leak across
+  // open/close cycles of the same tournament, so the reset stays an effect
+  // with a targeted exemption.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot reset keyed on tournament id + open
     setRulesAgreed(false);
   }, [tournament?.id, open]);
 

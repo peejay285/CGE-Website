@@ -58,8 +58,12 @@ export function PredictionPanel({ tournamentId }: PredictionPanelProps) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [pointsInput, setPointsInput] = useState("100");
 
-  // Reset the stake form when the prediction changes.
+  // Reset the stake form when a different prediction loads. Restructuring
+  // this into a keyed remount of the panel body would change DOM identity
+  // (focus, animations) for no user-visible gain, so the one-shot reset
+  // stays an effect with a targeted exemption.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot form reset keyed on prediction id
     setSelectedOption(null);
     setPointsInput("100");
   }, [prediction?.id]);

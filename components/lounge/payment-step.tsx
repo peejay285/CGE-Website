@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { SectionTitle } from "@/components/ui/section-title";
 import { formatPrice, formatBookingDate, cn } from "@/lib/utils";
-import { PRICING } from "@/lib/constants";
+import { PRICING, BRAND, RESCHEDULE_POLICY } from "@/lib/constants";
 import { ArrowLeft, CreditCard, MapPin, CheckCircle, XCircle, Loader2, ShieldCheck } from "lucide-react";
 
 const PRICE_MAP: Record<string, number> = {};
@@ -315,16 +315,26 @@ export function PaymentStep({ bookingData, onConfirm, onBack }: PaymentStepProps
         </div>
       </Card>
 
-      {/* Cancellation Policy */}
+      {/* Policies — reschedule + cancellation terms, stated before payment.
+          Refund copy mirrors the Terms of Service (lounge bookings section). */}
       <div className="rounded-lg border border-border bg-surface-alt px-5 py-4 mb-8">
         <p className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-2">
-          Cancellation Policy
+          Policies
         </p>
         <ul className="space-y-1 text-xs" style={{ color: "#C4C4CC" }}>
+          <li>• {RESCHEDULE_POLICY.short}</li>
           <li>• Cancel up to 2 hours before your session for a full refund</li>
           <li>• Late cancellations or no-shows are non-refundable</li>
           <li>• Venue reservations can be cancelled anytime before arrival</li>
         </ul>
+        <a
+          href={BRAND.whatsapp}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-block text-xs font-semibold text-cyan hover:underline"
+        >
+          Questions? WhatsApp us
+        </a>
       </div>
 
       {/* Actions */}

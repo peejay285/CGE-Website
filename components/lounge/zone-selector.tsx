@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import { ZONES, PRICING, BRAND } from "@/lib/constants";
 import { Card } from "@/components/ui/card";
@@ -79,17 +79,27 @@ const HOW_IT_WORKS = [
   },
 ];
 
+// Live open/closed status helpers for useSyncExternalStore: the clock isn't
+// subscribable, so subscribe is a no-op; the server (and hydration pass)
+// snapshot is null, and the client snapshot reads the real time — SSR-safe
+// without any setState-in-effect.
+const subscribeToNothing = () => () => {};
+const getServerOpenNow = () => null;
+function isLoungeOpenNow(): boolean {
+  const now = new Date();
+  const startHour = now.getDay() === 0 ? 13 : 10; // Sun 1 PM, else 10 AM
+  const mins = now.getHours() * 60 + now.getMinutes();
+  return mins >= startHour * 60 && mins < 21 * 60; // closes 9 PM
+}
+
 export function ZoneSelector({ selected, onSelect }: ZoneSelectorProps) {
   const [picked, setPicked] = useState<string | null>(selected);
 
-  // Live open/closed status — computed after mount to avoid SSR time mismatch.
-  const [openNow, setOpenNow] = useState<boolean | null>(null);
-  useEffect(() => {
-    const now = new Date();
-    const startHour = now.getDay() === 0 ? 13 : 10; // Sun 1 PM, else 10 AM
-    const mins = now.getHours() * 60 + now.getMinutes();
-    setOpenNow(mins >= startHour * 60 && mins < 21 * 60); // closes 9 PM
-  }, []);
+  const openNow = useSyncExternalStore<boolean | null>(
+    subscribeToNothing,
+    isLoungeOpenNow,
+    getServerOpenNow
+  );
 
   const pickedZone = picked ? ZONES.find((z) => z.id === picked) : null;
 
@@ -175,9 +185,13 @@ export function ZoneSelector({ selected, onSelect }: ZoneSelectorProps) {
         </span>
       </div>
 
-      {/* Zone Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-        {ZONES.map((zone) => {
+      {/* Zone Cards — behaves like a radio group for keyboard/AT users */}
+      <div
+        role="radiogroup"
+        aria-label="Choose a zone"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto"
+      >
+        {ZONES.map((zone, zoneIndex) => {
           const isPicked = picked === zone.id;
           const details = ZONE_DETAILS[zone.id];
           const icon = ZONE_ICONS[zone.id];
@@ -186,8 +200,36 @@ export function ZoneSelector({ selected, onSelect }: ZoneSelectorProps) {
             <Card
               key={zone.id}
               onClick={() => setPicked(zone.id)}
+              role="radio"
+              aria-checked={isPicked}
+              aria-label={zone.name}
+              // Roving tabindex: the picked zone (or the first zone before any
+              // pick) is the group's single tab stop, like native radios.
+              tabIndex={isPicked || (!picked && zone.id === ZONES[0].id) ? 0 : -1}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setPicked(zone.id);
+                } else if (
+                  e.key === "ArrowRight" ||
+                  e.key === "ArrowDown" ||
+                  e.key === "ArrowLeft" ||
+                  e.key === "ArrowUp"
+                ) {
+                  e.preventDefault();
+                  const delta =
+                    e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1;
+                  const nextIndex =
+                    (zoneIndex + delta + ZONES.length) % ZONES.length;
+                  setPicked(ZONES[nextIndex].id);
+                  // Arrow keys move selection AND focus, like native radios.
+                  const group = e.currentTarget.parentElement;
+                  (group?.children[nextIndex] as HTMLElement | undefined)?.focus();
+                }
+              }}
               className={cn(
                 "text-center group relative !p-0 overflow-hidden",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan/60",
                 isPicked &&
                   "border-cyan bg-cyan/5 shadow-[0_0_25px_rgba(0,240,255,0.12)]"
               )}

@@ -23,10 +23,9 @@ export function useCountdown(
   );
 
   useEffect(() => {
-    if (!enabled) {
-      setCountdown(null);
-      return;
-    }
+    // Disabled: no timer to run. The stale state is masked by the derived
+    // return below instead of a setState here (react-hooks/set-state-in-effect).
+    if (!enabled) return;
 
     let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -48,5 +47,7 @@ export function useCountdown(
     };
   }, [dateStr, timeStr, enabled]);
 
-  return countdown;
+  // Derive the disabled case during render rather than resetting state in
+  // the effect; when re-enabled the effect's first tick refreshes the value.
+  return enabled ? countdown : null;
 }

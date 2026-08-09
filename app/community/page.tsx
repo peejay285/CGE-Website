@@ -53,6 +53,7 @@ export default function CommunityPage() {
         <div className="relative flex items-center gap-3 px-5 py-6">
           <Users className="h-6 w-6 text-green" />
           <SectionTitle
+            as="h1"
             eyebrow="Connect & Play"
             title="Nigeria's Gaming Community"
             subtitle="Share your wins, find opponents, swap notes — gamers nationwide."
@@ -122,7 +123,7 @@ export default function CommunityPage() {
                 value={cp.sortMode}
                 onChange={(e) => cp.setSortMode(e.target.value as SortMode)}
                 aria-label="Sort posts"
-                className="appearance-none rounded-lg border border-border bg-surface-alt px-4 py-2 pr-8 text-xs font-semibold uppercase tracking-wider text-text cursor-pointer focus:border-cyan/50 focus:outline-none focus:ring-1 focus:ring-cyan/25 transition-colors"
+                className="appearance-none min-h-11 sm:min-h-0 rounded-lg border border-border bg-surface-alt px-4 py-2 pr-8 text-xs font-semibold uppercase tracking-wider text-text cursor-pointer focus:border-cyan/50 focus:outline-none focus:ring-1 focus:ring-cyan/25 transition-colors"
               >
                 <option value="recent">Recent</option>
                 <option value="trending">Trending</option>

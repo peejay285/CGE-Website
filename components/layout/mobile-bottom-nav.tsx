@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 
 interface MobileBottomNavProps {
   user?: { email?: string } | null;
-  onAuthClick: () => void;
+  onAuthClick?: () => void;
   unreadCount?: number;
 }
 
@@ -39,7 +39,6 @@ const NAV_ITEMS: NavItem[] = [
 
 export function MobileBottomNav({
   user,
-  onAuthClick,
   unreadCount = 0,
 }: MobileBottomNavProps) {
   const pathname = usePathname();
@@ -62,15 +61,22 @@ export function MobileBottomNav({
 
           const handleClick = (e: React.MouseEvent) => {
             if (needsAuth) {
+              // Signed out: intercept the navigation and open the auth modal,
+              // carrying the intended destination so AppShell can resume the
+              // navigation after a successful sign-in.
               e.preventDefault();
-              onAuthClick();
+              window.dispatchEvent(
+                new CustomEvent("open-auth-modal", {
+                  detail: { returnTo: item.href },
+                })
+              );
             }
           };
 
           return (
             <Link
               key={item.href}
-              href={needsAuth ? "#" : item.href}
+              href={item.href}
               onClick={handleClick}
               aria-current={active ? "page" : undefined}
               className={cn(

@@ -153,6 +153,7 @@ export default function EventsPage() {
   return (
     <div className="min-h-screen px-4 py-8 md:px-6 lg:px-8 max-w-6xl mx-auto">
       <SectionTitle
+        as="h1"
         eyebrow="What's On"
         title="Events & Happenings"
         subtitle="Stay updated with the latest events, parties, and special nights at CGE gaming lounge."

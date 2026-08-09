@@ -16,6 +16,7 @@ export default function TermsPage() {
     <div className="min-h-screen bg-base px-4 py-16 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         <SectionTitle
+          as="h1"
           eyebrow="Legal"
           title="Terms of Service"
           subtitle={`Last updated: ${LAST_UPDATED}`}

@@ -28,10 +28,13 @@ interface NavbarProps {
 export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [avatar, setAvatar] = useState<{ userId: string; url: string | null } | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const avatarUrl = avatar && avatar.userId === user?.id ? avatar.url : null;
+  // The avatar menu is "open for a specific route": navigating away derives it
+  // closed during render, replacing the old reset-on-pathname-change effect.
+  const [menuOpenAt, setMenuOpenAt] = useState<string | null>(null);
+  const menuOpen = menuOpenAt === pathname;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -41,21 +44,16 @@ export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarP
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close the avatar menu whenever the route changes.
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
-
   // Close the avatar menu on outside click or Escape.
   useEffect(() => {
     if (!menuOpen) return;
     const onMouseDown = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
+        setMenuOpenAt(null);
       }
     };
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenuOpen(false);
+      if (e.key === "Escape") setMenuOpenAt(null);
     };
     document.addEventListener("mousedown", onMouseDown);
     document.addEventListener("keydown", onKeyDown);
@@ -177,7 +175,7 @@ export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarP
               <div className="relative" ref={menuRef}>
                 <button
                   type="button"
-                  onClick={() => setMenuOpen((open) => !open)}
+                  onClick={() => setMenuOpenAt(menuOpen ? null : pathname)}
                   aria-label="Open account menu"
                   aria-expanded={menuOpen}
                   aria-haspopup="menu"
@@ -213,7 +211,7 @@ export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarP
                     <Link
                       role="menuitem"
                       href="/profile"
-                      onClick={() => setMenuOpen(false)}
+                      onClick={() => setMenuOpenAt(null)}
                       className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-text hover:bg-surface-alt rounded-lg transition-colors"
                     >
                       <User size={16} className="text-text-muted" />
@@ -222,7 +220,7 @@ export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarP
                     <Link
                       role="menuitem"
                       href="/profile/wallet"
-                      onClick={() => setMenuOpen(false)}
+                      onClick={() => setMenuOpenAt(null)}
                       className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-text hover:bg-surface-alt rounded-lg transition-colors"
                     >
                       <Wallet size={16} className="text-text-muted" />
@@ -232,7 +230,7 @@ export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarP
                       <Link
                         role="menuitem"
                         href={`/player/${user.id}`}
-                        onClick={() => setMenuOpen(false)}
+                        onClick={() => setMenuOpenAt(null)}
                         className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-text hover:bg-surface-alt rounded-lg transition-colors"
                       >
                         <IdCard size={16} className="text-text-muted" />
@@ -242,7 +240,7 @@ export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarP
                     <Link
                       role="menuitem"
                       href="/profile/swaps"
-                      onClick={() => setMenuOpen(false)}
+                      onClick={() => setMenuOpenAt(null)}
                       className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-text hover:bg-surface-alt rounded-lg transition-colors"
                     >
                       <ArrowLeftRight size={16} className="text-text-muted" />
@@ -253,7 +251,7 @@ export function Navbar({ onAuthClick, user, onLogout, unreadCount = 0 }: NavbarP
                       type="button"
                       role="menuitem"
                       onClick={() => {
-                        setMenuOpen(false);
+                        setMenuOpenAt(null);
                         onLogout?.();
                       }}
                       className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red hover:bg-red/10 rounded-lg transition-colors cursor-pointer"

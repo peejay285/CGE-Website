@@ -54,7 +54,11 @@ export async function proxy(request: NextRequest) {
   if (isProtectedPage && !user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/";
+    redirectUrl.search = "";
     redirectUrl.searchParams.set("auth", "required");
+    // Preserve where the user was headed so the app can resume the
+    // navigation after they sign in (AppShell validates + consumes this).
+    redirectUrl.searchParams.set("returnTo", pathname);
     return NextResponse.redirect(redirectUrl);
   }
 

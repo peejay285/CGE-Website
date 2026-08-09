@@ -145,7 +145,9 @@ describe("booking payment workflow", () => {
         }),
         query({ data: null, error: null }, { onUpdate: (patch) => updates.push(patch) }),
       ],
-      profiles: [query({ data: { phone: null }, error: null })],
+      // The webhook now reads the phone from profile_private (self-only RLS;
+      // the service-role client bypasses it), not from profiles.
+      profile_private: [query({ data: { phone: null }, error: null })],
     });
 
     vi.doMock("@supabase/supabase-js", () => ({

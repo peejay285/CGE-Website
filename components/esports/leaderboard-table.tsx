@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Trophy, UserPlus, UserCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -23,9 +24,9 @@ interface LeaderboardTableProps {
 }
 
 const rankMedal: Record<number, string> = {
-  1: "\uD83E\uDD47",
-  2: "\uD83E\uDD48",
-  3: "\uD83E\uDD49",
+  1: "🥇",
+  2: "🥈",
+  3: "🥉",
 };
 
 const rankBadgeColor: Record<number, "gold" | "cyan" | "magenta"> = {
@@ -61,6 +62,39 @@ export function LeaderboardTable({ players, currentUserId, followingIds, onFollo
         const totalGames = player.wins + player.losses;
         const winRate = totalGames > 0 ? Math.round((player.wins / totalGames) * 100) : 0;
 
+        // Shared identity content — rendered inside a Link when we have a
+        // profile to link to, otherwise inside a plain div. The follow button
+        // stays a sibling control so we never nest interactive elements.
+        const identity = (
+          <>
+            {player.avatarUrl ? (
+              <img
+                src={player.avatarUrl}
+                alt=""
+                className="w-6 h-6 rounded-full shrink-0 object-cover"
+              />
+            ) : (
+              <div className="w-6 h-6 rounded-full shrink-0 bg-surface-alt border border-border flex items-center justify-center">
+                <span className="text-[10px] font-bold text-text-muted">
+                  {player.name.charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
+            <span
+              className={cn(
+                "text-sm font-semibold truncate",
+                isTop3 ? "text-text" : "text-text-muted",
+                isCurrentUser && "text-cyan"
+              )}
+            >
+              {player.name}
+              {isCurrentUser && (
+                <span className="text-[10px] text-cyan ml-1">(you)</span>
+              )}
+            </span>
+          </>
+        );
+
         return (
           <div
             key={player.rank}
@@ -86,34 +120,18 @@ export function LeaderboardTable({ players, currentUserId, followingIds, onFollo
               )}
             </div>
 
-            {/* Player name + avatar */}
-            <div className="flex items-center gap-2 min-w-0">
-              {player.avatarUrl ? (
-                <img
-                  src={player.avatarUrl}
-                  alt=""
-                  className="w-6 h-6 rounded-full shrink-0 object-cover"
-                />
-              ) : (
-                <div className="w-6 h-6 rounded-full shrink-0 bg-surface-alt border border-border flex items-center justify-center">
-                  <span className="text-[10px] font-bold text-text-muted">
-                    {player.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
-              <span
-                className={cn(
-                  "text-sm font-semibold truncate",
-                  isTop3 ? "text-text" : "text-text-muted",
-                  isCurrentUser && "text-cyan"
-                )}
+            {/* Player name + avatar — links to the public player profile */}
+            {player.userId ? (
+              <Link
+                href={`/player/${player.userId}`}
+                className="flex items-center gap-2 min-w-0 rounded-md hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan/50 transition-opacity"
+                aria-label={`View ${player.name}'s profile`}
               >
-                {player.name}
-                {isCurrentUser && (
-                  <span className="text-[10px] text-cyan ml-1">(you)</span>
-                )}
-              </span>
-            </div>
+                {identity}
+              </Link>
+            ) : (
+              <div className="flex items-center gap-2 min-w-0">{identity}</div>
+            )}
 
             {/* Points */}
             <div className="text-right">

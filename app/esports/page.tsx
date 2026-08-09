@@ -87,7 +87,10 @@ export default function EsportsPage() {
             and rise from weekly open cups to headline events.
           </p>
 
-          {/* Stats banner */}
+          {/* Stats banner — honest history: while the online tournaments table
+              is empty we fall back to CGE's real offline track record
+              (Invasion Dec 2025: ₦1M prize pools across FC26/MK/CODM, plus
+              Warfare ₦200K) instead of showing ₦0 / 0. */}
           <div className="flex flex-wrap justify-center gap-6 md:gap-10">
             <div className="text-center">
               <p className="text-2xl md:text-3xl font-bold font-heading text-cyan">{ep.stats.openCount}</p>
@@ -95,18 +98,27 @@ export default function EsportsPage() {
             </div>
             <div className="text-center">
               <p className="text-2xl md:text-3xl font-bold font-heading text-gold">
-                {`\u20A6${(ep.stats.livePrize > 0
-                  ? ep.stats.livePrize
-                  : ep.stats.allTimePrize
-                ).toLocaleString()}`}
+                {ep.stats.livePrize > 0
+                  ? `₦${ep.stats.livePrize.toLocaleString()}`
+                  : ep.stats.allTimePrize > 0
+                    ? `₦${ep.stats.allTimePrize.toLocaleString()}`
+                    : "₦1M+"}
               </p>
               <p className="text-[10px] uppercase tracking-widest text-text-muted font-semibold mt-1">
-                {ep.stats.livePrize > 0 ? "Live Prize Pool" : "Prizes Hosted To Date"}
+                {ep.stats.livePrize > 0
+                  ? "Live Prize Pool"
+                  : ep.stats.allTimePrize > 0
+                    ? "Prizes Hosted To Date"
+                    : "Won At CGE Events"}
               </p>
             </div>
             <div className="text-center">
-              <p className="text-2xl md:text-3xl font-bold font-heading text-magenta">{ep.tournaments.length}</p>
-              <p className="text-[10px] uppercase tracking-widest text-text-muted font-semibold mt-1">Total Tournaments</p>
+              <p className="text-2xl md:text-3xl font-bold font-heading text-magenta">
+                {ep.tournaments.length === 0 ? "4+" : ep.tournaments.length}
+              </p>
+              <p className="text-[10px] uppercase tracking-widest text-text-muted font-semibold mt-1">
+                {ep.tournaments.length === 0 ? "Events Hosted IRL" : "Total Tournaments"}
+              </p>
             </div>
           </div>
 
@@ -162,7 +174,7 @@ export default function EsportsPage() {
                 {STATUS_FILTERS.map((sf) => (
                   <button key={sf.value} onClick={() => ep.setStatusFilter(sf.value)} aria-pressed={ep.statusFilter === sf.value}
                     className={cn(
-                      "px-3 py-1.5 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all cursor-pointer border active:scale-95",
+                      "inline-flex items-center justify-center min-h-11 sm:min-h-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all cursor-pointer border active:scale-95",
                       ep.statusFilter === sf.value ? "bg-cyan/15 text-cyan border-cyan/30" : "text-text-muted border-border hover:border-cyan/20 hover:text-text"
                     )}>
                     {sf.label}
@@ -174,7 +186,7 @@ export default function EsportsPage() {
                 <div className="flex flex-wrap justify-center gap-2" role="toolbar" aria-label="Game filters">
                   <button onClick={() => ep.setGameFilter("All")} aria-pressed={ep.gameFilter === "All"}
                     className={cn(
-                      "px-3 py-1.5 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all cursor-pointer border active:scale-95",
+                      "inline-flex items-center justify-center min-h-11 sm:min-h-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all cursor-pointer border active:scale-95",
                       ep.gameFilter === "All" ? "bg-magenta/15 text-magenta border-magenta/30" : "text-text-muted border-border hover:border-magenta/20 hover:text-text"
                     )}>
                     All Games
@@ -182,7 +194,7 @@ export default function EsportsPage() {
                   {ep.uniqueGames.map((game) => (
                     <button key={game} onClick={() => ep.setGameFilter(game)} aria-pressed={ep.gameFilter === game}
                       className={cn(
-                        "px-3 py-1.5 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all cursor-pointer border active:scale-95",
+                        "inline-flex items-center justify-center min-h-11 sm:min-h-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all cursor-pointer border active:scale-95",
                         ep.gameFilter === game ? "bg-magenta/15 text-magenta border-magenta/30" : "text-text-muted border-border hover:border-magenta/20 hover:text-text"
                       )}>
                       {game}

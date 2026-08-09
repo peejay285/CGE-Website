@@ -179,7 +179,7 @@ export function ListingFilters({
               onClick={() => onListingTypeFilterChange(filter.value)}
               aria-pressed={isActive}
               className={cn(
-                "px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 cursor-pointer border flex items-center gap-1 whitespace-nowrap",
+                "min-h-11 sm:min-h-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 cursor-pointer border flex items-center gap-1 whitespace-nowrap",
                 "active:scale-95",
                 isSaved
                   ? isActive
@@ -210,7 +210,7 @@ export function ListingFilters({
             type="button"
             onClick={onListItem}
             className={cn(
-              "px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 cursor-pointer border flex items-center gap-1 whitespace-nowrap",
+              "min-h-11 sm:min-h-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 cursor-pointer border flex items-center gap-1 whitespace-nowrap",
               "active:scale-95 bg-magenta text-white border-magenta/40 hover:bg-magenta/90"
             )}
           >
@@ -230,7 +230,7 @@ export function ListingFilters({
             disabled={geolocationStatus === "requesting"}
             aria-pressed={nearMe}
             className={cn(
-              "px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 cursor-pointer border flex items-center gap-1 whitespace-nowrap",
+              "min-h-11 sm:min-h-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 cursor-pointer border flex items-center gap-1 whitespace-nowrap",
               "active:scale-95 disabled:cursor-wait disabled:opacity-60",
               nearMe
                 ? "bg-cyan/15 text-cyan border-cyan/30"
@@ -257,7 +257,7 @@ export function ListingFilters({
           onChange={(e) => onLocationStateChange(e.target.value)}
           aria-label="Filter by state"
           className={cn(
-            "px-3 py-1.5 rounded-lg text-[11px] font-semibold border whitespace-nowrap cursor-pointer",
+            "min-h-11 sm:min-h-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold border whitespace-nowrap cursor-pointer",
             "transition-all duration-200 active:scale-95",
             locationState
               ? "bg-cyan/15 text-cyan border-cyan/30"
@@ -285,7 +285,7 @@ export function ListingFilters({
               onClick={() => onConditionFilterChange(isActive ? "" : cond)}
               aria-pressed={isActive}
               className={cn(
-                "px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 cursor-pointer border whitespace-nowrap",
+                "inline-flex items-center min-h-11 sm:min-h-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 cursor-pointer border whitespace-nowrap",
                 "active:scale-95",
                 isActive
                   ? "bg-green/15 text-green border-green/30"
@@ -316,7 +316,7 @@ export function ListingFilters({
                 key={preset.label}
                 onClick={() => onPriceRangeChange({ min: preset.min, max: preset.max })}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 cursor-pointer border whitespace-nowrap",
+                  "inline-flex items-center min-h-11 sm:min-h-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 cursor-pointer border whitespace-nowrap",
                   "active:scale-95",
                   isActive
                     ? "bg-cyan/15 text-cyan border-cyan/30"

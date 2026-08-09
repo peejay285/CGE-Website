@@ -586,6 +586,9 @@ export function useTournaments(initialStatus?: string) {
         const { data, error: fetchError } = await supabase
           .from("profiles")
           .select("id, full_name, avatar_url, gamertag, points, wins, losses")
+          // Leaderboard integrity: only rank profiles with actual activity —
+          // zero-point/zero-game accounts shouldn't pad the standings.
+          .or("points.gt.0,wins.gt.0,losses.gt.0")
           .order("points", { ascending: false })
           .order("wins", { ascending: false })
           .limit(limit);

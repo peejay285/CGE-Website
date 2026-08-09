@@ -225,4 +225,59 @@ describe("paystack webhook security", () => {
     expect(payload.error).toBe("Amount mismatch");
     expect(updates).toHaveLength(0);
   });
+
+  it("marks a pending booking paid and reads the phone from profile_private for the SMS receipt", async () => {
+    const reference = "booking_ref_success";
+    const updates: Record<string, unknown>[] = [];
+    const admin = queuedClient({
+      bookings: [
+        query({
+          data: {
+            id: "booking-2",
+            payment_status: "pending",
+            total: 5000,
+            zone_id: "vip",
+            booking_date: "2026-07-01",
+            time_slot: "18:00",
+            user_id: "user-1",
+            receipt_token: "receipt-token",
+          },
+          error: null,
+        }),
+        query({ data: null, error: null }, { onUpdate: (patch) => updates.push(patch) }),
+      ],
+      // After marking the booking paid, the route reads the customer's phone
+      // from profile_private (self-only RLS; the service-role client bypasses
+      // it) to fire the SMS confirmation. The mock must answer this select or
+      // the happy path 500s.
+      profile_private: [
+        query({ data: { phone: "+2348000000000" }, error: null }),
+      ],
+    });
+    mockAdmin(admin);
+    vi.doMock("@/lib/paystack", () => ({
+      verifyTransaction: vi.fn(async () => ({
+        status: true,
+        data: { status: "success", amount: 500000, reference },
+      })),
+    }));
+
+    const { POST } = await import("../app/api/paystack/webhook/route");
+    const body = JSON.stringify({
+      event: "charge.success",
+      data: {
+        reference,
+        amount: 500000,
+        metadata: { type: "booking", booking_id: "booking-2" },
+      },
+    });
+
+    const response = await POST(webhookRequest(body, signBody(body)));
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload).toEqual({ received: true });
+    expect(updates).toHaveLength(1);
+    expect(updates[0]).toMatchObject({ payment_status: "paid" });
+  });
 });

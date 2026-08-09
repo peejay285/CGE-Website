@@ -19,30 +19,18 @@ const approvalCache = new Map<string, boolean>();
  */
 export function useBetaAccess(userId: string | undefined | null) {
   const gateActive = isBetaGateActive();
+  const inactive = !gateActive || !userId;
   const cached = userId ? approvalCache.get(userId) : undefined;
-  const [approved, setApproved] = useState<boolean>(
-    !gateActive || !userId ? true : cached ?? false
-  );
-  const [loading, setLoading] = useState<boolean>(
-    gateActive && Boolean(userId) && cached === undefined
-  );
+  // The cache is the source of truth; this tick only forces a re-render when
+  // the async lookup lands. `approved`/`loading` are derived during render,
+  // so the effect never has to set state synchronously.
+  const [, setTick] = useState(0);
 
   useEffect(() => {
-    if (!gateActive || !userId) {
-      setApproved(true);
-      setLoading(false);
-      return;
-    }
-
-    const known = approvalCache.get(userId);
-    if (known !== undefined) {
-      setApproved(known);
-      setLoading(false);
-      return;
-    }
+    if (inactive || !userId) return;
+    if (approvalCache.get(userId) !== undefined) return;
 
     let cancelled = false;
-    setLoading(true);
 
     const supabase = createClient();
     supabase
@@ -56,14 +44,16 @@ export function useBetaAccess(userId: string | undefined | null) {
         // gate, and a hiccup shouldn't lock approved testers out.
         const value = data ? Boolean(data.beta_approved) : true;
         approvalCache.set(userId, value);
-        setApproved(value);
-        setLoading(false);
+        setTick((n) => n + 1);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [gateActive, userId]);
+  }, [inactive, userId]);
 
-  return { approved, loading };
+  return {
+    approved: inactive ? true : cached ?? false,
+    loading: !inactive && cached === undefined,
+  };
 }

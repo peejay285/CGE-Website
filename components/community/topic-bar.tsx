@@ -91,7 +91,7 @@ export default function TopicBar({ selected, onSelect }: TopicBarProps) {
         {/* All topics pill */}
         <button
           onClick={() => onSelect("all")}
-          className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+          className={`shrink-0 flex items-center gap-1.5 min-h-11 sm:min-h-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
             selected === "all"
               ? "bg-cyan/20 text-cyan border border-cyan/40"
               : "bg-surface-alt border border-border text-text-muted hover:text-text hover:border-border/80"
@@ -108,7 +108,7 @@ export default function TopicBar({ selected, onSelect }: TopicBarProps) {
             <button
               key={topic.id}
               onClick={() => onSelect(topic.id)}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              className={`shrink-0 flex items-center gap-1.5 min-h-11 sm:min-h-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                 isActive
                   ? "border"
                   : "bg-surface-alt border border-border text-text-muted hover:text-text hover:border-border/80"

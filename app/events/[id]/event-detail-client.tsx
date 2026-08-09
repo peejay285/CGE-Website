@@ -211,11 +211,15 @@ export default function EventDetailClient({
             <div className="flex items-center gap-3 rounded-lg bg-surface-alt border border-border p-4">
               <Users size={18} className="text-cyan shrink-0" />
               <div>
-                <p className="text-[10px] uppercase tracking-widest text-text-muted font-semibold">Capacity</p>
+                <p className="text-[10px] uppercase tracking-widest text-text-muted font-semibold">
+                  {isPast ? "Attendance" : "Capacity"}
+                </p>
                 <p className="text-sm font-medium text-text">
-                  {event.registration_count !== undefined
-                    ? `${event.registration_count} / ${event.capacity} spots`
-                    : `${event.capacity} spots`}
+                  {isPast
+                    ? `Event completed${event.registration_count ? ` · ${event.registration_count} attended` : ""}`
+                    : event.registration_count !== undefined
+                      ? `${event.registration_count} / ${event.capacity} spots`
+                      : `${event.capacity} spots`}
                 </p>
               </div>
             </div>

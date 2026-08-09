@@ -597,7 +597,7 @@ export function PlayerCard({ profile, achievements = [] }: PlayerCardProps) {
         className="w-full flex items-center justify-center gap-2 rounded-xl border border-cyan/30 bg-cyan/10 px-4 py-3 text-sm font-semibold text-cyan transition-all hover:bg-cyan/15 hover:border-cyan/50 active:scale-[0.99] cursor-pointer"
       >
         <Share2 size={16} />
-        Share my card
+        Share player card
       </button>
     </div>
   );

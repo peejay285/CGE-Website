@@ -450,6 +450,7 @@ export function useMarketplacePage() {
     const match = listings.find((l) => l.id === listingId);
     if (!match) return; // may still arrive on a later page of results
     deepLinkHandledRef.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot deep-link open, ref-gated to run at most once; deriving during render would reopen the modal on every re-render
     handleOpenListing(match);
     // Clean the param so refresh / back doesn't reopen the modal.
     params.delete("listing");
