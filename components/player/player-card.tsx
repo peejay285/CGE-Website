@@ -24,9 +24,12 @@ import {
   Shield,
   Gem,
   ArrowRight,
+  Flag,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import { ReportModal } from "@/components/safety/report-modal";
+import { useAuth } from "@/hooks/use-auth";
 import {
   StarRating,
   TRUST_CONFIG,
@@ -168,6 +171,9 @@ function computeTier(score: number): {
 }
 
 export function PlayerCard({ profile, achievements = [] }: PlayerCardProps) {
+  const { user } = useAuth();
+  const [reportOpen, setReportOpen] = useState(false);
+  const isOwnProfile = user?.id === profile.id;
   const displayName = profile.gamertag || profile.full_name || "CGE Member";
   const trustLevel =
     (profile.trust_level as keyof typeof TRUST_CONFIG) ?? "new";
@@ -599,6 +605,35 @@ export function PlayerCard({ profile, achievements = [] }: PlayerCardProps) {
         <Share2 size={16} />
         Share player card
       </button>
+
+      {/* ── Report player (quiet) ───────────────────────────────────── */}
+      {!isOwnProfile && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              if (!user) {
+                window.dispatchEvent(new CustomEvent("open-auth-modal"));
+                return;
+              }
+              setReportOpen(true);
+            }}
+            className="inline-flex items-center gap-1 text-[11px] text-text-muted hover:text-red transition-colors cursor-pointer"
+          >
+            <Flag size={11} />
+            Report player
+          </button>
+        </div>
+      )}
+
+      <ReportModal
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        contextType="profile"
+        contextId={profile.id}
+        reportedUserId={profile.id}
+        reportedName={displayName}
+      />
     </div>
   );
 }

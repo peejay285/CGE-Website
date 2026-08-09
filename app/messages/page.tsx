@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ConversationList } from "@/components/messages/conversation-list";
 import { ChatThread } from "@/components/messages/chat-thread";
 import { useMessages } from "@/hooks/use-messages";
+import { useBlocks } from "@/hooks/use-blocks";
 import { useAuth } from "@/hooks/use-auth";
 import type { Conversation } from "@/lib/types";
 
@@ -26,6 +27,8 @@ export default function MessagesPage() {
     subscribeToMessages,
   } = useMessages();
 
+  const { blockedIds } = useBlocks();
+
   const conversationId = searchParams.get("conversation");
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [mobileShowThread, setMobileShowThread] = useState(false);
@@ -38,6 +41,17 @@ export default function MessagesPage() {
   const showThread =
     mobileShowThread ||
     Boolean(conversationId && activeConversation && !urlThreadDismissed);
+
+  // Hide conversations with blocked users from the list. The active thread
+  // still resolves from the full set so a blocked thread (opened via URL or
+  // just-blocked) shows its blocked notice instead of vanishing mid-view.
+  const visibleConversations = useMemo(() => {
+    if (!user || blockedIds.size === 0) return conversations;
+    return conversations.filter((c) => {
+      const otherId = c.buyer_id === user.id ? c.seller_id : c.buyer_id;
+      return !blockedIds.has(otherId);
+    });
+  }, [conversations, blockedIds, user]);
 
   // Fetch conversations on mount
   useEffect(() => {
@@ -130,7 +144,7 @@ export default function MessagesPage() {
             </div>
             <div className="flex-1 overflow-y-auto">
               <ConversationList
-                conversations={conversations}
+                conversations={visibleConversations}
                 loading={loading}
                 activeId={activeConversation?.id ?? null}
                 currentUserId={user?.id ?? ""}

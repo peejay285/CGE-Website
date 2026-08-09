@@ -1,9 +1,18 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { ChevronLeft, ArrowLeftRight, ExternalLink } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  ChevronLeft,
+  ArrowLeftRight,
+  ExternalLink,
+  MoreVertical,
+  Flag,
+  Ban,
+} from "lucide-react";
 import { MessageBubble } from "@/components/messages/message-bubble";
 import { MessageInput } from "@/components/messages/message-input";
+import { ReportModal } from "@/components/safety/report-modal";
+import { useBlocks } from "@/hooks/use-blocks";
 import { formatPrice } from "@/lib/utils";
 import type { Conversation, Message } from "@/lib/types";
 
@@ -29,6 +38,31 @@ export function ChatThread({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // Safety controls — overflow menu, report dialog, block state
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const { isBlocked, block, unblock } = useBlocks();
+
+  // Close the overflow menu on outside click or Escape (navbar pattern).
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onMouseDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (!messagesEndRef.current || !scrollContainerRef.current) return;
@@ -49,6 +83,12 @@ export function ChatThread({
       ? conversation.seller
       : conversation.buyer;
   const otherName = otherUser?.full_name || otherUser?.gamertag || "CGE Member";
+  const otherUserId =
+    otherUser?.id ??
+    (conversation.buyer_id === currentUserId
+      ? conversation.seller_id
+      : conversation.buyer_id);
+  const otherIsBlocked = isBlocked(otherUserId);
   const isSwap =
     listing?.listing_type === "swap" || listing?.listing_type === "sell_or_swap";
   const listingImage =
@@ -91,6 +131,57 @@ export function ChatThread({
                   <span className="text-magenta"> · Sold</span>
                 )}
               </p>
+            )}
+          </div>
+
+          {/* Overflow menu — report / block */}
+          <div className="relative shrink-0" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((prev) => !prev)}
+              aria-label="Conversation options"
+              aria-expanded={menuOpen}
+              aria-haspopup="menu"
+              className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface-alt transition-colors cursor-pointer"
+            >
+              <MoreVertical size={16} />
+            </button>
+
+            {menuOpen && (
+              <div
+                role="menu"
+                aria-label="Conversation options"
+                className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-border bg-surface shadow-xl p-1.5 z-50"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setReportOpen(true);
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-text hover:bg-surface-alt rounded-lg transition-colors cursor-pointer"
+                >
+                  <Flag size={16} className="text-text-muted" />
+                  Report conversation
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    if (otherIsBlocked) {
+                      void unblock(otherUserId);
+                    } else {
+                      void block(otherUserId);
+                    }
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red hover:bg-red/10 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Ban size={16} />
+                  {otherIsBlocked ? `Unblock ${otherName}` : `Block ${otherName}`}
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -174,15 +265,37 @@ export function ChatThread({
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Blocked notice */}
+      {otherIsBlocked && (
+        <div className="border-t border-border px-3 py-2 shrink-0 bg-red/5">
+          <p className="text-[11px] text-red flex items-center gap-1.5">
+            <Ban size={11} className="shrink-0" />
+            You&apos;ve blocked this user — unblock to message them
+          </p>
+        </div>
+      )}
+
       {/* Message input */}
       <div className="border-t border-border p-3 shrink-0">
         <MessageInput
           onSend={onSendMessage}
           loading={sendLoading}
-
-          placeholder={`Message ${otherName}...`}
+          disabled={otherIsBlocked}
+          placeholder={
+            otherIsBlocked ? "You've blocked this user" : `Message ${otherName}...`
+          }
         />
       </div>
+
+      {/* Report conversation dialog */}
+      <ReportModal
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        contextType="conversation"
+        contextId={conversation.id}
+        reportedUserId={otherUserId}
+        reportedName={otherName}
+      />
     </div>
   );
 }

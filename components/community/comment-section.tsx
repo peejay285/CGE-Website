@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Send, Trash2 } from "lucide-react";
 import { cn, timeAgo, getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -82,9 +83,12 @@ export function CommentSection({
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-xs font-semibold text-text">
+                    <Link
+                      href={`/player/${comment.author_id}`}
+                      className="text-xs font-semibold text-text hover:text-cyan transition-colors"
+                    >
                       {authorName}
-                    </span>
+                    </Link>
                     {gamertag && (
                       <span className="text-[10px] text-text-muted/70">
                         @{gamertag}

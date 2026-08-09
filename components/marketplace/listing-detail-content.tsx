@@ -20,6 +20,7 @@ import {
   Users,
   Flame,
   Shield,
+  Flag,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,8 @@ import { SellerProfileCard } from "./seller-profile-card";
 import { SellerReviewsSection } from "./seller-reviews-section";
 import { RelatedListings } from "./related-listings";
 import { SafetyDisclaimerBanner } from "./safety-disclaimer-banner";
+import { ReportModal } from "@/components/safety/report-modal";
+import { useAuth } from "@/hooks/use-auth";
 import { ASSISTED_SWAP_SERVICE, getConditionConfig } from "@/lib/constants";
 import type { MarketplaceListing, SwapProposal } from "@/lib/types";
 
@@ -350,6 +353,17 @@ export function ListingDetailContent({
   onRelatedClick,
   className,
 }: ListingDetailContentProps) {
+  const { user } = useAuth();
+  const [reportOpen, setReportOpen] = useState(false);
+
+  const handleReportClick = useCallback(() => {
+    if (!user) {
+      window.dispatchEvent(new CustomEvent("open-auth-modal"));
+      return;
+    }
+    setReportOpen(true);
+  }, [user]);
+
   const handleShare = useCallback(async () => {
     // Canonical shareable page URL for this listing.
     const shareUrl = getListingShareUrl(listing.id);
@@ -617,6 +631,29 @@ export function ListingDetailContent({
           compact
         />
       )}
+
+      {/* ── Report listing (quiet) ────────────────────────── */}
+      {!isOwner && user?.id !== listing.user_id && (
+        <div className="flex justify-end px-1 -mt-3">
+          <button
+            type="button"
+            onClick={handleReportClick}
+            className="inline-flex items-center gap-1 text-[11px] text-text-muted hover:text-red transition-colors cursor-pointer"
+          >
+            <Flag size={11} />
+            Report listing
+          </button>
+        </div>
+      )}
+
+      <ReportModal
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        contextType="listing"
+        contextId={listing.id}
+        reportedUserId={listing.user_id}
+        reportedName={listing.seller?.full_name || "this listing"}
+      />
 
       {/* ── Seller reviews ──────────────────────────────── */}
       <SellerReviewsSection

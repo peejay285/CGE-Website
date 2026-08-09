@@ -7,12 +7,15 @@ interface MessageInputProps {
   onSend: (content: string) => void;
   loading?: boolean;
   placeholder?: string;
+  /** Hard-disable the composer (e.g. when the other participant is blocked). */
+  disabled?: boolean;
 }
 
 export function MessageInput({
   onSend,
   loading = false,
   placeholder = "Type a message...",
+  disabled = false,
 }: MessageInputProps) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -28,13 +31,13 @@ export function MessageInput({
 
   const handleSubmit = useCallback(() => {
     const trimmed = value.trim();
-    if (!trimmed || loading) return;
+    if (!trimmed || loading || disabled) return;
     onSend(trimmed);
     setValue("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
-  }, [value, loading, onSend]);
+  }, [value, loading, disabled, onSend]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -43,7 +46,7 @@ export function MessageInput({
     }
   };
 
-  const isDisabled = loading || value.trim().length === 0;
+  const isDisabled = loading || disabled || value.trim().length === 0;
 
   return (
     <form
@@ -63,7 +66,7 @@ export function MessageInput({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         rows={1}
-        disabled={loading}
+        disabled={loading || disabled}
         className="bg-surface-alt border border-border rounded-lg px-4 py-2.5 text-sm text-text flex-1 placeholder:text-text-muted/50 focus:border-cyan/50 focus:outline-none focus:ring-1 focus:ring-cyan/25 resize-none disabled:opacity-50"
       />
       <button

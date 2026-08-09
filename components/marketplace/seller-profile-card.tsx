@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import {
   Star,
   Shield,
@@ -201,9 +202,13 @@ export function SellerProfileCard({
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <p className="text-sm font-semibold text-text truncate">
+              <Link
+                href={`/player/${seller.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-sm font-semibold text-text truncate hover:text-cyan transition-colors"
+              >
                 {seller.full_name || "CGE Member"}
-              </p>
+              </Link>
               <span
                 className={cn(
                   "inline-flex items-center gap-0.5 text-[9px] font-semibold rounded-md px-1.5 py-0.5 border shrink-0",
@@ -284,9 +289,12 @@ export function SellerProfileCard({
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <p className="text-base font-semibold text-text truncate">
+            <Link
+              href={`/player/${seller.id}`}
+              className="text-base font-semibold text-text truncate hover:text-cyan transition-colors"
+            >
               {seller.full_name || "CGE Member"}
-            </p>
+            </Link>
           </div>
 
           {seller.gamertag && (

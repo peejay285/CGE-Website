@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Loader2, Users, Crown, Shield, UserMinus, UserPlus, LogOut,
   Trash2, Gamepad2, Clock, Check, X,
@@ -290,9 +291,12 @@ export function TeamDetailModal({
                   )}
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-text truncate">
+                    <Link
+                      href={`/player/${request.user_id}`}
+                      className="block text-sm font-semibold text-text truncate hover:text-cyan transition-colors"
+                    >
                       {displayName}
-                    </p>
+                    </Link>
                     {request.profile?.full_name && request.profile.gamertag && (
                       <p className="text-[11px] text-text-muted truncate">
                         {request.profile.full_name}
@@ -374,12 +378,15 @@ export function TeamDetailModal({
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className={cn(
-                        "text-sm font-semibold truncate",
-                        member.user_id === currentUserId ? "text-magenta" : "text-text"
-                      )}>
+                      <Link
+                        href={`/player/${member.user_id}`}
+                        className={cn(
+                          "block text-sm font-semibold truncate hover:text-cyan transition-colors",
+                          member.user_id === currentUserId ? "text-magenta" : "text-text"
+                        )}
+                      >
                         {member.profile?.full_name || "Unknown"}
-                      </p>
+                      </Link>
                       {member.profile?.gamertag && (
                         <p className="text-[11px] text-text-muted">@{member.profile.gamertag}</p>
                       )}
