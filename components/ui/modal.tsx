@@ -49,12 +49,14 @@ export function Modal({ open, onClose, title, children, width = "md" }: ModalPro
         ref={modalRef}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "relative w-full rounded-xl border border-border bg-surface p-6 shadow-2xl",
+          // Tall content (e.g. the Host a Tournament form) must scroll INSIDE
+          // the panel — never push the header/close button off-screen.
+          "relative flex max-h-[90dvh] w-full flex-col rounded-xl border border-border bg-surface p-6 shadow-2xl",
           "animate-fadeIn",
           widthMap[width]
         )}
       >
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex shrink-0 items-center justify-between mb-5">
           {title && (
             <h3 id={titleId} className="text-lg font-bold font-heading tracking-tight">{title}</h3>
           )}
@@ -66,7 +68,9 @@ export function Modal({ open, onClose, title, children, width = "md" }: ModalPro
             <X size={18} />
           </button>
         </div>
-        {children}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain -mr-2 pr-2">
+          {children}
+        </div>
       </div>
     </div>
   );
