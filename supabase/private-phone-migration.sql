@@ -41,10 +41,14 @@ create policy "Users can update own private profile"
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
--- Defense in depth at the grant level too: anon gets nothing, authenticated
--- gets exactly what the policies allow (no delete).
+-- Grants: both roles get SELECT so PostgREST embeds (e.g. marketplace
+-- listings selecting seller profiles with profile_private(phone)) do not
+-- fail with "permission denied" for anonymous visitors. Privacy is enforced
+-- by RLS: with no anon policy, anon reads return ZERO rows — a hard grant
+-- revoke instead breaks every query that merely embeds this table.
 revoke all on table public.profile_private from anon;
 revoke all on table public.profile_private from authenticated;
+grant select on table public.profile_private to anon;
 grant select, insert, update on table public.profile_private to authenticated;
 
 -- ─── 2. Backfill from profiles.phone ────────────────────────────────────────
