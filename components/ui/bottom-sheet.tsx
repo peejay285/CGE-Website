@@ -65,7 +65,9 @@ export function BottomSheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center"
+      // z-[60]: must stack ABOVE the mobile bottom nav (z-50), which otherwise
+      // covers the sheet's tail — hiding submit buttons on long forms.
+      className="fixed inset-0 z-[60] flex items-end justify-center"
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel ?? title ?? "Dialog"}
@@ -111,10 +113,13 @@ export function BottomSheet({
           </div>
         )}
 
-        {/* Content */}
-        <div className="overflow-y-auto overscroll-contain" style={{ maxHeight: "calc(92vh - 80px)" }}>
+        {/* Content — bottom padding clears device safe areas so the last
+            control (usually a submit button) is always reachable */}
+        <div
+          className="overflow-y-auto overscroll-contain pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+          style={{ maxHeight: "calc(92vh - 80px)" }}
+        >
           {children}
-
         </div>
       </div>
     </div>

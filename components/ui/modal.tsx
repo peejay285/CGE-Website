@@ -38,7 +38,7 @@ export function Modal({ open, onClose, title, children, width = "md" }: ModalPro
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
