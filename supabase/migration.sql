@@ -210,13 +210,9 @@ create policy "Users can view own event registrations"
 create policy "Authenticated users can register for events"
   on event_registrations for insert with check (auth.uid() = user_id);
 
--- Seed events
-insert into events (title, date, time, type, description, is_free, price, capacity) values
-  ('CGE Grand Opening Party', 'Mar 20, 2026', '4:00 PM - 9:00 PM', 'Party', 'Join us for the grand opening celebration with free gaming sessions, music, and refreshments!', true, null, 100),
-  ('Ladies Gaming Night', 'Mar 28, 2026', '5:00 PM - 8:00 PM', 'Special', 'Exclusive gaming night for the ladies. Discounted rates and special prizes!', false, 1500, 30),
-  ('VR Demo Day', 'Apr 5, 2026', '12:00 PM - 6:00 PM', 'Demo', 'Experience the latest VR games. First session free for new visitors!', true, null, 50),
-  ('Birthday Package Showcase', 'Every Weekend', 'By Reservation', 'Package', 'Host your birthday party at CGE! Custom packages available with exclusive VIP access.', false, 15000, null)
-on conflict do nothing;
+-- Seed events — REMOVED (was demo data; deleted from prod Aug 2026).
+-- Real events are created through the app; Invasion history lives in the
+-- events page showcase, not seeded rows.
 
 -- ─── MARKETPLACE ─────────────────────────────
 create table if not exists marketplace_listings (
