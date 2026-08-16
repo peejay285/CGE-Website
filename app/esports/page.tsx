@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { Trophy, Search, X, Swords, Plus, Calendar, Users, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EVENT_PRIZES_AWARDED_NAIRA, formatNairaCompact } from "@/lib/constants";
 import { TabBar } from "@/components/ui/tab-bar";
 import { SectionTitle } from "@/components/ui/section-title";
 import { CardSkeleton } from "@/components/ui/skeleton";
@@ -87,10 +88,11 @@ export default function EsportsPage() {
             and rise from weekly open cups to headline events.
           </p>
 
-          {/* Stats banner — honest history: while the online tournaments table
-              is empty we fall back to CGE's real offline track record
+          {/* Stats banner — honest history: CGE's real offline track record
               (Invasion Dec 2025: ₦1M prize pools across FC26/MK/CODM, plus
-              Warfare ₦200K) instead of showing ₦0 / 0. */}
+              Warfare ₦200K = EVENT_PRIZES_AWARDED_NAIRA) seeds the totals,
+              and platform tournament winnings/events add on top — so
+              ₦0 / 0 can never show. */}
           <div className="flex flex-wrap justify-center gap-6 md:gap-10">
             <div className="text-center">
               <p className="text-2xl md:text-3xl font-bold font-heading text-cyan">{ep.stats.openCount}</p>
@@ -100,24 +102,20 @@ export default function EsportsPage() {
               <p className="text-2xl md:text-3xl font-bold font-heading text-gold">
                 {ep.stats.livePrize > 0
                   ? `₦${ep.stats.livePrize.toLocaleString()}`
-                  : ep.stats.allTimePrize > 0
-                    ? `₦${ep.stats.allTimePrize.toLocaleString()}`
-                    : "₦1M+"}
+                  : formatNairaCompact(
+                      EVENT_PRIZES_AWARDED_NAIRA + ep.stats.allTimePrize
+                    )}
               </p>
               <p className="text-[10px] uppercase tracking-widest text-text-muted font-semibold mt-1">
-                {ep.stats.livePrize > 0
-                  ? "Live Prize Pool"
-                  : ep.stats.allTimePrize > 0
-                    ? "Prizes Hosted To Date"
-                    : "Won At CGE Events"}
+                {ep.stats.livePrize > 0 ? "Live Prize Pool" : "Won At CGE Events"}
               </p>
             </div>
             <div className="text-center">
               <p className="text-2xl md:text-3xl font-bold font-heading text-magenta">
-                {ep.tournaments.length === 0 ? "4+" : ep.tournaments.length}
+                {`${4 + ep.tournaments.length}+`}
               </p>
               <p className="text-[10px] uppercase tracking-widest text-text-muted font-semibold mt-1">
-                {ep.tournaments.length === 0 ? "Events Hosted IRL" : "Total Tournaments"}
+                {ep.tournaments.length === 0 ? "Events Hosted IRL" : "Events Hosted"}
               </p>
             </div>
           </div>

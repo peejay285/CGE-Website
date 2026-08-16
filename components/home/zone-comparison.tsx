@@ -50,6 +50,9 @@ export function ZoneComparison() {
               {zone.name}
             </h3>
 
+            {/* Tagline */}
+            <p className="text-xs italic text-text-muted mb-2">{zone.tagline}</p>
+
             {/* Description */}
             <p className="text-sm text-text-muted mb-6 leading-relaxed">
               {zone.desc}

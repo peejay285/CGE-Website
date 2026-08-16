@@ -283,6 +283,10 @@ export function ZoneSelector({ selected, onSelect }: ZoneSelectorProps) {
                 {zone.name}
               </h3>
 
+              <p className="text-xs italic text-text-muted mb-2">
+                {zone.tagline}
+              </p>
+
               <div className="flex items-center justify-center gap-2 mb-3">
                 <Badge color="cyan" size="sm">
                   {zone.console}

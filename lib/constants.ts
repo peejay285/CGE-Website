@@ -22,6 +22,24 @@ export const RESCHEDULE_POLICY = {
     "Need to reschedule or cancel? Contact us on WhatsApp at least 6 hours before your session and we'll move it free of charge.",
 } as const;
 
+// Real offline event history — the trust seed for "₦ Won At CGE Events":
+// Invasion Dec 2025 ₦1,000,000 pools (FC26 800K + MK 100K + CODM 100K)
+// + Warfare Series Mar 2026 ₦200,000. Platform tournament winnings are
+// added on top of this seed wherever it's displayed.
+export const EVENT_PRIZES_AWARDED_NAIRA = 1_200_000;
+
+/**
+ * Compact naira display for prize totals — "₦1.2M+" style (ACGL
+ * "R2.5m+ awarded" trust pattern). Shared by the home stats bar and the
+ * esports hero so both always agree.
+ */
+export function formatNairaCompact(total: number): string {
+  if (total >= 1_000_000) {
+    return `₦${(total / 1e6).toFixed(1).replace(/\.0$/, "")}M+`;
+  }
+  return `₦${total.toLocaleString()}`;
+}
+
 export const PRICING = {
   mainLounge: [
     { game: "FC 26", price: 3000, unit: "hr" },
@@ -54,6 +72,7 @@ export const ZONES = [
     id: "main",
     name: "Main Lounge",
     icon: "🎮",
+    tagline: "Where squads pull up.",
     capacity: 6,
     capacityLabel: "6 stations",
     console: "PS4",
@@ -65,6 +84,7 @@ export const ZONES = [
     id: "vip",
     name: "VIP Lounge",
     icon: "👑",
+    tagline: "A private room for main characters.",
     capacity: 1,
     capacityLabel: "1 player",
     console: "PS5",
@@ -76,6 +96,7 @@ export const ZONES = [
     id: "vr",
     name: "VR Zone",
     icon: "🥽",
+    tagline: "Step inside the game.",
     capacity: 2,
     capacityLabel: "2 players",
     console: "VR",

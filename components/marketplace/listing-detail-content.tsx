@@ -34,6 +34,7 @@ import { SellerReviewsSection } from "./seller-reviews-section";
 import { RelatedListings } from "./related-listings";
 import { SafetyDisclaimerBanner } from "./safety-disclaimer-banner";
 import { ReportModal } from "@/components/safety/report-modal";
+import { WhatsAppShare } from "@/components/ui/whatsapp-share";
 import { useAuth } from "@/hooks/use-auth";
 import { ASSISTED_SWAP_SERVICE, getConditionConfig } from "@/lib/constants";
 import type { MarketplaceListing, SwapProposal } from "@/lib/types";
@@ -632,9 +633,17 @@ export function ListingDetailContent({
         />
       )}
 
-      {/* ── Report listing (quiet) ────────────────────────── */}
-      {!isOwner && user?.id !== listing.user_id && (
-        <div className="flex justify-end px-1 -mt-3">
+      {/* ── WhatsApp share + report listing (quiet) ───────── */}
+      <div className="flex items-center justify-between gap-3 px-1 -mt-3">
+        <WhatsAppShare
+          text={
+            isSwap
+              ? `${listing.title} — up for swap on CGE Swap Market:`
+              : `${listing.title} — ${formatPrice(listing.price)} on CGE Swap Market:`
+          }
+          url={`/marketplace/listing/${listing.id}`}
+        />
+        {!isOwner && user?.id !== listing.user_id && (
           <button
             type="button"
             onClick={handleReportClick}
@@ -643,8 +652,8 @@ export function ListingDetailContent({
             <Flag size={11} />
             Report listing
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       <ReportModal
         open={reportOpen}

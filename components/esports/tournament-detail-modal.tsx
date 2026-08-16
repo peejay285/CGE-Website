@@ -8,6 +8,7 @@ import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { WhatsAppShare } from "@/components/ui/whatsapp-share";
 import { UnverifiedOrganizerDialog } from "@/components/esports/unverified-organizer-dialog";
 import { PredictionPanel } from "@/components/esports/prediction-panel";
 import { cn, formatPrice, sanitizeUrl } from "@/lib/utils";
@@ -346,14 +347,22 @@ export function TournamentDetailModal({
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
           <Badge color={status.color} size="md">{status.label}</Badge>
-          <button
-            type="button"
-            onClick={handleShare}
-            className="p-2 rounded-lg bg-surface-alt border border-border hover:border-cyan/30 transition-all duration-200 cursor-pointer"
-            aria-label="Share tournament"
-          >
-            <Share2 size={16} className="text-text-muted hover:text-cyan transition-colors" />
-          </button>
+          <div className="flex items-center gap-2">
+            <WhatsAppShare
+              compact
+              text={`"${tournament.title}" — ${tournament.game} tournament on CGE! Prize: ${tournament.prize}. Register:`}
+              url={`/esports/${tournament.id}`}
+              className="rounded-lg p-2"
+            />
+            <button
+              type="button"
+              onClick={handleShare}
+              className="p-2 rounded-lg bg-surface-alt border border-border hover:border-cyan/30 transition-all duration-200 cursor-pointer"
+              aria-label="Share tournament"
+            >
+              <Share2 size={16} className="text-text-muted hover:text-cyan transition-colors" />
+            </button>
+          </div>
         </div>
       </div>
 

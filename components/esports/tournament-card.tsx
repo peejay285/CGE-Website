@@ -46,6 +46,15 @@ export const TournamentCard = memo(function TournamentCard({
   const filledCount = getFilledCount(tournament);
   const isFull = filledCount >= tournament.slots;
   const progressColor = isFull ? "var(--color-red)" : "var(--color-cyan)";
+  // Scarcity chip (GamerSaloon "Seats: 2 (1 Left)" pattern) — visible DOM
+  // only, never part of the aria-label. Urgent when the last few slots
+  // remain: <= max(3, 25% of slots).
+  const slotsRemaining = tournament.slots - filledCount;
+  const scarcityThreshold = Math.max(3, Math.ceil(tournament.slots * 0.25));
+  const isOpenUpcoming = tournament.status === "open" && !isPast;
+  const showScarcity =
+    isOpenUpcoming && slotsRemaining > 0 && slotsRemaining <= scarcityThreshold;
+  const showFullChip = isOpenUpcoming && isFull;
   // Live countdown — only ticks for open (upcoming) tournaments.
   const countdown = useCountdown(
     tournament.date,
@@ -178,8 +187,20 @@ export const TournamentCard = memo(function TournamentCard({
             <Users size={13} className="text-cyan/60" aria-hidden="true" />
             Slots
           </span>
-          <span className="font-semibold text-text">
-            {filledCount}/{tournament.slots}
+          <span className="flex items-center gap-1.5">
+            {showScarcity && (
+              <span className="bg-red/10 border border-red/30 text-red text-[10px] font-bold uppercase rounded-md px-1.5 py-0.5">
+                {slotsRemaining === 1 ? "Last slot!" : `Only ${slotsRemaining} left`}
+              </span>
+            )}
+            {showFullChip && (
+              <span className="bg-surface-alt border border-border text-text-muted text-[10px] font-bold uppercase rounded-md px-1.5 py-0.5">
+                Full
+              </span>
+            )}
+            <span className="font-semibold text-text">
+              {filledCount}/{tournament.slots}
+            </span>
           </span>
         </div>
         <ProgressBar value={filledCount} max={tournament.slots} color={progressColor} />

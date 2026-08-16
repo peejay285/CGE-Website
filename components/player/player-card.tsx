@@ -29,6 +29,7 @@ import {
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 import { ReportModal } from "@/components/safety/report-modal";
+import { WhatsAppShare } from "@/components/ui/whatsapp-share";
 import { useAuth } from "@/hooks/use-auth";
 import {
   StarRating,
@@ -245,11 +246,14 @@ export function PlayerCard({ profile, achievements = [] }: PlayerCardProps) {
     setTilt({ rx: 0, ry: 0, gx: 50, gy: 50, hovering: false });
   }
 
+  // Shared by the native share sheet and the WhatsApp chip below.
+  const sharePath = `/player/${profile.id}`;
+  const shareText = `Check out ${displayName}'s ${tier.label} Player Card on CGE${
+    wins > 0 ? ` — ${wins} win${wins === 1 ? "" : "s"}` : ""
+  }`;
+
   async function handleShare() {
-    const shareUrl = `${window.location.origin}/player/${profile.id}`;
-    const shareText = `Check out ${displayName}'s ${tier.label} Player Card on CGE${
-      wins > 0 ? ` — ${wins} win${wins === 1 ? "" : "s"}` : ""
-    }`;
+    const shareUrl = `${window.location.origin}${sharePath}`;
 
     if (navigator.share) {
       try {
@@ -597,14 +601,22 @@ export function PlayerCard({ profile, achievements = [] }: PlayerCardProps) {
       </div>
 
       {/* ── Share (kept outside the card so screenshots stay clean) ── */}
-      <button
-        type="button"
-        onClick={handleShare}
-        className="w-full flex items-center justify-center gap-2 rounded-xl border border-cyan/30 bg-cyan/10 px-4 py-3 text-sm font-semibold text-cyan transition-all hover:bg-cyan/15 hover:border-cyan/50 active:scale-[0.99] cursor-pointer"
-      >
-        <Share2 size={16} />
-        Share player card
-      </button>
+      <div className="flex items-stretch gap-2">
+        <button
+          type="button"
+          onClick={handleShare}
+          className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-cyan/30 bg-cyan/10 px-4 py-3 text-sm font-semibold text-cyan transition-all hover:bg-cyan/15 hover:border-cyan/50 active:scale-[0.99] cursor-pointer"
+        >
+          <Share2 size={16} />
+          Share player card
+        </button>
+        <WhatsAppShare
+          compact
+          text={shareText}
+          url={sharePath}
+          className="rounded-xl px-3.5"
+        />
+      </div>
 
       {/* ── Report player (quiet) ───────────────────────────────────── */}
       {!isOwnProfile && (
