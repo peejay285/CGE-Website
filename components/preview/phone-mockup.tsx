@@ -1,3 +1,4 @@
+import Image from "next/image";
 import {
   BatteryMedium,
   Gamepad2,
@@ -12,37 +13,48 @@ import {
 } from "lucide-react";
 
 /**
- * Realistic device mockup showing a miniature CGE app moment — the hero
- * prop for preview variants A and C (Bolt/JobSpotta product-render style).
- * Pure CSS: metallic frame, punch-hole camera, side buttons, status bar,
- * app UI with the real five-tab bottom nav, slight showroom tilt.
- * Display only, no interactivity.
+ * Photoreal device mockup — the hero prop for preview variants A and C.
+ * A generated product render of a phone (public/images/preview/
+ * phone-frame.webp, cropped 430x805 from the original 896x1200) with the
+ * live CGE mini-app UI composited onto the screen area.
+ *
+ * Screen geometry measured from the render (percentages of the crop):
+ *   left 8.60% · top 3.73% · width 81.86% · height 92.67%
+ * The punch-hole camera is baked into the image at the screen's top
+ * center, so the overlay stays transparent there and the status bar
+ * flanks it. Levitation float + breathing floor shadow via globals.css.
  */
 export function PhoneMockup() {
   return (
     <div
       aria-hidden="true"
-      className="relative shrink-0 select-none [transform:rotate(-4deg)] sm:[transform:perspective(1200px)_rotateY(-8deg)_rotate(-3deg)]"
+      className="relative shrink-0 select-none sm:[transform:rotate(-2deg)]"
     >
-      {/* Device body — metallic edge via layered borders */}
-      <div className="relative w-[240px] sm:w-[260px] rounded-[2.6rem] bg-[#3a3d44] p-[3px] shadow-[0_30px_80px_rgba(0,0,0,0.65),0_8px_24px_rgba(0,0,0,0.4)]">
-        {/* Side buttons */}
-        <span className="absolute -left-[2px] top-[88px] h-9 w-[3px] rounded-l-md bg-[#2b2d33]" />
-        <span className="absolute -left-[2px] top-[132px] h-14 w-[3px] rounded-l-md bg-[#2b2d33]" />
-        <span className="absolute -right-[2px] top-[108px] h-16 w-[3px] rounded-r-md bg-[#2b2d33]" />
+      {/* Floating levitation */}
+      <div className="animate-phoneFloat">
+        <div className="relative w-[280px] sm:w-[310px]">
+          <Image
+            src="/images/preview/phone-frame.webp"
+            alt=""
+            width={430}
+            height={805}
+            priority
+            className="h-auto w-full"
+          />
 
-        {/* Inner bezel */}
-        <div className="rounded-[2.45rem] bg-black p-[7px]">
-          {/* Screen */}
-          <div className="relative overflow-hidden rounded-[2rem] bg-base">
-            {/* Subtle screen sheen */}
-            <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(115deg,rgba(255,255,255,0.06)_0%,transparent_30%)]" />
-
-            {/* Punch-hole camera */}
-            <span className="absolute left-1/2 top-2.5 z-20 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-black ring-1 ring-[#1c1e22]" />
-
-            {/* Status bar */}
-            <div className="flex items-center justify-between px-5 pb-1 pt-2.5">
+          {/* Screen overlay — transparent bg so the render's glass (and
+              punch-hole camera) show through beneath the UI */}
+          <div
+            className="absolute flex flex-col overflow-hidden rounded-[18px]"
+            style={{
+              left: "8.6%",
+              top: "3.73%",
+              width: "81.86%",
+              height: "92.67%",
+            }}
+          >
+            {/* Status bar — flanks the baked-in punch-hole camera */}
+            <div className="flex items-center justify-between px-4 pb-1 pt-2">
               <span className="text-[10px] font-semibold tracking-wide text-text">
                 19:42
               </span>
@@ -54,12 +66,12 @@ export function PhoneMockup() {
             </div>
 
             {/* App header */}
-            <div className="flex items-center justify-between px-4 pb-1 pt-1.5">
+            <div className="flex items-center justify-between px-3.5 pb-1 pt-2">
               <div>
-                <p className="text-[11px] font-semibold text-text">
+                <p className="text-[11.5px] font-semibold text-text">
                   Good evening, Ada
                 </p>
-                <p className="text-[8.5px] text-text-muted">
+                <p className="text-[9px] text-text-muted">
                   Bonny Island &middot; 2 tournaments this week
                 </p>
               </div>
@@ -69,25 +81,25 @@ export function PhoneMockup() {
             </div>
 
             {/* App content */}
-            <div className="space-y-2 px-3 pb-3 pt-1.5">
-              <div className="rounded-xl border border-cyan/25 bg-cyan/5 p-2.5">
+            <div className="space-y-2 px-3 pt-2">
+              <div className="rounded-xl border border-cyan/25 bg-cyan/10 p-2.5">
                 <div className="flex items-center gap-1.5">
                   <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan/10 text-cyan">
                     <Trophy size={12} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[10px] font-semibold text-text">
+                    <p className="truncate text-[10.5px] font-semibold text-text">
                       FC26 Weekly Cup
                     </p>
-                    <p className="text-[8.5px] font-medium text-cyan">
+                    <p className="text-[9px] font-medium text-cyan">
                       &#8358;50,000 &middot; 3 slots left
                     </p>
                   </div>
-                  <span className="rounded-full bg-cyan px-2 py-0.5 text-[8px] font-bold text-base">
+                  <span className="rounded-full bg-cyan px-2 py-0.5 text-[8.5px] font-bold text-base">
                     Join
                   </span>
                 </div>
-                <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface-alt">
+                <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
                   <div className="h-full w-4/5 rounded-full bg-cyan" />
                 </div>
               </div>
@@ -98,10 +110,10 @@ export function PhoneMockup() {
                     <Repeat size={12} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[10px] font-semibold text-text">
+                    <p className="truncate text-[10.5px] font-semibold text-text">
                       PS5 swap offer
                     </p>
-                    <p className="text-[8.5px] text-text-muted">
+                    <p className="text-[9px] text-text-muted">
                       DualSense + &#8358;15k top-up &middot; 2.1 km away
                     </p>
                   </div>
@@ -111,59 +123,65 @@ export function PhoneMockup() {
               <div className="rounded-xl border border-border bg-surface p-2.5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-semibold text-text">
+                    <p className="text-[10.5px] font-semibold text-text">
                       Saturday, 4 PM
                     </p>
-                    <p className="text-[8.5px] text-text-muted">
+                    <p className="text-[9px] text-text-muted">
                       VIP Lounge &middot; PS5 &middot; 2 hours
                     </p>
                   </div>
-                  <span className="rounded-md border border-green/30 bg-green/10 px-1.5 py-0.5 text-[8px] font-semibold text-green">
+                  <span className="rounded-md border border-green/30 bg-green/10 px-1.5 py-0.5 text-[8.5px] font-semibold text-green">
                     Confirmed
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-center gap-1.5 rounded-full bg-cyan py-2 text-[10px] font-semibold text-base">
+              <div className="flex items-center justify-center gap-1.5 rounded-full bg-cyan py-2 text-[10.5px] font-semibold text-base">
                 <Gamepad2 size={12} />
                 Book a station
               </div>
             </div>
 
+            {/* Push nav to the bottom of the glass */}
+            <div className="flex-1" />
+
             {/* Bottom nav — mirrors the real mobile nav */}
-            <div className="flex items-center justify-around border-t border-border/60 bg-surface/80 px-2 pb-1 pt-1.5">
+            <div className="flex items-center justify-around border-t border-border/60 bg-surface/70 px-2 pb-1 pt-1.5 backdrop-blur-sm">
               <span className="flex flex-col items-center gap-0.5 text-cyan">
                 <Home size={11} />
-                <span className="text-[6.5px] font-semibold">Home</span>
+                <span className="text-[7px] font-semibold">Home</span>
               </span>
               <span className="flex flex-col items-center gap-0.5 text-text-muted">
                 <Trophy size={11} />
-                <span className="text-[6.5px]">Esports</span>
+                <span className="text-[7px]">Esports</span>
               </span>
               <span className="flex flex-col items-center gap-0.5 text-text-muted">
                 <ShoppingBag size={11} />
-                <span className="text-[6.5px]">Market</span>
+                <span className="text-[7px]">Market</span>
               </span>
               <span className="flex flex-col items-center gap-0.5 text-text-muted">
                 <Users size={11} />
-                <span className="text-[6.5px]">Community</span>
+                <span className="text-[7px]">Community</span>
               </span>
               <span className="flex flex-col items-center gap-0.5 text-text-muted">
                 <MessageCircle size={11} />
-                <span className="text-[6.5px]">Chats</span>
+                <span className="text-[7px]">Chats</span>
               </span>
             </div>
 
             {/* Home indicator */}
-            <div className="flex justify-center pb-2 pt-1">
-              <span className="h-1 w-16 rounded-full bg-surface-alt" />
+            <div className="flex justify-center pb-1.5 pt-1">
+              <span className="h-1 w-14 rounded-full bg-white/20" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Floor shadow for the showroom feel */}
-      <div className="absolute -bottom-6 left-1/2 h-6 w-3/4 -translate-x-1/2 rounded-[100%] bg-black/50 blur-xl" />
+      {/* Floor shadow — breathes opposite the float so the phone reads as
+          rising away from the ground, not the whole scene bobbing */}
+      <div className="absolute -bottom-7 left-1/2 h-6 w-3/4 -translate-x-1/2">
+        <div className="animate-phoneShadow h-full w-full rounded-[100%] bg-black/55 blur-xl" />
+      </div>
     </div>
   );
 }
