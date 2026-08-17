@@ -10,6 +10,7 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
+import { GameShowcase } from "@/components/home/game-showcase";
 import { PreviewHero } from "@/components/preview/preview-hero";
 import { PhotoBand } from "@/components/preview/photo-band";
 import { VariantSwitcher } from "@/components/preview/variant-switcher";
@@ -98,6 +99,15 @@ export default function PreviewHomeC() {
     <div className="bg-base">
       {/* Dark: shared hero (same component as variant A) */}
       <PreviewHero />
+
+      {/* Dark: game title carousel — the last dark beat before the light rhythm begins */}
+      <section className="relative py-10">
+        <p className="mb-4 px-4 text-center text-xs font-semibold uppercase tracking-[0.3em] text-text-muted/60">
+          What we play
+        </p>
+        <GameShowcase />
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-base to-transparent" />
+      </section>
 
       {/* Light: how it works */}
       <section className="bg-[#f7f8f9] text-[#16181d]">

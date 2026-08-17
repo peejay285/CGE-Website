@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Flag, Lock, ShieldCheck } from "lucide-react";
+import { GameShowcase } from "@/components/home/game-showcase";
 import { PreviewHero } from "@/components/preview/preview-hero";
 import { PhotoBand } from "@/components/preview/photo-band";
 import { VariantSwitcher } from "@/components/preview/variant-switcher";
@@ -64,6 +65,16 @@ export default function PreviewHomeA() {
   return (
     <div className="bg-base">
       <PreviewHero />
+
+      {/* Game title carousel — kept from the current site; photo tiles read
+          as content, not decoration, so they fit the single-accent rule */}
+      <section className="relative py-10">
+        <p className="mb-4 px-4 text-center text-xs font-semibold uppercase tracking-[0.3em] text-text-muted/60">
+          What we play
+        </p>
+        <GameShowcase />
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-base to-transparent" />
+      </section>
 
       {/* Naked stats — big numbers, air, no cards */}
       <section className="mx-auto max-w-7xl px-4 py-24 md:px-6">
