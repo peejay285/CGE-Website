@@ -59,3 +59,11 @@ env:
     availability:
       - BUILD
       - RUNTIME
+
+  # Google Analytics 4 — the Firebase-created cge-website web stream.
+  # Measurement IDs are public by design.
+  - variable: NEXT_PUBLIC_GA_MEASUREMENT_ID
+    value: G-HS56QBNEG2
+    availability:
+      - BUILD
+      - RUNTIME
