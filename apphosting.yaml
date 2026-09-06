@@ -67,3 +67,11 @@ env:
     availability:
       - BUILD
       - RUNTIME
+
+  # Sentry error monitoring — DSNs are public by design (they can only
+  # receive events, never read them).
+  - variable: NEXT_PUBLIC_SENTRY_DSN
+    value: https://8b7023eea5d1505d8145e59fdd9a456a@o4511008100057088.ingest.de.sentry.io/4512041860857936
+    availability:
+      - BUILD
+      - RUNTIME
