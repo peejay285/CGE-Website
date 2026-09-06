@@ -48,6 +48,8 @@ const nextConfig: NextConfig = {
       ...(isDev ? ["'unsafe-eval'"] : []),
       "'unsafe-inline'",
       "https://challenges.cloudflare.com",
+      // Google Analytics loader (no-op until the measurement id is set)
+      "https://www.googletagmanager.com",
     ].join(" ");
 
     return [
@@ -78,7 +80,9 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' https: data: blob:",
               "font-src 'self' https://fonts.gstatic.com data:",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.paystack.co https://challenges.cloudflare.com",
+              // GA beacons + Sentry ingest (regional hosts) are inert
+              // until their env vars are configured.
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.paystack.co https://challenges.cloudflare.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io",
               "frame-src https://www.youtube.com https://youtube.com https://player.twitch.tv https://kick.com https://challenges.cloudflare.com",
               "frame-ancestors 'none'",
               "media-src 'self' https://*.supabase.co",

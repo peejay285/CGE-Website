@@ -5,6 +5,7 @@ import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 import { isEnvValid } from "@/lib/env";
 import { StructuredData } from "@/components/structured-data";
+import { Analytics } from "@/components/analytics";
 import {
   getCanonicalSiteUrl,
   isProductionDeployment,
@@ -94,6 +95,7 @@ export default function RootLayout({
           Skip to main content
         </a>
         <AppShell>{children}</AppShell>
+        <Analytics />
         <Toaster
           position="top-right"
           toastOptions={{

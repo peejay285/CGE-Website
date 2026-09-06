@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
+
 export default function GlobalError({
   error,
   reset,
@@ -7,6 +10,12 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // Root-level crashes are exactly what error monitoring exists for —
+  // report before showing the fallback UI. No-op without a DSN.
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
+
   return (
     <html lang="en" className="dark">
       <body
