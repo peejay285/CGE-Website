@@ -66,6 +66,8 @@ export function TournamentDetailModal({
   onManage,
 }: TournamentDetailModalProps) {
   const [showUnverifiedGate, setShowUnverifiedGate] = useState(false);
+  // Two-tap withdrawal confirm — first tap arms, second tap executes.
+  const [withdrawArmed, setWithdrawArmed] = useState(false);
   // Client-side gate (Battlefy pattern): must confirm the rules before
   // the register CTA unlocks. Nothing is stored server-side.
   const [rulesAgreed, setRulesAgreed] = useState(false);
@@ -238,15 +240,30 @@ export function TournamentDetailModal({
         )}
         <button
           type="button"
-          onClick={() => onUnregister?.(tournament.id)}
+          onClick={() => {
+            if (!withdrawArmed) {
+              setWithdrawArmed(true);
+              window.setTimeout(() => setWithdrawArmed(false), 5000);
+              return;
+            }
+            setWithdrawArmed(false);
+            onUnregister?.(tournament.id);
+          }}
           disabled={registerLoading}
-          className="w-full text-center text-[11px] text-text-muted hover:text-magenta transition-colors cursor-pointer py-1"
+          className={cn(
+            "w-full text-center text-[11px] transition-colors cursor-pointer py-1",
+            withdrawArmed
+              ? "text-magenta font-semibold"
+              : "text-text-muted hover:text-magenta"
+          )}
         >
           {registerLoading
             ? "Withdrawing..."
-            : isTeamEvent
-              ? "Withdraw team from tournament"
-              : "Withdraw from tournament"}
+            : withdrawArmed
+              ? "Tap again to confirm — your slot will be released"
+              : isTeamEvent
+                ? "Withdraw team from tournament"
+                : "Withdraw from tournament"}
         </button>
       </div>
     ) : isFull ? (

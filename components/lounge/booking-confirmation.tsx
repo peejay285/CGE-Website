@@ -72,7 +72,7 @@ function getWhatsAppShareUrl(data: ConfirmationData): string {
       `📍 ${data.zoneName}\n` +
       `🎯 ${data.game}\n` +
       `📅 ${formatBookingDate(data.date)} at ${data.time}\n\n` +
-      `Book yours at cge.ng/lounge`
+      `Book yours at playcge.com/lounge`
   );
   return `https://wa.me/?text=${text}`;
 }

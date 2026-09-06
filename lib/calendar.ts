@@ -40,7 +40,7 @@ export function buildIcsString({
   description,
 }: IcsOptions): string {
   const end = new Date(start.getTime() + durationHours * 60 * 60 * 1000);
-  const uid = `${Date.now()}-${Math.random().toString(36).slice(2)}@cge.ng`;
+  const uid = `${Date.now()}-${Math.random().toString(36).slice(2)}@playcge.com`;
 
   const lines = [
     "BEGIN:VCALENDAR",

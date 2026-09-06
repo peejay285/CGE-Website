@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFocusTrap } from "./use-focus-trap";
+import { useHistoryDismiss } from "./use-history-dismiss";
 
 interface ModalProps {
   open: boolean;
@@ -24,6 +25,8 @@ export function Modal({ open, onClose, title, children, width = "md" }: ModalPro
   const titleId = title ? "modal-title" : undefined;
 
   useFocusTrap(modalRef, open, { onEscape: onClose });
+  // Android/browser Back closes the modal instead of leaving the page.
+  useHistoryDismiss(open, onClose);
 
   useEffect(() => {
     if (open) {

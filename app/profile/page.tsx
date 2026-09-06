@@ -153,8 +153,8 @@ export default function ProfilePage() {
     {
       icon: Calendar,
       label: "Bookings",
-      description: "Your booking history",
-      href: "/lounge",
+      description: "Receipts, payments and cancellations",
+      href: "/profile/bookings",
       color: "text-green",
     },
   ];

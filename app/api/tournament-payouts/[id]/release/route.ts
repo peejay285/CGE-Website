@@ -86,24 +86,54 @@ export async function POST(
       );
     }
 
+    // A failed transfer consumed its reference at Paystack, so retries
+    // from "failed" need a fresh one; first releases reuse any stored
+    // reference so a lost response stays idempotent.
     const reference =
-      payout.paystack_transfer_reference ?? generateReference("payout");
+      payout.status === "failed"
+        ? generateReference("payout")
+        : payout.paystack_transfer_reference ?? generateReference("payout");
 
-    await admin
+    // Atomic claim: only one caller can move approved/failed →
+    // processing. A concurrent double-click (or double-submit) loses
+    // the claim and gets a 409 instead of firing a second real cash
+    // transfer for the same prize.
+    const { data: claimed, error: claimError } = await admin
       .from("tournament_payouts")
       .update({
         status: "processing",
         paystack_transfer_reference: reference,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", payout.id);
+      .eq("id", payout.id)
+      .in("status", ["approved", "failed"])
+      .select("id")
+      .maybeSingle();
 
-    const transfer = await initiateTransfer({
-      amount: payout.net_amount * 100,
-      recipient: recipientProfile.payout_recipient_code,
-      reference,
-      reason: `CGE tournament prize - place ${payout.placement}`,
-    });
+    if (claimError || !claimed) {
+      return NextResponse.json(
+        { error: "This payout is already being processed" },
+        { status: 409 }
+      );
+    }
+
+    let transfer;
+    try {
+      transfer = await initiateTransfer({
+        amount: payout.net_amount * 100,
+        recipient: recipientProfile.payout_recipient_code,
+        reference,
+        reason: `CGE tournament prize - place ${payout.placement}`,
+      });
+    } catch (transferError) {
+      // Transfer never reached (or was rejected by) Paystack — release
+      // the claim so the payout stays retryable instead of stuck.
+      await admin
+        .from("tournament_payouts")
+        .update({ status: payout.status, updated_at: new Date().toISOString() })
+        .eq("id", payout.id);
+      throw transferError;
+    }
 
     const nextStatus = mapPaystackTransferStatus(transfer.data.status);
     const now = new Date().toISOString();

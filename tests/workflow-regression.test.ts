@@ -81,9 +81,22 @@ describe("booking payment workflow", () => {
           },
           error: null,
         }),
-        query({ data: null, error: null }, { onUpdate: (patch) => updates.push(patch) }),
       ],
     });
+    // Reference stamping now runs on the SERVICE-ROLE client (user
+    // sessions are intentionally denied that write by RLS/grants), and
+    // the route aborts unless the stamp confirms a row.
+    const serviceClient = queuedClient({
+      bookings: [
+        query(
+          { data: { id: "booking-1" }, error: null },
+          { onUpdate: (patch) => updates.push(patch) }
+        ),
+      ],
+    });
+    vi.doMock("@/lib/supabase/service", () => ({
+      createServiceRoleClient: vi.fn(() => serviceClient),
+    }));
 
     vi.doMock("@/lib/supabase/server", () => ({
       createServerSupabaseClient: vi.fn(async () => ({
@@ -458,7 +471,13 @@ describe("payout release workflow", () => {
           },
           error: null,
         }),
-        query({ data: null, error: null }, { onUpdate: (patch) => payoutUpdates.push(patch) }),
+        // First update is the atomic claim (approved/failed →
+        // processing): it must return a row or the route treats the
+        // claim as lost and 409s instead of transferring twice.
+        query(
+          { data: { id: "payout-1" }, error: null },
+          { onUpdate: (patch) => payoutUpdates.push(patch) }
+        ),
         query({ data: null, error: null }, { onUpdate: (patch) => payoutUpdates.push(patch) }),
         query({ data: null, error: null, count: 0 }),
       ],

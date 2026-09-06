@@ -6,7 +6,19 @@ import { z } from "zod";
 // app/api/paystack/initialize/route.ts.
 export const paystackInitializeSchema = z.object({
   type: z.enum(["booking", "tournament", "tournament_team", "event", "premium", "swap_assist"]),
-  metadata: z.record(z.string(), z.unknown()),
+  // Strict allowlist: the webhook dispatches on metadata, so client
+  // metadata must never be able to smuggle keys like type / user_id /
+  // period_days. Only record ids (+ tournament_id for the callback
+  // path) are accepted; unknown keys are rejected outright.
+  metadata: z
+    .object({
+      booking_id: z.string().min(1).max(64).optional(),
+      registration_id: z.string().min(1).max(64).optional(),
+      team_registration_id: z.string().min(1).max(64).optional(),
+      assist_payment_id: z.string().min(1).max(64).optional(),
+      tournament_id: z.number().int().positive().optional(),
+    })
+    .strict(),
   client: z.enum(["web", "mobile"]).optional().default("web"),
 });
 

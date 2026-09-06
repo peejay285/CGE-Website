@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Gamepad2, Trophy, ShoppingBag, Users, ArrowRight } from "lucide-react";
 import { GameShowcase } from "./game-showcase";
+import { HeroVideo } from "./hero-video";
 
 export function Hero() {
   return (
@@ -18,19 +19,9 @@ export function Hero() {
           sizes="100vw"
           className="object-cover object-center opacity-[0.16]"
         />
-        {/* Invasion venue drone sweep — desktop only, phones keep the photo */}
-        <video
-          aria-hidden
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          poster="/images/invasion/drone-stage.webp"
-          className="hidden md:block absolute inset-0 h-full w-full object-cover opacity-[0.32]"
-        >
-          <source src="/Videos/events/invasion-drone-loop.mp4" type="video/mp4" />
-        </video>
+        {/* Invasion venue drone sweep — desktop only. Mounted via a
+            client component so phones never download the 3 MB file. */}
+        <HeroVideo />
         <div className="absolute inset-0 bg-gradient-to-b from-base/60 via-base/25 to-base" />
         <div className="absolute inset-0 bg-gradient-to-r from-base via-transparent to-base" />
         <div className="absolute inset-0 bg-gradient-to-br from-cyan/5 via-transparent to-magenta/5 animate-gradientShift" />

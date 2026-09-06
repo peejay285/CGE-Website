@@ -179,6 +179,8 @@ export const PostCard = memo(function PostCard({
               <img
                 src={post.author.avatar_url}
                 alt={authorName}
+                loading="lazy"
+                decoding="async"
                 className="h-10 w-10 rounded-full object-cover"
               />
             ) : (
@@ -369,11 +371,14 @@ export const PostCard = memo(function PostCard({
             {renderContent(post.content, onHashtagClick)}
           </p>
 
-          {/* Post image */}
+          {/* Post image — lazy + async: phone-camera uploads are
+              multi-MB and this is the most-scrolled surface */}
           {post.image_url && (
             <img
               src={post.image_url}
               alt={`Image shared by ${authorName}`}
+              loading="lazy"
+              decoding="async"
               className="w-full rounded-lg"
             />
           )}

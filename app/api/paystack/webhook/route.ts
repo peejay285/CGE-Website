@@ -5,6 +5,7 @@ import { sendBookingSMS } from "@/lib/sms";
 import { absoluteUrl } from "@/lib/site-url";
 import { bookingReceiptPath } from "@/lib/booking-receipt";
 import { verifyTransaction } from "@/lib/paystack";
+import { PREMIUM_PERIOD_DAYS, PREMIUM_PRICE_NAIRA } from "@/lib/premium";
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 
@@ -309,6 +310,22 @@ export async function POST(request: Request) {
         if (!userId) {
           console.error("[Webhook] Premium payment missing user_id", {
             reference,
+          });
+          return NextResponse.json({ received: true });
+        }
+
+        // Defense in depth: only /api/premium/initialize legitimately
+        // creates premium charges, always at the catalog price and
+        // period. A charge that claims to be premium but doesn't match
+        // the catalog is a forged-metadata attempt — never credit it.
+        if (
+          amount !== PREMIUM_PRICE_NAIRA * 100 ||
+          periodDays !== PREMIUM_PERIOD_DAYS
+        ) {
+          console.error("[Webhook] Premium payment failed catalog validation", {
+            reference,
+            amount,
+            periodDays,
           });
           return NextResponse.json({ received: true });
         }

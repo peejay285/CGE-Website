@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { CardSkeleton } from "@/components/ui/skeleton";
 import { formatPrice, cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ import {
   DEFAULT_TOURNAMENT_RULES,
   formatTournamentDate,
   formatTournamentTime,
+  getPayoutDistribution,
 } from "@/lib/esports-utils";
 import type { TournamentWithCount } from "@/lib/esports-utils";
 import type { Tournament, TournamentMatch, TournamentRegistrant, TournamentTeamRegistration } from "@/lib/types";
@@ -133,6 +135,9 @@ export default function TournamentDetailClient({
     }
   }, [user, getMyTeam]);
 
+  // Paystack redirect-back: don't just toast and hope — poll the
+  // registration until the webhook marks it paid (backoff ~60s, then a
+  // quiet steady check), exactly like the lounge confirmation flow.
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -142,27 +147,67 @@ export default function TournamentDetailClient({
 
     if (!paymentRef || (paymentType !== "tournament" && paymentType !== "tournament_team")) return;
 
-    toast.success("Tournament payment submitted. Your registration will update shortly.");
-    getUserRegistrations();
-    getUserTeamRegistrations();
-    if (tournament) {
-      getTournamentById(tournament.id).then((updated) => {
-        if (updated) setTournament(updated);
-      });
-      getTournamentRegistrants(tournament.id).then(setRegistrants);
-    }
-
     const url = new URL(window.location.href);
     url.searchParams.delete("payment_ref");
     url.searchParams.delete("payment_type");
     window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [
-    getUserRegistrations,
-    getUserTeamRegistrations,
-    getTournamentById,
-    getTournamentRegistrants,
-    tournament,
-  ]);
+
+    const table =
+      paymentType === "tournament_team"
+        ? "tournament_team_registrations"
+        : "tournament_registrations";
+    const supabase = createClient();
+    const delays = [2000, 2000, 3000, 4000, 5000, 6000, 8000, 10000, 10000, 10000];
+    let attempts = 0;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    setEntryPoll({ status: "polling" });
+
+    const refreshAll = () => {
+      getUserRegistrations();
+      getUserTeamRegistrations();
+      const id = Number(params.get("tournament_id")) || tournament?.id;
+      if (id) {
+        getTournamentById(id).then((updated) => {
+          if (updated) setTournament(updated);
+        });
+        getTournamentRegistrants(id).then(setRegistrants);
+      }
+    };
+
+    const tick = async () => {
+      const { data: row } = await supabase
+        .from(table)
+        .select("id, payment_status")
+        .eq("paystack_reference", paymentRef)
+        .maybeSingle();
+      if (cancelled) return;
+      if ((row as { payment_status?: string } | null)?.payment_status === "paid") {
+        setEntryPoll({ status: "confirmed" });
+        toast.success("Payment confirmed — you're in!");
+        refreshAll();
+        return;
+      }
+      if (attempts < delays.length) {
+        timer = setTimeout(tick, delays[attempts]);
+        attempts++;
+        return;
+      }
+      setEntryPoll((prev) =>
+        prev?.status === "timeout" ? prev : { status: "timeout" }
+      );
+      timer = setTimeout(tick, 15000);
+    };
+
+    tick();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isPast = tournament ? isTournamentPast(tournament.date, tournament.status) : false;
   const isTeamEvent = Number(tournament?.team_size ?? 1) > 1;
@@ -349,8 +394,30 @@ export default function TournamentDetailClient({
     initializeTournamentRegistrationPayment,
   ]);
 
+  // Two-tap withdrawal confirm — first tap arms, second tap executes.
+  const [withdrawArmed, setWithdrawArmed] = useState(false);
+
+  // Paystack redirect-back confirmation (mirrors the lounge flow):
+  // "polling" while we wait for the webhook, "timeout" once the fast
+  // window passes (we keep checking quietly), "confirmed" on success.
+  const [entryPoll, setEntryPoll] = useState<null | {
+    status: "polling" | "timeout" | "confirmed";
+  }>(null);
+
   const handleUnregister = useCallback(async () => {
     if (!tournament) return;
+    // Paid entries are money records — self-service withdrawal is
+    // blocked (RLS and the hook enforce it too). Give the real path.
+    const paidEntry = isTeamEvent
+      ? getTeamRegistrationForTournament(tournament.id, myTeam?.id)
+          ?.payment_status === "paid"
+      : getRegistrationForTournament(tournament.id)?.payment_status === "paid";
+    if (paidEntry) {
+      toast.error(
+        "Paid entries can't be withdrawn here. Message the host or CGE support to arrange a refund."
+      );
+      return;
+    }
     const success = isTeamEvent
       ? await (async () => {
           const team = myTeam ?? (await getMyTeam());
@@ -377,6 +444,7 @@ export default function TournamentDetailClient({
     myTeam,
     getMyTeam,
     getTeamRegistrationForTournament,
+    getRegistrationForTournament,
     unregisterTeamFromTournament,
     unregisterFromTournament,
     getTournamentById,
@@ -544,6 +612,8 @@ export default function TournamentDetailClient({
   const rules = tournament.rules
     ? tournament.rules.split("\n").filter(Boolean)
     : DEFAULT_TOURNAMENT_RULES;
+
+  const payoutSplit = getPayoutDistribution(tournament);
 
   return (
     <div className="min-h-screen px-4 py-8 md:px-6 lg:px-8 max-w-3xl mx-auto">
@@ -776,28 +846,63 @@ export default function TournamentDetailClient({
               />
             </div>
 
-            {/* Prize distribution */}
+            {/* Prize distribution — the tournament's ACTUAL configured
+                split, never a hardcoded example. A winner-takes-all
+                event shows one card at 100%. */}
             <div className="mb-8">
               <h4 className="text-xs font-semibold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
                 <Trophy size={14} className="text-gold" />
                 Prize Distribution
               </h4>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="p-3 rounded-lg bg-surface-alt border border-gold/20 text-center">
-                  <p className="text-lg mb-1">{"🥇"}</p>
-                  <p className="text-[10px] uppercase tracking-widest text-text-muted mb-0.5">1st Place</p>
-                  <p className="text-sm font-bold font-heading text-gold">60%</p>
-                </div>
-                <div className="p-3 rounded-lg bg-surface-alt border border-border text-center">
-                  <p className="text-lg mb-1">{"🥈"}</p>
-                  <p className="text-[10px] uppercase tracking-widest text-text-muted mb-0.5">2nd Place</p>
-                  <p className="text-sm font-bold font-heading text-text">25%</p>
-                </div>
-                <div className="p-3 rounded-lg bg-surface-alt border border-border text-center">
-                  <p className="text-lg mb-1">{"🥉"}</p>
-                  <p className="text-[10px] uppercase tracking-widest text-text-muted mb-0.5">3rd Place</p>
-                  <p className="text-sm font-bold font-heading text-text">15%</p>
-                </div>
+              <div
+                className={cn(
+                  "grid gap-2",
+                  payoutSplit.length === 1
+                    ? "grid-cols-1"
+                    : payoutSplit.length === 2
+                      ? "grid-cols-2"
+                      : "grid-cols-3"
+                )}
+              >
+                {payoutSplit.map((entry) => (
+                  <div
+                    key={entry.place}
+                    className={cn(
+                      "p-3 rounded-lg bg-surface-alt text-center border",
+                      entry.place === 1 ? "border-gold/20" : "border-border"
+                    )}
+                  >
+                    <p className="text-lg mb-1">
+                      {entry.place === 1
+                        ? "🥇"
+                        : entry.place === 2
+                          ? "🥈"
+                          : entry.place === 3
+                            ? "🥉"
+                            : "🏅"}
+                    </p>
+                    <p className="text-[10px] uppercase tracking-widest text-text-muted mb-0.5">
+                      {entry.label ??
+                        `${entry.place}${
+                          entry.place === 1
+                            ? "st"
+                            : entry.place === 2
+                              ? "nd"
+                              : entry.place === 3
+                                ? "rd"
+                                : "th"
+                        } Place`}
+                    </p>
+                    <p
+                      className={cn(
+                        "text-sm font-bold font-heading",
+                        entry.place === 1 ? "text-gold" : "text-text"
+                      )}
+                    >
+                      {entry.percent}%
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -906,7 +1011,7 @@ export default function TournamentDetailClient({
                   fullWidth
                   size="lg"
                   variant="primary"
-                  disabled={actionLoading}
+                  disabled={actionLoading || entryPoll !== null}
                   onClick={handleCompletePayment}
                 >
                   {actionLoading ? (
@@ -927,24 +1032,56 @@ export default function TournamentDetailClient({
                   Registered ✓
                 </Button>
               )}
-              {paymentPending && (
+              {entryPoll ? (
+                <div
+                  className={cn(
+                    "rounded-lg border px-3 py-2.5 text-center text-[11px] leading-relaxed",
+                    entryPoll.status === "confirmed"
+                      ? "border-green/40 bg-green/10 text-green"
+                      : "border-gold/40 bg-gold/10 text-gold"
+                  )}
+                >
+                  {entryPoll.status === "confirmed"
+                    ? "Payment confirmed — you're in! 🎉"
+                    : entryPoll.status === "polling"
+                      ? "Confirming your payment with Paystack… usually under a minute. Keep this page open."
+                      : "Still confirming your payment — your slot is safe and this page updates automatically. Taking more than a few minutes? Message us on WhatsApp."}
+                </div>
+              ) : paymentPending ? (
                 <p className="text-[11px] text-center text-gold">
                   {isTeamEvent
                     ? "Your team slot is reserved while payment is pending."
                     : "Your slot is reserved while payment is pending."}
                 </p>
-              )}
+              ) : null}
               <button
                 type="button"
-                onClick={handleUnregister}
+                onClick={() => {
+                  if (!withdrawArmed) {
+                    setWithdrawArmed(true);
+                    window.setTimeout(() => setWithdrawArmed(false), 5000);
+                    return;
+                  }
+                  setWithdrawArmed(false);
+                  handleUnregister();
+                }}
                 disabled={actionLoading}
-                className="w-full text-center text-[11px] text-text-muted hover:text-magenta transition-colors cursor-pointer py-1"
+                className={cn(
+                  "w-full text-center text-[11px] transition-colors cursor-pointer py-1",
+                  withdrawArmed
+                    ? "text-magenta font-semibold"
+                    : "text-text-muted hover:text-magenta"
+                )}
               >
                 {actionLoading
                   ? "Withdrawing..."
-                  : isTeamEvent
-                    ? "Withdraw team from tournament"
-                    : "Withdraw from tournament"}
+                  : withdrawArmed
+                    ? isTeamEvent
+                      ? "Tap again to confirm — your team's slot will be released"
+                      : "Tap again to confirm — your slot will be released"
+                    : isTeamEvent
+                      ? "Withdraw team from tournament"
+                      : "Withdraw from tournament"}
               </button>
             </div>
           ) : isFull ? (

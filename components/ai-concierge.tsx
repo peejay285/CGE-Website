@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { MessageCircle, X, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BRAND } from "@/lib/constants";
@@ -18,6 +19,11 @@ const INITIAL_MESSAGE: Message = {
 };
 
 export function AIConcierge() {
+  const pathname = usePathname();
+  // On mobile marketplace the concierge would sit on top of the
+  // "List item" FAB (the pillar's primary CTA) and steal its taps —
+  // hide it there on small screens, keep it on desktop.
+  const hideOnMobile = pathname?.startsWith("/marketplace") ?? false;
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
@@ -76,7 +82,8 @@ export function AIConcierge() {
         onClick={() => setOpen(!open)}
         aria-label={open ? "Close help" : "Help"}
         className={cn(
-          "fixed bottom-20 lg:bottom-6 right-6 z-50 flex items-center justify-center w-12 h-12 rounded-full shadow-lg transition-all cursor-pointer",
+          "fixed bottom-20 lg:bottom-6 right-6 z-50 items-center justify-center w-12 h-12 rounded-full shadow-lg transition-all cursor-pointer",
+          hideOnMobile ? "hidden md:flex" : "flex",
           open
             ? "bg-surface border border-border text-text-muted hover:text-text"
             : "bg-gradient-to-br from-cyan to-[#00C8D4] text-base hover:scale-110"

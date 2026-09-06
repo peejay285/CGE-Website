@@ -4,6 +4,7 @@ import { useEffect, useCallback, useRef } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFocusTrap } from "./use-focus-trap";
+import { useHistoryDismiss } from "./use-history-dismiss";
 
 interface BottomSheetProps {
   open: boolean;
@@ -28,6 +29,8 @@ export function BottomSheet({
   const currentYRef = useRef(0);
 
   useFocusTrap(sheetRef, open, { onEscape: onClose });
+  // Android/browser Back closes the sheet instead of leaving the page.
+  useHistoryDismiss(open, onClose);
 
   useEffect(() => {
     if (open) {

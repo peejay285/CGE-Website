@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { initializeTransaction, generateReference } from "@/lib/paystack";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 import { paystackInitializeSchema } from "@/lib/validations";
 import { rateLimit, paystackInitLimiter } from "@/lib/rate-limit";
 import { absoluteUrl } from "@/lib/site-url";
@@ -203,23 +204,48 @@ export async function POST(request: Request) {
       amount: amountNaira * 100, // Convert Naira to kobo
       reference,
       callback_url: callbackUrl,
+      // Client metadata first, server-owned fields LAST so a crafted
+      // request can never override user_id / type / record ids — the
+      // webhook dispatches on these. (Schema is also a strict allowlist.)
       metadata: {
+        ...metadata,
         user_id: user.id,
         type,
         ...idMetadata,
-        ...metadata,
       },
     });
 
     // Stamp the reference onto the record so the webhook can find it.
+    // MUST use the service-role client: RLS/column grants intentionally
+    // deny this write to user sessions (bookings allow status-only
+    // updates; registration tables have no client UPDATE at all), so a
+    // user-context update silently no-ops and the webhook can never
+    // credit the payment. If the stamp fails we abort BEFORE handing
+    // the user a checkout URL — never let someone pay uncredited.
     {
       if (isRecordPaymentType(type)) {
         const config = PAYSTACK_RECORD_CONFIG[type];
-        await supabase
+        const service = createServiceRoleClient();
+        const { data: stamped, error: stampError } = await service
           .from(config.table)
           .update({ paystack_reference: result.data.reference })
           .eq("id", recordId)
-          .eq(config.ownerColumn, user.id);
+          .eq(config.ownerColumn, user.id)
+          .select("id")
+          .maybeSingle();
+
+        if (stampError || !stamped) {
+          console.error("[Paystack init] Failed to stamp payment reference", {
+            table: config.table,
+            recordId,
+            reference: result.data.reference,
+            error: stampError?.message ?? "no matching record",
+          });
+          return NextResponse.json(
+            { error: "Could not prepare this payment. Please try again." },
+            { status: 500 }
+          );
+        }
       }
     }
 

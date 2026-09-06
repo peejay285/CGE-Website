@@ -272,6 +272,8 @@ export const ListingCard = memo(function ListingCard({ listing, onClick, onSave,
                     <img
                       src={listing.seller.avatar_url}
                       alt=""
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   ) : (

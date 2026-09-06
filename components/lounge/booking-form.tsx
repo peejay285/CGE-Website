@@ -2,6 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { GAME_OPTIONS, TIME_SLOTS, SUNDAY_TIME_SLOTS, BRAND } from "@/lib/constants";
+
+/** "10:00 AM" / "1:00 PM" → 24h start hour, or null if unparseable. */
+function parseSlotHour(slot: string): number | null {
+  const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(slot.trim());
+  if (!m) return null;
+  let hour = Number(m[1]) % 12;
+  if (/pm/i.test(m[3])) hour += 12;
+  return hour;
+}
 import { createClient } from "@/lib/supabase/client";
 import { Select, Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -229,7 +238,14 @@ export function BookingForm({
             <div className="flex flex-wrap gap-2">
               {activeSlots.map((slot) => {
                 const isFull = bookedSlots.has(slot);
-                const isDisabled = isFull || !date;
+                // Same-day bookings: a slot whose start hour has already
+                // passed can't be bought (the server rejects it too).
+                const slotHour = parseSlotHour(slot);
+                const isPast =
+                  date === today &&
+                  slotHour !== null &&
+                  slotHour < new Date().getHours();
+                const isDisabled = isFull || !date || isPast;
 
                 return (
                   <button
@@ -239,7 +255,7 @@ export function BookingForm({
                     disabled={isDisabled}
                     className={cn(
                       "min-h-11 px-3.5 py-2 rounded-lg text-xs font-semibold tracking-wide border transition-all duration-200",
-                      isFull
+                      isFull || isPast
                         ? "bg-surface-alt/50 text-text-muted/30 border-border/50 line-through cursor-not-allowed"
                         : !date
                           ? "bg-surface-alt/50 text-text-muted/40 border-border/50 cursor-not-allowed"
@@ -250,9 +266,11 @@ export function BookingForm({
                     title={
                       isFull
                         ? "This slot is fully booked"
-                        : !date
-                          ? "Pick a date first"
-                          : undefined
+                        : isPast
+                          ? "This time has already passed today"
+                          : !date
+                            ? "Pick a date first"
+                            : undefined
                     }
                   >
                     {slot}

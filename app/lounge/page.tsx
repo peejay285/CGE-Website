@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useMemo, useCallback, useEffect } from "react";
+import { Suspense, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
@@ -140,6 +140,10 @@ function LoungePageInner() {
 
   const handlePaymentConfirm = useCallback(
     async (method: "paystack" | "venue", code: string) => {
+      // Re-entry guard: a double-tap on a janky device must never
+      // create two bookings. The overlay only blocks after React
+      // paints; this blocks immediately.
+      if (isSubmitting) return;
       if (!user) {
         // Prompt sign-in at checkout — they've already seen the value
         const event = new CustomEvent("open-auth-modal");
@@ -254,6 +258,7 @@ function LoungePageInner() {
       }
     },
     [
+      isSubmitting,
       user,
       zone,
       game,
@@ -269,6 +274,50 @@ function LoungePageInner() {
       router,
     ]
   );
+
+  // ── Booking-draft persistence ─────────────────────────────────────
+  // Android kills backgrounded tabs when users switch to their bank
+  // app mid-payment; without this the whole wizard resets. The draft
+  // lives in sessionStorage and is restored once auth resolves.
+  const draftRestored = useRef(false);
+  useEffect(() => {
+    if (draftRestored.current || !user || bookingStep !== 0) return;
+    draftRestored.current = true;
+    try {
+      const raw = sessionStorage.getItem("cge:booking-draft");
+      if (!raw) return;
+      const d = JSON.parse(raw) as {
+        zone?: string; game?: string; date?: string; time?: string;
+        duration?: number; drinks?: Record<string, number>; step?: number;
+      };
+      if (!d.zone || !d.step || d.step < 1 || d.step > 3) return;
+      setZone(d.zone);
+      if (d.game) setGame(d.game);
+      if (d.date) setDate(d.date);
+      if (d.time) setTime(d.time);
+      if (d.duration) setDuration(d.duration);
+      if (d.drinks) setDrinks(d.drinks);
+      setBookingStep(d.step);
+      toast("Picked up your booking where you left off.", { icon: "📌" });
+    } catch {
+      /* corrupt draft — ignore */
+    }
+  }, [user, bookingStep]);
+
+  useEffect(() => {
+    try {
+      if (bookingStep >= 1 && bookingStep <= 3) {
+        sessionStorage.setItem(
+          "cge:booking-draft",
+          JSON.stringify({ zone, game, date, time, duration, drinks, step: bookingStep })
+        );
+      } else if (bookingStep === 4 || confirmed) {
+        sessionStorage.removeItem("cge:booking-draft");
+      }
+    } catch {
+      /* storage unavailable — non-fatal */
+    }
+  }, [zone, game, date, time, duration, drinks, bookingStep, confirmed]);
 
   // After a Paystack redirect-back: ?payment_ref=... — fetch the booking,
   // poll for the webhook (with backoff, ~60s), and pop the confirmation

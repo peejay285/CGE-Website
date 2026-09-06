@@ -449,6 +449,20 @@ export function useEsportsPage() {
           : tournaments.find((item) => item.id === tournamentId);
       const isTeamEvent = Number(tournament?.team_size ?? 1) > 1;
 
+      // Paid entries are money records — self-service withdrawal is
+      // blocked (also enforced by RLS + the hook). Tell the user the
+      // real path instead of a generic failure.
+      const paidEntry = isTeamEvent
+        ? getTeamRegistrationForTournament(tournamentId, myTeam?.id)
+            ?.payment_status === "paid"
+        : getRegistrationForTournament(tournamentId)?.payment_status === "paid";
+      if (paidEntry) {
+        toast.error(
+          "Paid entries can't be withdrawn here. Message the host or CGE support to arrange a refund."
+        );
+        return;
+      }
+
       const success = isTeamEvent
         ? await (async () => {
             const team = myTeam ?? (await getMyTeam());
@@ -475,6 +489,7 @@ export function useEsportsPage() {
       myTeam,
       getMyTeam,
       getTeamRegistrationForTournament,
+      getRegistrationForTournament,
       unregisterTeamFromTournament,
       unregisterFromTournament,
       getTournamentById,

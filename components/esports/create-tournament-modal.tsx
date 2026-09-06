@@ -9,11 +9,13 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { TOURNAMENT_GAMES, TOURNAMENT_FORMATS, TOURNAMENT_PLATFORMS } from "@/lib/constants";
 
+// Double Elimination and Swiss are hidden until their engines are
+// complete: DE's losers bracket is generated but never linked (matches
+// would strand mid-event), and Swiss only ever generates round 1.
+// Re-add them here once lib/bracket-engine.ts supports them fully.
 const BRACKET_TYPES = [
   { value: "single_elimination", label: "Single Elimination" },
-  { value: "double_elimination", label: "Double Elimination" },
   { value: "round_robin", label: "Round Robin" },
-  { value: "swiss", label: "Swiss System" },
 ];
 
 interface CreateTournamentModalProps {

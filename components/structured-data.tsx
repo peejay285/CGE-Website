@@ -1,13 +1,16 @@
+import { getCanonicalSiteUrl } from "@/lib/site-config";
+
 export function StructuredData() {
+  const siteUrl = getCanonicalSiteUrl();
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "EntertainmentBusiness",
     name: "Creative Gaming Entertainment (CGE)",
     description:
       "Premium gaming lounge on Bonny Island, Nigeria. PS4, PS5, VR gaming, esports tournaments, and community hub.",
-    url: "https://cge.ng",
+    url: siteUrl,
     telephone: "+234 911 023 3056",
-    email: "info@cge.ng",
+    email: "Creativegamingent@gmail.com",
     address: {
       "@type": "PostalAddress",
       streetAddress: "1 IT William Street, Akiama",
@@ -41,7 +44,7 @@ export function StructuredData() {
       },
     ],
     priceRange: "₦1500 - ₦5000",
-    image: "https://cge.ng/cge-logo.png",
+    image: `${siteUrl}/cge-logo.png`,
     sameAs: [
       "https://instagram.com/cge_lounge",
       "https://x.com/caborsgaming",

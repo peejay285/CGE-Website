@@ -51,6 +51,28 @@ function todayIsoDate() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+// The venue runs on Lagos time (UTC+1, no DST) while the server runs
+// in UTC — same-day slot checks must use Lagos wall-clock, not server
+// local time.
+const LAGOS_UTC_OFFSET_MS = 60 * 60 * 1000;
+
+function lagosNow() {
+  return new Date(Date.now() + LAGOS_UTC_OFFSET_MS);
+}
+
+function lagosTodayIsoDate() {
+  return lagosNow().toISOString().split("T")[0];
+}
+
+/** "10:00 AM" / "1:00 PM" → 24h start hour, or null if unparseable. */
+function parseSlotHour(slot: string): number | null {
+  const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(slot.trim());
+  if (!m) return null;
+  let hour = Number(m[1]) % 12;
+  if (/pm/i.test(m[3])) hour += 12;
+  return hour;
+}
+
 function getServiceClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -118,6 +140,20 @@ export async function POST(request: Request) {
         { error: `Bookings can only be made ${MAX_BOOKING_ADVANCE_DAYS} days ahead` },
         { status: 400 }
       );
+    }
+
+    // Same-day bookings: reject slots whose start hour has already
+    // passed in Lagos — nobody should be able to pay at 6 PM for the
+    // 10 AM session. (The slot that started this hour is still allowed
+    // for walk-in-style bookings.)
+    if (booking_date === lagosTodayIsoDate()) {
+      const slotHour = parseSlotHour(time_slot);
+      if (slotHour !== null && slotHour < lagosNow().getUTCHours()) {
+        return NextResponse.json(
+          { error: "That time has already passed today. Pick a later slot." },
+          { status: 400 }
+        );
+      }
     }
 
     // ── Authoritative price calculation ────────────────────────

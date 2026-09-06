@@ -461,6 +461,23 @@ export function useTournaments(initialStatus?: string) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("User not authenticated");
 
+        // Paid entries must never be silently hard-deleted — the money
+        // has been collected and deleting the row erases the payment
+        // record and shrinks the prize pool. (RLS blocks it too; this
+        // gives the user a clear message instead of a policy error.)
+        const { data: existingReg } = await supabase
+          .from("tournament_registrations")
+          .select("id, payment_status")
+          .eq("tournament_id", tournament_id)
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (existingReg?.payment_status === "paid") {
+          throw new Error(
+            "Paid entries can't be withdrawn here. Message the host or CGE support to arrange a refund."
+          );
+        }
+
         const { error: deleteError } = await supabase
           .from("tournament_registrations")
           .delete()
@@ -500,6 +517,22 @@ export function useTournaments(initialStatus?: string) {
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) throw new Error("User not authenticated");
+
+        // Same rule as solo entries: paid team registrations are money
+        // records — no self-service hard delete.
+        const { data: existingTeamReg } = await supabase
+          .from("tournament_team_registrations")
+          .select("id, payment_status")
+          .eq("tournament_id", tournament_id)
+          .eq("team_id", team_id)
+          .eq("registered_by", user.id)
+          .maybeSingle();
+
+        if (existingTeamReg?.payment_status === "paid") {
+          throw new Error(
+            "Paid team entries can't be withdrawn here. Message the host or CGE support to arrange a refund."
+          );
+        }
 
         const { error: deleteError } = await supabase
           .from("tournament_team_registrations")
