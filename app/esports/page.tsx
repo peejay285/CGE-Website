@@ -3,7 +3,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { Trophy, Search, X, Swords, Plus, Calendar, Users, UserPlus } from "lucide-react";
+import { Trophy, Search, X, Swords, Plus, Calendar, Users, UserPlus, BarChart3, Gamepad2, Lock, Medal} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EVENT_PRIZES_AWARDED_NAIRA, formatNairaCompact } from "@/lib/constants";
 import { TabBar } from "@/components/ui/tab-bar";
@@ -208,7 +208,7 @@ export default function EsportsPage() {
               </div>
             ) : ep.filteredTournaments.length === 0 ? (
               <EmptyState
-                icon="🏆"
+                icon={Trophy}
                 title={ep.searchQuery ? "No matching tournaments" : "Tournaments launching with our beta cohort"}
                 subtitle={ep.searchQuery ? "Try a different search term or clear the filters." : "We're rolling out the first tournaments with beta users now. The full national bracket launches when beta opens."}
               />
@@ -293,7 +293,7 @@ export default function EsportsPage() {
         {ep.activeTab === "My Tournaments" && (
           <div>
             {!ep.user ? (
-              <EmptyState icon="🔒" title="Sign in to see your tournaments" subtitle="You need to be signed in to view your registered tournaments." />
+              <EmptyState icon={Lock} title="Sign in to see your tournaments" subtitle="You need to be signed in to view your registered tournaments." />
             ) : (
               <div className="space-y-10">
                 {ep.hostedTournaments.length > 0 && (
@@ -318,7 +318,7 @@ export default function EsportsPage() {
                       {Array.from({ length: 2 }).map((_, i) => <CardSkeleton key={i} />)}
                     </div>
                   ) : ep.myTournaments.length === 0 ? (
-                    <EmptyState icon="🎮" title="No registered tournaments" subtitle="Browse open tournaments and register to compete!" />
+                    <EmptyState icon={Gamepad2} title="No registered tournaments" subtitle="Browse open tournaments and register to compete!" />
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       {ep.myTournaments.map((t) => (
@@ -362,7 +362,7 @@ export default function EsportsPage() {
                 {Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)}
               </div>
             ) : ep.teams.length === 0 ? (
-              <EmptyState icon="👥" title="Teams launching with beta" subtitle="Create one of the first teams on the platform — recruiting opens when beta does." />
+              <EmptyState icon={Users} title="Teams launching with beta" subtitle="Create one of the first teams on the platform — recruiting opens when beta does." />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {ep.teams.filter((t) => t.id !== ep.myTeam?.id).map((team, i) => (
@@ -385,7 +385,7 @@ export default function EsportsPage() {
                   {Array.from({ length: 5 }).map((_, i) => <CardSkeleton key={i} />)}
                 </div>
               ) : ep.leaderboardPlayers.length === 0 ? (
-                <EmptyState icon="📊" title="National leaderboard launches with beta" subtitle="Once tournaments start running, the top players nationwide will appear here." />
+                <EmptyState icon={BarChart3} title="National leaderboard launches with beta" subtitle="Once tournaments start running, the top players nationwide will appear here." />
               ) : (
                 <LeaderboardTable
                   players={ep.leaderboardPlayers}
@@ -406,7 +406,7 @@ export default function EsportsPage() {
               subtitle="Unlock badges by competing in tournaments and engaging with the community." align="center" />
             <div className="max-w-2xl mx-auto">
               {!ep.user ? (
-                <EmptyState icon="🏅" title="Sign in to track achievements" subtitle="Your achievements and badges will appear here once you sign in." />
+                <EmptyState icon={Medal} title="Sign in to track achievements" subtitle="Your achievements and badges will appear here once you sign in." />
               ) : ep.achievementsLoading ? (
                 <div className="space-y-3">
                   {Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)}

@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { ArrowLeft, Calendar, Clock, MapPin, Users, Ticket, Loader2 } from "lucide-react";
+import { ArrowLeft, Cake, Calendar, Clock, Glasses, Loader2, MapPin, PartyPopper, Sparkles, Ticket, Users } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardSkeleton } from "@/components/ui/skeleton";
@@ -27,11 +28,11 @@ const typeBadgeColor: Record<Event["type"], "magenta" | "gold" | "cyan" | "green
   Package: "green",
 };
 
-const typeEmoji: Record<Event["type"], string> = {
-  Party: "🎉",
-  Special: "💜",
-  Demo: "🥽",
-  Package: "🎂",
+const typeIcon: Record<Event["type"], LucideIcon> = {
+  Party: PartyPopper,
+  Special: Sparkles,
+  Demo: Glasses,
+  Package: Cake,
 };
 
 function isEventPast(dateStr: string): boolean {
@@ -97,7 +98,7 @@ export default function EventDetailClient({
     if (!event) return;
     if (!user) {
       window.dispatchEvent(new CustomEvent("open-auth-modal"));
-      toast("Sign in to register for events", { icon: "🔒" });
+      toast("Sign in to register for events");
       return;
     }
 
@@ -136,7 +137,9 @@ export default function EventDetailClient({
     return (
       <div className="min-h-screen px-4 py-8 md:px-6 lg:px-8 max-w-2xl mx-auto">
         <div className="text-center py-20">
-          <span className="text-6xl mb-4 block">📅</span>
+          <span className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-surface-alt text-text-muted">
+            <Calendar size={28} aria-hidden="true" />
+          </span>
           <h2 className="text-xl font-bold font-heading text-text mb-2">Event not found</h2>
           <p className="text-sm text-text-muted mb-6">This event may have been removed or doesn&apos;t exist.</p>
           <Link
@@ -163,9 +166,14 @@ export default function EventDetailClient({
       </Link>
 
       <div className="rounded-xl border border-border bg-surface p-6 md:p-8">
-        {/* Emoji header */}
+        {/* Icon header */}
         <div className="flex flex-col items-center text-center mb-8">
-          <span className="text-7xl mb-4">{typeEmoji[event.type]}</span>
+          <span className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl border border-cyan/20 bg-cyan/10 text-cyan">
+            {(() => {
+              const TypeIcon = typeIcon[event.type];
+              return <TypeIcon size={36} aria-hidden="true" />;
+            })()}
+          </span>
           <Badge color={typeBadgeColor[event.type]} size="md" className="mb-3">
             {event.type}
           </Badge>

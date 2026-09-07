@@ -548,7 +548,7 @@ function ListingThumb({
           <img src={image} alt={title} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-2xl">
-            📦
+            <Package size={18} className="text-text-muted" aria-hidden="true" />
           </div>
         )}
       </div>

@@ -99,7 +99,7 @@ export default async function AdminBookingPage({ params }: Props) {
             <p className="text-sm text-cyan">@{profile.gamertag}</p>
           )}
           {privateProfile?.phone && (
-            <p className="text-xs text-text-muted mt-1">📞 {privateProfile.phone}</p>
+            <p className="text-xs text-text-muted mt-1">{privateProfile.phone}</p>
           )}
         </div>
 

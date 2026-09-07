@@ -10,8 +10,7 @@ import {
   Gamepad2,
   Loader2,
   ReceiptText,
-  XCircle,
-} from "lucide-react";
+  XCircle, Ticket} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { CardSkeleton } from "@/components/ui/skeleton";
@@ -250,7 +249,7 @@ export default function MyBookingsPage() {
           </div>
         ) : !user ? (
           <EmptyState
-            icon="🎟️"
+            icon={Ticket}
             title="Sign in to see your bookings"
             subtitle="Your booking history and receipts live here once you're signed in."
             action={{
@@ -261,7 +260,7 @@ export default function MyBookingsPage() {
           />
         ) : bookings.length === 0 ? (
           <EmptyState
-            icon="🎮"
+            icon={Gamepad2}
             title="No bookings yet"
             subtitle="Book a station and your sessions, receipts and passes will show up here."
             action={{

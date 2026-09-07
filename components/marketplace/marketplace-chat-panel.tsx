@@ -5,8 +5,7 @@ import {
   X,
   ArrowLeftRight,
   Maximize2,
-  Loader2,
-} from "lucide-react";
+  Loader2, Package} from "lucide-react";
 import { MessageBubble } from "@/components/messages/message-bubble";
 import { MessageInput } from "@/components/messages/message-input";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
@@ -181,7 +180,7 @@ export function MarketplaceChatPanel({
             </div>
           ) : (
             <div className="w-10 h-10 rounded-md bg-surface flex items-center justify-center text-sm shrink-0">
-              📦
+              <Package size={18} className="text-text-muted" aria-hidden="true" />
             </div>
           )}
           <div className="flex-1 min-w-0">
@@ -292,7 +291,7 @@ export function MarketplaceChatPanel({
                   </div>
                 ) : (
                   <div className="w-10 h-10 rounded-md bg-surface flex items-center justify-center text-sm shrink-0">
-                    📦
+                    <Package size={18} className="text-text-muted" aria-hidden="true" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">

@@ -5,8 +5,7 @@ import {
   Users,
   Search,
   ChevronDown,
-  Loader2,
-} from "lucide-react";
+  Loader2, Bookmark, MessageCircle} from "lucide-react";
 import Image from "next/image";
 import { SectionTitle } from "@/components/ui/section-title";
 import { PostSkeleton } from "@/components/ui/skeleton";
@@ -147,7 +146,7 @@ export default function CommunityPage() {
             </div>
           ) : cp.displayPosts.length === 0 ? (
             <EmptyState
-              icon={cp.sortMode === "bookmarks" ? "🔖" : "💬"}
+              icon={cp.sortMode === "bookmarks" ? Bookmark : MessageCircle}
               title={
                 cp.searchQuery
                   ? "No results found"

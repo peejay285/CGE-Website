@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Trophy, UserPlus, UserCheck } from "lucide-react";
+import { Trophy, Medal, UserPlus, UserCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -23,10 +23,11 @@ interface LeaderboardTableProps {
   onUnfollow?: (userId: string) => void;
 }
 
+// Top-3 medal colors — rendered as Medal icons, not emoji.
 const rankMedal: Record<number, string> = {
-  1: "🥇",
-  2: "🥈",
-  3: "🥉",
+  1: "text-gold",
+  2: "text-[#C0C4CC]",
+  3: "text-[#CD7F32]",
 };
 
 const rankBadgeColor: Record<number, "gold" | "cyan" | "magenta"> = {
@@ -112,7 +113,7 @@ export function LeaderboardTable({ players, currentUserId, followingIds, onFollo
             {/* Rank */}
             <div className="flex items-center gap-1.5">
               {medal ? (
-                <span className="text-lg">{medal}</span>
+                <Medal size={18} className={medal} aria-label={`Rank ${player.rank} medal`} />
               ) : (
                 <span className="text-sm font-bold font-heading text-text-muted pl-1">
                   {player.rank}

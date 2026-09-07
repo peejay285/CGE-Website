@@ -341,7 +341,7 @@ export default function WalletPage() {
           <>
             <WalletSummary totalEarned={0} pendingTotal={0} />
             <EmptyState
-              icon="🏆"
+              icon={Trophy}
               title="No winnings yet"
               subtitle="Enter a CGE tournament and your prize money will land here."
               action={{

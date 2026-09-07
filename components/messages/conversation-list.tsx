@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight, MessageCircle} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConversationSkeleton } from "@/components/messages/conversation-skeleton";
@@ -35,7 +35,7 @@ export function ConversationList({
     return (
       <div className="flex items-center justify-center h-full p-6">
         <EmptyState
-          icon="💬"
+          icon={MessageCircle}
           title="No conversations yet"
           subtitle="Start a conversation from any listing in the Swap Market"
         />

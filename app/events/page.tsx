@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import toast from "react-hot-toast";
-import { Search, X } from "lucide-react";
+import { Search, X, Calendar} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SectionTitle } from "@/components/ui/section-title";
 import { TabBar } from "@/components/ui/tab-bar";
@@ -220,7 +220,7 @@ export default function EventsPage() {
         </div>
       ) : filteredEvents.length === 0 ? (
         <EmptyState
-          icon="📅"
+          icon={Calendar}
           title={searchQuery ? "No matching events" : "No events yet"}
           subtitle={
             searchQuery

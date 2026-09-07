@@ -95,7 +95,7 @@ function LoungePageInner() {
     if (!user && !authLoading) {
       setPendingAuthAdvance(true);
       window.dispatchEvent(new CustomEvent("open-auth-modal"));
-      toast("Sign in to book — takes a minute", { icon: "🔒" });
+      toast("Sign in to book — takes a minute");
       return;
     }
     // Closed beta: signed-in but unapproved users wait for their wave.
@@ -148,7 +148,7 @@ function LoungePageInner() {
         // Prompt sign-in at checkout — they've already seen the value
         const event = new CustomEvent("open-auth-modal");
         window.dispatchEvent(event);
-        toast("Sign in to complete your booking", { icon: "🔒" });
+        toast("Sign in to complete your booking");
         return;
       }
 
@@ -251,7 +251,6 @@ function LoungePageInner() {
         // receipt so they have a reference and can pay at the venue or
         // retry — instead of leaving an orphaned booking behind.
         toast("Your reservation is saved — you can also pay at the venue.", {
-          icon: "🏪",
           duration: 6000,
         });
         router.push(bookingReceiptPath(booking.id, booking.receipt_token));
@@ -298,7 +297,7 @@ function LoungePageInner() {
       if (d.duration) setDuration(d.duration);
       if (d.drinks) setDrinks(d.drinks);
       setBookingStep(d.step);
-      toast("Picked up your booking where you left off.", { icon: "📌" });
+      toast("Picked up your booking where you left off.");
     } catch {
       /* corrupt draft — ignore */
     }

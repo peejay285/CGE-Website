@@ -3,13 +3,19 @@
 import { useState } from "react";
 import {
   ArrowLeftRight,
+  Armchair,
   Check,
-  X,
+  Disc3,
+  Gamepad2,
+  Headphones,
   Loader2,
-  Truck,
+  Monitor,
   Package,
+  Truck,
+  X,
   AlertCircle,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { timeAgo, getInitials } from "@/lib/utils";
@@ -25,12 +31,13 @@ type ComparableListing = Pick<
   "title" | "images" | "condition" | "price" | "buyout_price"
 >;
 
-const categoryEmojis: Record<string, string> = {
-  Controllers: "🎮",
-  Games: "💿",
-  Accessories: "🎧",
-  Furniture: "🪑",
-  Consoles: "🖥️",
+// Category icons for image-less listings — real icons, not emoji.
+const categoryIcons: Record<string, LucideIcon> = {
+  Controllers: Gamepad2,
+  Games: Disc3,
+  Accessories: Headphones,
+  Furniture: Armchair,
+  Consoles: Monitor,
 };
 
 
@@ -175,9 +182,7 @@ function ProposalCard({
   // single listing passed by the detail modal.
   const compareTarget = proposal.target_listing ?? targetListing;
   const proposer = proposal.proposer;
-  const emoji = offered
-    ? categoryEmojis[offered.category] || "📦"
-    : "📦";
+  const CategoryIcon = (offered && categoryIcons[offered.category]) || Package;
   const hasImage = offered?.images && offered.images.length > 0;
 
   const isPending = proposal.status === "pending";
@@ -200,7 +205,7 @@ function ProposalCard({
               className="w-full h-full object-cover"
             />
           ) : (
-            <span className="text-2xl">{emoji}</span>
+            <CategoryIcon size={22} className="text-text-muted" aria-hidden="true" />
           )}
         </div>
         <div className="flex-1 min-w-0">

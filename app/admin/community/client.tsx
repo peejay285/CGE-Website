@@ -223,7 +223,7 @@ export function CommunityModerationClient({
         {/* ── Reports ── */}
         {tab === "reports" &&
           (reportGroups.length === 0 ? (
-            <div className="text-center py-12 text-sm text-text-muted">No pending reports. 🎉</div>
+            <div className="text-center py-12 text-sm text-text-muted">No pending reports.</div>
           ) : (
             <div className="space-y-3">
               {reportGroups.map((g) => {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Lock} from "lucide-react";
 import toast from "react-hot-toast";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConversationList } from "@/components/messages/conversation-list";
@@ -104,7 +104,7 @@ export default function MessagesPage() {
     return (
       <div className="min-h-screen bg-base flex items-center justify-center">
         <EmptyState
-          icon="🔒"
+          icon={Lock}
           title="Sign in to view messages"
           subtitle="You need to be signed in to chat with other gamers"
           action={{
@@ -174,7 +174,7 @@ export default function MessagesPage() {
             ) : (
               <div className="flex items-center justify-center h-full">
                 <EmptyState
-                  icon="💬"
+                  icon={MessageCircle}
                   title="Select a conversation"
                   subtitle="Choose a conversation from the list to start chatting"
                 />

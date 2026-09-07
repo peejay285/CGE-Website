@@ -1,12 +1,11 @@
 "use client";
 
 import { memo } from "react";
-import { AlertTriangle, Calendar, Clock, Users } from "lucide-react";
+import { AlertTriangle, Calendar, Clock, Gamepad2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { cn, formatPrice } from "@/lib/utils";
 import {
-  getGameEmoji,
   STATUS_CONFIG,
   getFilledCount,
   getPayoutDistribution,
@@ -36,7 +35,6 @@ export const TournamentCard = memo(function TournamentCard({
   isHost,
   style,
 }: TournamentCardProps) {
-  const emoji = getGameEmoji(tournament.game);
   // A tournament whose date has passed but was never closed out shouldn't
   // keep advertising itself as "Open" — display it as ended.
   const status =
@@ -112,7 +110,12 @@ export const TournamentCard = memo(function TournamentCard({
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
-        <span className="text-4xl" aria-hidden="true">{emoji}</span>
+        <span
+          aria-hidden="true"
+          className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan/20 bg-cyan/10 text-cyan"
+        >
+          <Gamepad2 size={22} />
+        </span>
         <div className="flex flex-col items-end gap-1.5">
           <Badge color={status.color}>{status.label}</Badge>
           {organizer && (

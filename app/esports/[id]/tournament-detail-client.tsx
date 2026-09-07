@@ -26,7 +26,6 @@ import { useTeams } from "@/hooks/use-teams";
 import { useTournamentMatches } from "@/hooks/use-tournament-matches";
 import { useAuth } from "@/hooks/use-auth";
 import {
-  getGameEmoji,
   STATUS_CONFIG,
   getCountdown,
   getFilledCount,
@@ -268,7 +267,7 @@ export default function TournamentDetailClient({
     if (!tournament) return;
     if (!user) {
       window.dispatchEvent(new CustomEvent("open-auth-modal"));
-      toast("Sign in to register for tournaments", { icon: "🔒" });
+      toast("Sign in to register for tournaments");
       return;
     }
 
@@ -354,7 +353,7 @@ export default function TournamentDetailClient({
   const attemptRegister = useCallback(() => {
     if (!user) {
       window.dispatchEvent(new CustomEvent("open-auth-modal"));
-      toast("Sign in to register for tournaments", { icon: "🔒" });
+      toast("Sign in to register for tournaments");
       return;
     }
     if (shouldWarnUnverified) {
@@ -591,7 +590,9 @@ export default function TournamentDetailClient({
     return (
       <div className="min-h-screen px-4 py-8 md:px-6 lg:px-8 max-w-2xl mx-auto">
         <div className="text-center py-20">
-          <span className="text-6xl mb-4 block">{"🏆"}</span>
+          <span className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-surface-alt text-text-muted">
+            <Trophy size={28} aria-hidden="true" />
+          </span>
           <h2 className="text-xl font-bold font-heading text-text mb-2">Tournament not found</h2>
           <p className="text-sm text-text-muted mb-6">This tournament may have been removed or doesn&apos;t exist.</p>
           <Link
@@ -606,7 +607,6 @@ export default function TournamentDetailClient({
     );
   }
 
-  const emoji = getGameEmoji(tournament.game);
   const status = STATUS_CONFIG[tournament.status];
 
   const rules = tournament.rules
@@ -629,7 +629,12 @@ export default function TournamentDetailClient({
       <div className="rounded-xl border border-border bg-surface p-6 md:p-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <span className="text-6xl">{emoji}</span>
+          <span
+            aria-hidden="true"
+            className="flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan/20 bg-cyan/10 text-cyan"
+          >
+            <Gamepad2 size={30} />
+          </span>
           <div className="flex-1 min-w-0">
             <p className="text-xs text-text-muted uppercase tracking-widest mb-1">{tournament.game}</p>
             <h1 className="text-2xl md:text-3xl font-bold font-heading tracking-tight text-text">
@@ -872,15 +877,21 @@ export default function TournamentDetailClient({
                       entry.place === 1 ? "border-gold/20" : "border-border"
                     )}
                   >
-                    <p className="text-lg mb-1">
-                      {entry.place === 1
-                        ? "🥇"
-                        : entry.place === 2
-                          ? "🥈"
-                          : entry.place === 3
-                            ? "🥉"
-                            : "🏅"}
-                    </p>
+                    <span className="mb-1.5 flex justify-center">
+                      <Medal
+                        size={20}
+                        aria-hidden="true"
+                        className={
+                          entry.place === 1
+                            ? "text-gold"
+                            : entry.place === 2
+                              ? "text-[#C0C4CC]"
+                              : entry.place === 3
+                                ? "text-[#CD7F32]"
+                                : "text-text-muted"
+                        }
+                      />
+                    </span>
                     <p className="text-[10px] uppercase tracking-widest text-text-muted mb-0.5">
                       {entry.label ??
                         `${entry.place}${
@@ -1042,7 +1053,7 @@ export default function TournamentDetailClient({
                   )}
                 >
                   {entryPoll.status === "confirmed"
-                    ? "Payment confirmed — you're in! 🎉"
+                    ? "Payment confirmed — you're in!"
                     : entryPoll.status === "polling"
                       ? "Confirming your payment with Paystack… usually under a minute. Keep this page open."
                       : "Still confirming your payment — your slot is safe and this page updates automatically. Taking more than a few minutes? Message us on WhatsApp."}

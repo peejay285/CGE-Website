@@ -361,7 +361,7 @@ export function useMarketplacePage() {
     (action: () => void) => {
       if (!user) {
         window.dispatchEvent(new CustomEvent("open-auth-modal"));
-        toast("Sign in to continue", { icon: "🔒" });
+        toast("Sign in to continue");
         return;
       }
       action();
@@ -374,7 +374,7 @@ export function useMarketplacePage() {
   const handleOpenCreateListing = useCallback(() => {
     if (!user) {
       window.dispatchEvent(new CustomEvent("open-auth-modal"));
-      toast("Sign in to create a listing", { icon: "🔒" });
+      toast("Sign in to create a listing");
       return;
     }
     if (!betaLoading && !betaApproved) {
@@ -390,7 +390,7 @@ export function useMarketplacePage() {
     async (listingId: string) => {
       if (!user) {
         window.dispatchEvent(new CustomEvent("open-auth-modal"));
-        toast("Sign in to save listings", { icon: "🔒" });
+        toast("Sign in to save listings");
         return;
       }
 
@@ -481,7 +481,7 @@ export function useMarketplacePage() {
     }) => {
       if (!user) {
         window.dispatchEvent(new CustomEvent("open-auth-modal"));
-        toast("Sign in to create a listing", { icon: "🔒" });
+        toast("Sign in to create a listing");
         return;
       }
 
@@ -569,12 +569,12 @@ export function useMarketplacePage() {
     (listing: MarketplaceListing) => {
       if (!user) {
         window.dispatchEvent(new CustomEvent("open-auth-modal"));
-        toast("Sign in to message the seller", { icon: "🔒" });
+        toast("Sign in to message the seller");
         return;
       }
 
       if (listing.user_id === user.id) {
-        toast("You can't message yourself", { icon: "😅" });
+        toast("You can't message yourself");
         return;
       }
 
@@ -592,12 +592,12 @@ export function useMarketplacePage() {
     async (listing: MarketplaceListing) => {
       if (!user) {
         window.dispatchEvent(new CustomEvent("open-auth-modal"));
-        toast("Sign in to propose a swap", { icon: "🔒" });
+        toast("Sign in to propose a swap");
         return;
       }
 
       if (listing.user_id === user.id) {
-        toast("You can't swap with yourself", { icon: "😅" });
+        toast("You can't swap with yourself");
         return;
       }
 
@@ -843,7 +843,7 @@ export function useMarketplacePage() {
           `We'll notify you when "${searchQuery.trim()}" listings appear!`
         );
       } else {
-        toast("This search is already saved", { icon: "🔔" });
+        toast("This search is already saved");
       }
     },
     []

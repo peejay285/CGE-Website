@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Plus, ArrowUpDown, ArrowLeftRight, MapPin, Loader2 } from "lucide-react";
+import { Plus, ArrowUpDown, ArrowLeftRight, MapPin, Loader2, AlertTriangle, Repeat, Search} from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { ListingFilters } from "@/components/marketplace/listing-filters";
@@ -196,7 +196,7 @@ export default function MarketplacePage() {
         ) : mp.error ? (
           <div className="mt-12">
             <EmptyState
-              icon="⚠️"
+              icon={AlertTriangle}
               title="Couldn't load listings"
               subtitle="Something went wrong while fetching the marketplace. Check your connection and try again."
               action={{ label: "Retry", onClick: mp.handleRetryListings }}
@@ -224,7 +224,7 @@ export default function MarketplacePage() {
             <EmptyState
               icon={
                 mp.listingTypeFilter === "saved" ? "❤️"
-                  : mp.listingTypeFilter === "swap" ? "🔄" : "🔍"
+                  : mp.listingTypeFilter === "swap" ? Repeat : Search
               }
               title={
                 mp.listingTypeFilter === "saved" ? "No saved listings yet"
@@ -249,7 +249,7 @@ export default function MarketplacePage() {
                   onClick={() => mp.handleSaveSearch(mp.search, mp.category)}
                   className="text-xs text-cyan hover:text-cyan/80 transition-colors cursor-pointer flex items-center gap-1.5"
                 >
-                  🔔 Save this search &amp; get notified
+                  Save this search &amp; get notified
                 </button>
               </div>
             )}

@@ -1,7 +1,16 @@
+import { Crown, Gamepad2, Glasses } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { PRICING, ZONES } from "@/lib/constants";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
+
+// Zone icons — real line icons, matching the zone selector on /lounge.
+const ZONE_ICONS: Record<string, LucideIcon> = {
+  main: Gamepad2,
+  vip: Crown,
+  vr: Glasses,
+};
 
 interface PriceRow {
   readonly game: string;
@@ -43,7 +52,20 @@ export function ZoneComparison() {
             )}
 
             {/* Icon */}
-            <span className="text-5xl mb-4 block">{zone.icon}</span>
+            <span
+              aria-hidden="true"
+              className={
+                "mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border " +
+                (isVip
+                  ? "border-gold/25 bg-gold/10 text-gold"
+                  : "border-cyan/20 bg-cyan/10 text-cyan")
+              }
+            >
+              {(() => {
+                const ZoneIcon = ZONE_ICONS[zone.id] ?? Gamepad2;
+                return <ZoneIcon size={26} />;
+              })()}
+            </span>
 
             {/* Name */}
             <h3 className="font-heading text-xl font-bold text-text tracking-wide mb-2">

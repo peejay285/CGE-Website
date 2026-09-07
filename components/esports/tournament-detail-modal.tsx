@@ -13,7 +13,6 @@ import { UnverifiedOrganizerDialog } from "@/components/esports/unverified-organ
 import { PredictionPanel } from "@/components/esports/prediction-panel";
 import { cn, formatPrice, sanitizeUrl } from "@/lib/utils";
 import {
-  getGameEmoji,
   STATUS_CONFIG,
   getFilledCount,
   getPayoutDistribution,
@@ -128,7 +127,6 @@ export function TournamentDetailModal({
 
   if (!tournament) return null;
 
-  const emoji = getGameEmoji(tournament.game);
   const status = STATUS_CONFIG[tournament.status];
   const isFull = tournament.status === "full";
   const isTeamEvent = Number(tournament.team_size ?? 1) > 1;
@@ -355,7 +353,12 @@ export function TournamentDetailModal({
     <div className="pb-36 sm:pb-0">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <span className="text-5xl">{emoji}</span>
+        <span
+          aria-hidden="true"
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-cyan/20 bg-cyan/10 text-cyan"
+        >
+          <Gamepad2 size={26} />
+        </span>
         <div className="flex-1 min-w-0">
           <p className="text-xs text-text-muted uppercase tracking-widest mb-1">{tournament.game}</p>
           <h3 className="text-xl font-bold font-heading tracking-tight text-text">

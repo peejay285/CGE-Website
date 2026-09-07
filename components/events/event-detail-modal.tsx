@@ -1,6 +1,7 @@
 "use client";
 
-import { Calendar, Clock, MapPin, Users, Ticket, Loader2 } from "lucide-react";
+import { Cake, Calendar, Clock, Glasses, Loader2, MapPin, PartyPopper, Sparkles, Ticket, Users } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,11 +26,11 @@ const typeBadgeColor: Record<Event["type"], "magenta" | "gold" | "cyan" | "green
   Package: "green",
 };
 
-const typeEmoji: Record<Event["type"], string> = {
-  Party: "\uD83C\uDF89",
-  Special: "\uD83D\uDC9C",
-  Demo: "\uD83E\uDD7D",
-  Package: "\uD83C\uDF82",
+const typeIcon: Record<Event["type"], LucideIcon> = {
+  Party: PartyPopper,
+  Special: Sparkles,
+  Demo: Glasses,
+  Package: Cake,
 };
 
 export function EventDetailModal({ event, open, onClose, onRegister, onUnregister, registerLoading, isRegistered, isPast }: EventDetailModalProps) {
@@ -40,9 +41,14 @@ export function EventDetailModal({ event, open, onClose, onRegister, onUnregiste
 
   return (
     <Modal open={open} onClose={onClose} width="lg">
-      {/* Emoji header */}
+      {/* Icon header */}
       <div className="flex flex-col items-center text-center mb-6">
-        <span className="text-6xl mb-4">{typeEmoji[event.type]}</span>
+        <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan/20 bg-cyan/10 text-cyan">
+          {(() => {
+            const TypeIcon = typeIcon[event.type];
+            return <TypeIcon size={30} aria-hidden="true" />;
+          })()}
+        </span>
         <Badge color={typeBadgeColor[event.type]} size="md" className="mb-3">
           {event.type}
         </Badge>

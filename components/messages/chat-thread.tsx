@@ -7,8 +7,7 @@ import {
   ExternalLink,
   MoreVertical,
   Flag,
-  Ban,
-} from "lucide-react";
+  Ban, Package} from "lucide-react";
 import { MessageBubble } from "@/components/messages/message-bubble";
 import { MessageInput } from "@/components/messages/message-input";
 import { ReportModal } from "@/components/safety/report-modal";
@@ -199,7 +198,7 @@ export function ChatThread({
               />
             ) : (
               <div className="w-12 h-12 rounded-md bg-surface flex items-center justify-center text-lg shrink-0">
-                📦
+                <Package size={18} className="text-text-muted" aria-hidden="true" />
               </div>
             )}
             <div className="flex-1 min-w-0">
