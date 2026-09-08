@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const VARIANTS = [
+  { label: "Doors", href: "/preview/landing" },
   { label: "A", href: "/preview/home-a" },
   { label: "B", href: "/preview/home-b" },
   { label: "C", href: "/preview/home-c" },
