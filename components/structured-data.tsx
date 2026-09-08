@@ -47,8 +47,7 @@ export function StructuredData() {
     image: `${siteUrl}/cge-logo.png`,
     sameAs: [
       "https://instagram.com/cge_lounge",
-      "https://x.com/caborsgaming",
-      "https://tiktok.com/@caborsgaming",
+      "https://tiktok.com/@cgelounge",
     ],
   };
 
